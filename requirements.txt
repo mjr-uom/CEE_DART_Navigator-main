@@ -2,7 +2,6 @@ streamlit
 pandas
 altair
 networkx
-numpy 
 os
 importlib
 peeves
