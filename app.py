@@ -40,6 +40,7 @@ if 'keywords' not in st.session_state:
 if 'lrp_df' not in st.session_state:
     st.session_state['lrp_df'] = pd.DataFrame([])
 
+st.set_page_config(layout="wide")
 
 def save_my_uploaded_file(path, uploaded_file):
     repository_folder = path
@@ -63,7 +64,7 @@ def plot_my_graph(container, graph):
     node_color_mapper = {'exp': 'gray', 'mut': 'red', 'amp': 'orange', 'del': 'green', 'fus': 'blue'}
     fg.plot_graph(graph, node_color_mapper)
     visor = Network(
-        height='600px',
+        height='900px',
         width='100%',
         bgcolor='#FFFFFF',
         font_color='black'
@@ -78,7 +79,7 @@ def plot_my_graph(container, graph):
             node["color"] = node_color_mapper[node["id"].split('_')[1]]
             node["title"] = node["label"]
             node["title"] += " Neighbors:"
-            for i, item in enumerate(neighbor_map[node["id"]]):
+            for _, item in enumerate(neighbor_map[node["id"]]):
                 node["title"] += "\n" + item.split('_')[0]
                 node["value"] = len(neighbor_map[node["id"]])
 
@@ -122,7 +123,7 @@ def plot_my_graph(container, graph):
         unsafe_allow_html=True)
 
     with container:
-        subCol1, subCol2 = st.columns([7, 1])
+        subCol1, subCol2 = st.columns([4, 1])
         with subCol1:
             components.html(HtmlFile.read(), height=620, scrolling=True)
             with subCol2:
@@ -189,6 +190,7 @@ if __name__ == '__main__':
                     node_selection_form.success('{0} graphs have been generated.'.format(len(G_dict)))
 
 if st.session_state['second_form_completed']:
+    Col1, Col2 = st.columns(2)
     sampleIDs = []
     for i in range(len(st.session_state['G_dict'])):
         sampleIDs.append(st.session_state['G_dict'][i].sample_ID)
@@ -201,7 +203,7 @@ if st.session_state['second_form_completed']:
         st.session_state["selected_gId"] = st.session_state.new_gId
 
 
-    st.session_state["selected_gId"] = st.selectbox("Please select the sample you want to see:",
+    st.session_state["selected_gId"] = Col1.selectbox("Please select the sample you want to see:",
                                                     sampleIDs,
                                                     index=None,
                                                     help="Choose from the available graphs listed below.",
@@ -213,14 +215,13 @@ if st.session_state['second_form_completed']:
     if st.session_state["selected_gId"]:
         print("You selected index: {0}".format(sampleIDs.index(st.session_state["selected_gId"])))
         G = st.session_state['G_dict'][sampleIDs.index(st.session_state["selected_gId"])]
-        container_main = st.container(border=False)
-        plot_my_graph(container_main, G)
-
         embeddings_df = fg.extract_raveled_fixed_size_embedding_all_graphs(st.session_state['G_dict'])
         sorted_distance_df = fg.compute_sorted_distances(embeddings_df, G.sample_ID)
         top_n_similar = 3
+        container_main = Col1.container(border=False)
+        plot_my_graph(container_main, G)
         # Display the modified text
-        container_main.title("{0} most similar graphs.".format(top_n_similar))
+        #container_main.title("{0} most similar graphs.".format(top_n_similar))
         # Get the top n most similar samples
         top_n_samples = sorted_distance_df.head(top_n_similar + 1)
         for i in range(top_n_similar + 1):
@@ -228,5 +229,6 @@ if st.session_state['second_form_completed']:
                 continue
             sample_ID = top_n_samples.iloc[i, 0]
             G = next(G for G in st.session_state['G_dict'].values() if G.sample_ID == sample_ID)
-            container_topn = st.container(border=False)
+            container_topn = Col2.container(border=False)
             plot_my_graph(container_topn, G)
+
