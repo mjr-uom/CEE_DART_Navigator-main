@@ -1,1 +1,73 @@
-
+<!DOCTYPE html>
+<html lang="en">
+      <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>Legend Table</title>
+                         <style>
+                                            body {
+                                               margin: 0; /* Remove default margin */
+                                              padding: 10px; /* Add padding inside the border */
+                                               border: 1px solid lightgray; /* Border around the entire page */
+                                          font-family: Arial, sans-serif;
+                                                 }
+                                            .legend-title {
+                                                    font-size: 16px;
+                                                  font-weight: bold;
+                                                margin-bottom: 10px;
+                                                   text-align: center;
+                                                      display: block;
+                                                  margin-left: auto;
+                                                 margin-right: auto;
+                                                         }
+                                            .legend-table {
+                                                        width: auto;
+                                              border-collapse: collapse;
+                                                       margin: 10px;
+                                                            }
+                                            .legend-table td {
+                                                      padding: 8px 15px;
+                                                  font-family: Arial, sans-serif;
+                                                    font-size: 14px;
+                                                            }
+                                            .circle {
+                                                        width: 15px;
+                                                        height: 15px;
+                                                 border-radius: 50%;
+                                                       display: inline-block;
+                                                    }
+                                            .gray { background-color: gray; }
+                                            .red { background-color: red; }
+                                            .orange { background-color: orange; }
+                                            .green { background-color: green; }
+                                            .blue { background-color: blue; }
+                         </style>
+      </head>
+      <body>
+                      <div class="legend-container">
+                       <div class="legend-title">Nodes</div>
+                        <table class="legend-table">
+                                <tr>
+                                            <td><span class="circle gray"></span></td>
+                                            <td>exp</td>
+                                </tr>
+                                <tr>
+                                            <td><span class="circle red"></span></td>
+                                            <td>mut</td>
+                                </tr>
+                                <tr>
+                                            <td><span class="circle orange"></span></td>
+                                            <td>amp</td>
+                                </tr>
+                                <tr>
+                                            <td><span class="circle green"></span></td>
+                                            <td>del</td>
+                                </tr>
+                                <tr>
+                                            <td><span class="circle blue"></span></td>
+                                            <td>fus</td>
+                                </tr>
+                        </table>
+                     </div>
+      </body>
+</html>
