@@ -14,93 +14,169 @@ if path_to_functions_directory not in sys.path:
     sys.path.append(path_to_functions_directory)
 
 import dataloaders as dtl
+
 importlib.reload(dtl)
 
 import functions_graphs as fg
+
 importlib.reload(fg)
 
 import LRPGraph_code as lrpgraph
+
 importlib.reload(lrpgraph)
 
 if 'first_form_completed' not in st.session_state:
-   st.session_state['first_form_completed'] = False
+    st.session_state['first_form_completed'] = False
 
 if 'second_form_completed' not in st.session_state:
-   st.session_state['second_form_completed'] = False
+    st.session_state['second_form_completed'] = False
 
 if 'G_dict' not in st.session_state:
-   st.session_state['G_dict'] = {}
+    st.session_state['G_dict'] = {}
 
-st.set_page_config(
-    page_title="LPR Dashboard",
-    page_icon="፨",
-    layout="wide",
-    initial_sidebar_state="expanded")
+if 'keywords' not in st.session_state:
+    st.session_state['keywords'] = list()
 
-alt.theme.enable("dark")
-lrp_df = pd.DataFrame([])
+if 'lrp_df' not in st.session_state:
+    st.session_state['lrp_df'] = pd.DataFrame([])
 
-with st.sidebar:
-    st.title('፨ LPR Dashboard')
-    holder_LRP = st.empty()
-    path_to_LRP_data = holder_LRP.file_uploader("Upload data LPR")
+
+def save_my_uploaded_file(path, uploaded_file):
+    repository_folder = path
+    save_path = os.path.join(repository_folder, uploaded_file.name)
+    with open(save_path, mode='wb') as w:
+        w.write(uploaded_file.getvalue())
+    return save_path
+
+
+def find_my_keywords(lrp_df):
+    option_tmp = []
+    for opr_element in lrp_df.columns:
+        tmp_ele = opr_element.split("-")[1].split("_")[0].strip()
+        option_tmp.append(tmp_ele)
+
+    keywords = list(dict.fromkeys(option_tmp))
+    keywords.sort()
+    return keywords
+
+def plot_my_graph(container, graph):
+    node_color_mapper = {'exp': 'gray', 'mut': 'red', 'amp': 'orange', 'del': 'green', 'fus': 'blue'}
+    fg.plot_graph(graph, node_color_mapper)
+    visor = Network(
+        height='600px',
+        width='100%',
+        bgcolor='#FFFFFF',
+        font_color='black'
+    )
+    visor.from_nx(graph.G)
+    neighbor_map = visor.get_adj_list()
+    for edge in visor.edges:
+        edge["title"] = 'LRP_norm: {:.4f}'.format(edge["LRP_norm"])
+        edge["color"] = "#888888"
+        for node in visor.nodes:
+            node["label"] = node["id"].split('_')[0]
+            node["color"] = node_color_mapper[node["id"].split('_')[1]]
+            node["title"] = node["label"]
+            node["title"] += " Neighbors:"
+            for i, item in enumerate(neighbor_map[node["id"]]):
+                node["title"] += "\n" + item.split('_')[0]
+                node["value"] = len(neighbor_map[node["id"]])
+
+    visor.repulsion(
+        node_distance=420,
+        central_gravity=0.33,
+        spring_length=110,
+        spring_strength=0.10,
+        damping=0.95
+    )
+    visor.show_buttons()
+
+    try:
+        path = '/tmp'
+        visor.save_graph(f'{path}/pyvis_graph_'+graph.sample_ID+'.html')
+        HtmlFile = open(f'{path}/pyvis_graph_'+graph.sample_ID+'.html', 'r', encoding='utf-8')
+
+    except:
+        path = '/html_files'
+        visor.save_graph(f'{path}/pyvis_graph_' + graph.sample_ID + '.html')
+        HtmlFile = open(f'{path}/pyvis_graph_' + graph.sample_ID + '.html', 'r', encoding='utf-8')
+
+    path = './htmls/legends.html'
+    chart_legend_css = open(path, 'r', encoding='utf-8')
+
+    style_heading = 'text-align: center'
+    css = r'''<style>
+                             body {
+                              margin: 0; /* Remove default margin */
+                             padding: 10px; /* Add padding inside the border */
+                              border: 1px solid white; /* Border around the entire page */
+                         font-family: Arial, sans-serif;
+                               }
+               </style>
+                 '''
+
+    container.markdown(css, unsafe_allow_html=True)
+    container.markdown(f"<h1 style='{style_heading}'>Sample '{graph.sample_ID}' </h1>", unsafe_allow_html=True)
+    container.markdown(
+        f"<h2 style='{style_heading}'>Graph of the top '{graph.top_n_edges}' edges with the highest LRP values </h2>",
+        unsafe_allow_html=True)
+
+    with container:
+        subCol1, subCol2 = st.columns([7, 1])
+        with subCol1:
+            components.html(HtmlFile.read(), height=620, scrolling=True)
+            with subCol2:
+                components.html(chart_legend_css.read(), height=620)
+
+
+if __name__ == '__main__':
+    st.sidebar.title('፨ LPR Dashboard')
+    uploader_placeholder = st.sidebar.empty()
+    path_to_LRP_data = uploader_placeholder.file_uploader("Upload data LPR")
+
     if path_to_LRP_data is not None:
-        save_folder = '/tmp'
-        save_path = os.path.join(save_folder, path_to_LRP_data.name)
-        with open(save_path, mode='wb') as w:
-            w.write(path_to_LRP_data.getvalue())
-        lrp_df = dtl.LRPData(file_path=save_path, delimiter=",").read_and_validate()
-        holder_LRP.empty()
-        st.info('File {0} has been analysed.'.format(path_to_LRP_data.name))
+        st.session_state['lrp_df'] = dtl.LRPData(file_path=save_my_uploaded_file('/tmp', path_to_LRP_data),
+                                                 delimiter=",").read_and_validate()
+        uploader_placeholder.empty()
+        uploader_placeholder.info('File {0} has been analysed.'.format(path_to_LRP_data.name))
 
-    holder_MD = st.empty()
-    path_to_metadata  = holder_MD.file_uploader("Upload data-meta data")
-    if path_to_metadata:
-        save_folder = '/tmp'
-        save_path = os.path.join(save_folder, path_to_metadata.name)
-        with open(save_path, mode='wb') as w:
-            w.write(path_to_metadata.getvalue())
-        metadata_df = dtl.MetaData(file_path=save_path, delimiter=",")
-        metadata_df.load_data()
-        metadata_df.match_index_with_lrp_df(lrp_df)
-        metadata_df.validate_data_indices(lrp_df)
-        holder_MD.empty()
-        st.info('File {0} has been analysed.'.format(path_to_metadata.name))
+    uploader_placeholder_md = st.sidebar.empty()
+    path_to_metadata = uploader_placeholder_md.file_uploader("Upload data-meta data")
 
-        option_tmp = []
-        for opr_element in lrp_df.columns:
-            tmp_ele = opr_element.split("-")[1].split("_")[0].strip()
-            option_tmp.append(tmp_ele)
+    if path_to_metadata is not None:
+        metadata_df = dtl.MetaData(file_path=save_my_uploaded_file('/tmp', path_to_metadata), delimiter=",")
+        uploader_placeholder_md.empty()
+        st.sidebar.info('File {0} has been analysed.'.format(path_to_metadata.name))
 
-        keywords = list(dict.fromkeys(option_tmp))
-        keywords.sort()
+    if path_to_LRP_data and path_to_metadata:
+        st.session_state['keywords'] = find_my_keywords(st.session_state['lrp_df'])
 
-        with st.form('Keywords'):
-            keywords_selected = st.multiselect("Please select your keyword: ", keywords,
-                                               placeholder="Choose a keyword.")
-            filter_button = st.form_submit_button(label='Filter')
+        keywords_form = st.sidebar.form('Keywords')
+        with (keywords_form):
+            keywords_selected = keywords_form.multiselect("Please select your keyword: ", st.session_state['keywords'],
+                                                          placeholder="Choose a keyword.")
+            filter_button = keywords_form.form_submit_button(label='Filter')
 
             if filter_button and keywords_selected:
-                filtered_df = fg.filter_columns_by_keywords(lrp_df, keywords_selected)
+                filtered_df = fg.filter_columns_by_keywords(st.session_state['lrp_df'], keywords_selected)
                 LRP_to_graphs = fg.prepare_lrp_to_graphs(filtered_df)
                 st.session_state['filtered_data'] = LRP_to_graphs
                 st.session_state['first_form_completed'] = True
-                st.success("Keywords filtered successfully! Proceed to the next step.")
+                keywords_form.success("Keywords filtered successfully! Proceed to the next step.")
 
         if st.session_state.get('first_form_completed', False):
-            with st.form('TopNSelection'):
+            node_selection_form = st.sidebar.form('TopNSelection')
+            with node_selection_form:
                 LRP_to_graphs = st.session_state.get('filtered_data')
-                top_n = st.slider(
+                top_n = node_selection_form.slider(
                     "Please select the number of top n edges",
                     min_value=1,
                     max_value=len(LRP_to_graphs.index),
                     value=len(LRP_to_graphs.index) // 2
                 )
-                submit_button = st.form_submit_button(label='Submit')
-
+                submit_button = node_selection_form.form_submit_button(label='Submit')
                 if submit_button:
                     G_dict = fg.get_all_graphs_from_lrp(LRP_to_graphs, top_n)
-
                     # Validation
                     assert len(G_dict[1].G.edges) == top_n, "Edge count mismatch."
                     fg.get_all_fixed_size_adjacency_matrices(G_dict)
@@ -110,8 +186,7 @@ with st.sidebar:
 
                     st.session_state['second_form_completed'] = True
                     st.session_state['G_dict'] = G_dict
-                    st.success('{0} graphs have been generated.'.format(len(G_dict)))
-
+                    node_selection_form.success('{0} graphs have been generated.'.format(len(G_dict)))
 
 if st.session_state['second_form_completed']:
     sampleIDs = []
@@ -121,8 +196,10 @@ if st.session_state['second_form_completed']:
     if "selected_gId" not in st.session_state:
         st.session_state['selected_gId'] = sampleIDs[0]
 
+
     def new_gid_callback():
         st.session_state["selected_gId"] = st.session_state.new_gId
+
 
     st.session_state["selected_gId"] = st.selectbox("Please select the sample you want to see:",
                                                     sampleIDs,
@@ -136,74 +213,20 @@ if st.session_state['second_form_completed']:
     if st.session_state["selected_gId"]:
         print("You selected index: {0}".format(sampleIDs.index(st.session_state["selected_gId"])))
         G = st.session_state['G_dict'][sampleIDs.index(st.session_state["selected_gId"])]
-        node_color_mapper = {'exp': 'gray', 'mut': 'red', 'amp': 'orange', 'del': 'green', 'fus': 'b'}
-        fg.plot_graph(G, node_color_mapper)
-        visor = Network(
-            height='600px',
-            width='100%',
-            bgcolor='#FFFFFF',
-            font_color='black'
-            )
-        visor.from_nx(G.G)
-        node_color_mapper = {'exp': 'gray', 'mut': 'red', 'amp': 'orange', 'del': 'green', 'fus': 'blue'}
-        neighbor_map = visor.get_adj_list()
-        degrees = np.array(list(nx.degree_centrality(G.G).values()))
-        degrees_norm = degrees / np.max(degrees)
-        widths = list(nx.get_edge_attributes(G.G, 'LRP_norm').values())
-        pos = nx.spring_layout(G.G, weight='LRP_norm')
-        edge_colors = plt.cm.Greys(widths)
-        for edge in visor.edges:
-            edge["title"] = 'LRP_norm: {:.4f}'.format(edge["LRP_norm"])
-            edge["color"] = "#888888"
-            for node in visor.nodes:
-                node["label"] = node["id"].split('_')[0]
-                node["color"] = node_color_mapper[node["id"].split('_')[1]]
-                node["title"] = node["label"]
-                node["title"] += " Neighbors:"
-                for i, item in enumerate(neighbor_map[node["id"]]):
-                    node["title"] += "\n" + item.split('_')[0]
-                    node["value"] = len(neighbor_map[node["id"]])
+        container_main = st.container(border=False)
+        plot_my_graph(container_main, G)
 
-        visor.repulsion(
-            node_distance=420,
-            central_gravity=0.33,
-            spring_length=110,
-            spring_strength=0.10,
-            damping=0.95
-        )
-
-
-        try:
-            path = '/tmp'
-            visor.save_graph(f'{path}/pyvis_graph.html')
-            HtmlFile = open(f'{path}/pyvis_graph.html', 'r', encoding='utf-8')
-
-        except:
-            path = '/html_files'
-            visor.save_graph(f'{path}/pyvis_graph.html')
-            HtmlFile = open(f'{path}/pyvis_graph.html', 'r', encoding='utf-8')
-
-
-        path = './htmls/legends.html'
-        chart_legend_css = open(path, 'r', encoding='utf-8')
-
-        style_heading = 'text-align: center'
-        css = r'''<style>
-                                 body {
-                                  margin: 0; /* Remove default margin */
-                                 padding: 10px; /* Add padding inside the border */
-                                  border: 1px solid white; /* Border around the entire page */
-                             font-family: Arial, sans-serif;
-                                   }
-                         [data-testid="stForm"] {border: 0px}
-                   </style>
-                     '''
-
-        st.markdown(css, unsafe_allow_html=True)
-        st.markdown(f"<h1 style='{style_heading}'>Sample '{G.sample_ID}' </h1>", unsafe_allow_html=True)
-        st.markdown(f"<h2 style='{style_heading}'>Graph of the top '{G.top_n_edges}' edges with the highest LRP values </h2>", unsafe_allow_html=True)
-        subCol1, subCol2 = st.columns([7, 1])
-        with subCol1:
-            components.html(HtmlFile.read(), height=620, scrolling=True)
-            with subCol2:
-                components.html(chart_legend_css.read(), height=620)
+        embeddings_df = fg.extract_raveled_fixed_size_embedding_all_graphs(st.session_state['G_dict'])
+        sorted_distance_df = fg.compute_sorted_distances(embeddings_df, G.sample_ID)
+        top_n_similar = 3
+        # Display the modified text
+        container_main.title("{0} most similar graphs.".format(top_n_similar))
+        # Get the top n most similar samples
+        top_n_samples = sorted_distance_df.head(top_n_similar + 1)
+        for i in range(top_n_similar + 1):
+            if i == 0:
+                continue
+            sample_ID = top_n_samples.iloc[i, 0]
+            G = next(G for G in st.session_state['G_dict'].values() if G.sample_ID == sample_ID)
+            container_topn = st.container(border=False)
+            plot_my_graph(container_topn, G)
