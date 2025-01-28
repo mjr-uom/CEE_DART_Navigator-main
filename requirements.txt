@@ -6,3 +6,4 @@ pyvis
 dataloaders
 pandera
 scipy
+seaborn
