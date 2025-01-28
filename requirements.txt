@@ -4,3 +4,4 @@ networkx
 matplotlib
 pyvis
 dataloaders
+pandera
