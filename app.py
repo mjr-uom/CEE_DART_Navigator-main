@@ -361,7 +361,7 @@ if st.session_state['second_form_completed']:
                                                 source_column="source_node",
                                                 target_column="target_node",
                                                 edge_attrs=["LRP", "LRP_norm"],
-                                                top_n_edges=None,
+                                                top_n_edges=st.session_state['top_n'],
                                                 sample_ID='DIFFERENCE POS vs NEG',
                                             )
                                             diff_plots_container = Col4.container(border=False)
