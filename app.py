@@ -348,7 +348,7 @@ if st.session_state['second_form_completed']:
                                                          value=1 / 2,
                                                          help="\"Threshold value.\""
                                                          )
-                                calculate_button = st.form_submit_button(label='Submit')
+                                calculate_button = st.form_submit_button(label='Calculate')
                                 if calculate_button:
                                     for adj_diff in adj_diff_list:
                                         edge_df = fg.create_edge_dataframe_from_adj_diff(adj_diff, diff_thres)
