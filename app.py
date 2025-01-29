@@ -64,7 +64,7 @@ def plot_my_graph(container, graph):
     node_color_mapper = {'exp': 'gray', 'mut': 'red', 'amp': 'orange', 'del': 'green', 'fus': 'blue'}
     fg.plot_graph(graph, node_color_mapper)
     visor = Network(
-        height='900px',
+        height='500px',
         width='100%',
         bgcolor='#FFFFFF',
         font_color='black'
@@ -190,7 +190,8 @@ if __name__ == '__main__':
                     node_selection_form.success('{0} graphs have been generated.'.format(len(G_dict)))
 
 if st.session_state['second_form_completed']:
-    Col1, Col2 = st.columns(2)
+    #Col1, Col2 = st.columns(2)
+    Col1, Col2 = st.tabs(["፨ Selected sample", "⩬ Top N similar"])
     sampleIDs = []
     for i in range(len(st.session_state['G_dict'])):
         sampleIDs.append(st.session_state['G_dict'][i].sample_ID)
@@ -231,4 +232,3 @@ if st.session_state['second_form_completed']:
             G = next(G for G in st.session_state['G_dict'].values() if G.sample_ID == sample_ID)
             container_topn = Col2.container(border=False)
             plot_my_graph(container_topn, G)
-
