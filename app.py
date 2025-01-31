@@ -6,7 +6,6 @@ import altair as alt
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-from holoviews.plotting.util import initialize_unbounded
 from pyvis.network import Network
 import os
 import importlib, sys
