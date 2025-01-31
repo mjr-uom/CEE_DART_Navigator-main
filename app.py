@@ -3,7 +3,6 @@ import streamlit.components.v1 as components
 import pandas as pd
 import seaborn as sns
 import altair as alt
-import pyautogui
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
