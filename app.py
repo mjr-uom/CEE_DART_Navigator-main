@@ -8,7 +8,6 @@ import matplotlib as mt
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
-from panel.widgets.widget import fixed
 from pyvis.network import Network
 import os
 import importlib, sys
