@@ -4,12 +4,15 @@ import pandas as pd
 import seaborn as sns
 import altair as alt
 import networkx as nx
+import matplotlib as mt
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
+from panel.widgets.widget import fixed
 from pyvis.network import Network
 import os
 import importlib, sys
-
+from htmls.dynamicLegends import generate_legend_html
 path_to_functions_directory = r'./source'
 if path_to_functions_directory not in sys.path:
     sys.path.append(path_to_functions_directory)
@@ -44,6 +47,9 @@ if 'lrp_df' not in st.session_state:
 if 'metadata_df' not in st.session_state:
     st.session_state['metadata_df'] = pd.DataFrame([])
 
+if 'frequent_kws' not in st.session_state:
+    st.session_state['frequent_kws'] = pd.DataFrame([])
+
 if 'LRP_to_graphs_stratified' not in st.session_state:
     st.session_state['LRP_to_graphs_stratified'] = pd.DataFrame([])
 
@@ -73,38 +79,83 @@ def find_my_keywords(lrp_df):
     keywords.sort()
     return keywords
 
+def create_pyvis_graph(net, G):
+    # Position nodes using a layout where edge weights affect distances
+    #pos = nx.kamada_kawai_layout(G, weight="LRP_norm")  # Kamada-Kawai considers edge weights
+    pos = nx.spring_layout(G, weight="LRP_norm", scale=1000)
+
+    for node in G.nodes():
+        x, y = pos[node]
+        #print("({:.4f} , {:.4f})".format(x, y))
+        net.add_node(node, x = x , y=y , physics=False)
+
+    for u, v, data in G.edges(data=True):
+        net.add_edge(u, v, LRP_norm=data["LRP_norm"], physics=False)
+
+    #net.set_options('''
+    #                    var options = {
+    #                                    "nodes": {
+    #                                                "fixed": {
+    #                                                            "x": true,
+    #                                                            "y": true
+    #                                                         }
+    #                                              }
+    #                                  }
+    #                ''')
+
 
 def plot_my_graph(container, graph):
     node_color_mapper = {'exp': 'gray', 'mut': 'red', 'amp': 'orange', 'del': 'green', 'fus': 'blue'}
-    fg.plot_graph(graph, node_color_mapper)
+    #fg.plot_graph(graph, node_color_mapper)
     visor = Network(
         height='500px',
         width='100%',
         bgcolor='#FFFFFF',
         font_color='black'
     )
-    visor.from_nx(graph.G)
+    #visor.from_nx(graph.G)
+    create_pyvis_graph(visor, graph.G)
     neighbor_map = visor.get_adj_list()
+    edge_dist = list(nx.get_edge_attributes(graph.G, 'LRP_norm').values())
+    norm_colour = mt.colors.Normalize(vmin=0.0, vmax=max(edge_dist), clip=True)
+    colour_mapper = (cm.ScalarMappable(norm=norm_colour, cmap=cm.Greys))
     for edge in visor.edges:
         edge["title"] = 'LRP_norm: {:.4f}'.format(edge["LRP_norm"])
-        edge["color"] = "#888888"
-        for node in visor.nodes:
-            node["label"] = node["id"].split('_')[0]
-            node["color"] = node_color_mapper[node["id"].split('_')[1]]
-            node["title"] = node["label"]
-            node["title"] += " Neighbors:"
-            for _, item in enumerate(neighbor_map[node["id"]]):
-                node["title"] += "\n" + item.split('_')[0]
-                node["value"] = len(neighbor_map[node["id"]])
+        edge["color"] = mt.colors.rgb2hex(colour_mapper.to_rgba(edge["LRP_norm"]))
+        edge["minlen"] = edge["LRP_norm"]
+        edge["value"] = edge["LRP_norm"]
 
-    visor.repulsion(
-        node_distance=420,
-        central_gravity=0.33,
-        spring_length=110,
-        spring_strength=0.10,
-        damping=0.95
-    )
-    visor.show_buttons()
+    node_type = []
+    for node in visor.nodes:
+        node["label"] = node["id"].split('_')[0]
+        node["color"] = node_color_mapper[node["id"].split('_')[1]]
+        node["title"] = node["label"]
+        node["title"] += " Neighbors:"
+        node_type.append(node["id"].split('_')[1])
+
+    for _, item in enumerate(neighbor_map[node["id"]]):
+        node["title"] += "\n" + item.split('_')[0]
+        #node["value"] = len(neighbor_map[node["id"]])
+
+    #visor.repulsion(
+    #    node_distance=420,
+    #    central_gravity=0.33,
+    #    spring_length=110,
+    #    spring_strength=0.10,
+    #    damping=0.95
+    #)
+    visor.show_buttons(filter_=['nodes','edges','physics'])
+    #visor.set_options('''
+    #                    var options = {
+    #                                    "nodes": {
+    #                                                "fixed": {
+    #                                                            "x": true,
+    #                                                            "y": true
+    #                                                         }
+    #                                              }
+    #                                  }
+    #                ''')
+
 
     try:
         path = '/tmp'
@@ -117,7 +168,7 @@ def plot_my_graph(container, graph):
         HtmlFile = open(f'{path}/pyvis_graph_' + graph.sample_ID + '.html', 'r', encoding='utf-8')
 
     path = './htmls/legends.html'
-    chart_legend_css = open(path, 'r', encoding='utf-8')
+    chart_legend_css = generate_legend_html(list(set(node_type)))
 
     style_heading = 'text-align: center'
     css = r'''<style>
@@ -141,7 +192,7 @@ def plot_my_graph(container, graph):
         with subCol1:
             components.html(HtmlFile.read(), height=620, scrolling=True)
             with subCol2:
-                components.html(chart_legend_css.read(), height=620)
+                components.html(chart_legend_css, height=620)
 
 
 def make_heatmap(input_df, input_y, input_x, input_color, input_color_theme):
@@ -161,8 +212,8 @@ def make_heatmap(input_df, input_y, input_x, input_color, input_color_theme):
     # height=300
     return heatmap
 
-def initialise_my_app():
-    pyautogui.hotkey("ctrl","F5")
+#def initialise_my_app():
+#    pyautogui.hotkey("ctrl","F5")
 
 
 if __name__ == '__main__':
@@ -185,13 +236,29 @@ if __name__ == '__main__':
         uploader_placeholder_md.empty()
         st.sidebar.info('File {0} has been analysed.'.format(path_to_metadata.name))
 
+    uploader_placeholder_kwf = st.sidebar.empty()
+    path_to_plkeywords = uploader_placeholder_kwf.file_uploader("Upload frequent keywords")
+
+    if path_to_plkeywords is not None:
+        st.session_state['frequent_kws'] = pd.read_csv(save_my_uploaded_file('/tmp', path_to_plkeywords), header=None)
+        uploader_placeholder_kwf.empty()
+        st.sidebar.info('File {0} has been analysed.'.format(path_to_plkeywords.name))
+
     if path_to_LRP_data and path_to_metadata:
         st.session_state['keywords'] = find_my_keywords(st.session_state['lrp_df'])
 
         keywords_form = st.sidebar.form('Keywords')
         with (keywords_form):
-            keywords_selected = keywords_form.multiselect("Please select your keyword: ", st.session_state['keywords'],
-                                                          placeholder="Choose a keyword.")
+
+            if st.session_state['frequent_kws'].empty:
+                keywords_selected = keywords_form.multiselect("Please select your keyword: ", st.session_state['keywords'],
+                                                              [],
+                                                              placeholder="Choose a keyword.")
+            else:
+                keywords_selected = keywords_form.multiselect("Please select your keyword: ", st.session_state['keywords'],
+                                                              st.session_state['frequent_kws'][0].tolist(),
+                                                              placeholder="Choose a keyword.")
+
             filter_button = keywords_form.form_submit_button(label='Filter')
 
             if filter_button and keywords_selected:
@@ -275,14 +342,14 @@ if st.session_state['second_form_completed']:
             top_n_samples = sorted_distance_df.head(st.session_state["top_n_similar"] + 1)
             Col2_subC_1, Col2_subC_2 = Col2.columns(2)
             for i in range(st.session_state["top_n_similar"] + 1):
-                if i == 0:
-                    continue
+                #if i == 0:
+                #    continue
                 sample_ID = top_n_samples.iloc[i, 0]
                 G = next(G for G in st.session_state['G_dict'].values() if G.sample_ID == sample_ID)
                 if i % 2:
-                    container_topn = Col2_subC_1.container(border=False)
-                else:
                     container_topn = Col2_subC_2.container(border=False)
+                else:
+                    container_topn = Col2_subC_1.container(border=False)
                 plot_my_graph(container_topn, G)
 
             stratify_by_values = st.session_state['metadata_df'].data.columns.tolist()
@@ -415,6 +482,15 @@ if st.session_state['second_form_completed']:
 
                                             # Create heatmap
                                             sb_t_col1, sb_t_col2 = Col4.columns(2)
+
+                                            for i in range(len(G_dict12)):
+                                                if not i % 2:
+                                                    container_topn = sb_t_col1.container(border=False)
+                                                else:
+                                                    container_topn = sb_t_col2.container(border=False)
+                                                G = G_dict12[i]
+                                                plot_my_graph(container_topn, G)
+
                                             with sb_t_col1:
                                                 st.subheader("All differences")
                                                 fig, ax = plt.subplots(figsize=(16, 12))
