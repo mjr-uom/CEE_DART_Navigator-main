@@ -46,6 +46,9 @@ if 'tumor_tissue_site' not in st.session_state:
 if 'ttss_selected' not in st.session_state:
     st.session_state['ttss_selected'] = list()
 
+if 'acronym' not in st.session_state:
+    st.session_state['acronym'] = list()
+
 if 'lrp_df' not in st.session_state:
     st.session_state['lrp_df'] = pd.DataFrame([])
 
@@ -58,8 +61,11 @@ if 'metadata_df' not in st.session_state:
 if 'f_tumor_tissue_site' not in st.session_state:
     st.session_state['f_tumor_tissue_site'] = pd.DataFrame([])
 
-if 'ttss_form_completed' not in st.session_state:
-    st.session_state['ttss_form_completed'] = None
+if 'f_acronym' not in st.session_state:
+    st.session_state['f_acronym'] = pd.DataFrame([])
+
+if 'filters_form_completed' not in st.session_state:
+    st.session_state['filters_form_completed'] = None
 
 if 'tts_filter_button' not in st.session_state:
     st.session_state['tts_filter_button'] = None
@@ -75,6 +81,7 @@ if 'top_n' not in st.session_state:
 
 if 'top_n_similar' not in st.session_state:
     st.session_state['top_n_similar'] = None
+
 
 st.set_page_config(layout="wide")
 
@@ -94,6 +101,9 @@ def find_my_ttss(df_ttss_org):
     tmp_lst = list(df_tmp['tumor_tissue_site'].unique())
     tmp_lst.sort()
     return tmp_lst
+
+def find_my_metadata_catalog(col_name):
+    return list(set(st.session_state['metadata_df'].data[col_name].tolist()))
 
 def find_my_keywords(lrp_df):
     option_tmp = []
@@ -245,6 +255,27 @@ def make_heatmap(input_df, input_y, input_x, input_color, input_color_theme):
 #def initialise_my_app():
 #    pyautogui.hotkey("ctrl","F5")
 
+def create_multiselect(catalog_name: str, values: list, container: object):
+    with container:
+        selected_values = st.multiselect("Please select \"" + catalog_name + "\" : ",
+            values,
+        )
+
+    return selected_values
+
+def get_column_values(mdo):
+    result = {}
+    df = mdo.data
+
+    for column in df.columns:
+        if column != 'bcr_patient_barcode':
+            unique_values = df[column].dropna().unique().tolist()
+            unique_values = [value for value in unique_values if value != '' and not str(value).startswith('Unnamed')]
+            unique_values.sort()
+            if unique_values:  # Only include columns with non-empty values
+                result[column] = unique_values
+
+    return result
 
 if __name__ == '__main__':
     st.sidebar.title('፨ LPR Dashboard')
@@ -266,51 +297,37 @@ if __name__ == '__main__':
         uploader_placeholder_md.empty()
         st.sidebar.info('File {0} has been analysed.'.format(path_to_metadata.name))
 
-    uploader_placeholder_tts = st.sidebar.empty()
-    path_to_ttss = uploader_placeholder_tts.file_uploader("Upload frequent tumor tissue sites")
-
-    if path_to_ttss is not None:
-        st.session_state['f_tumor_tissue_site'] = pd.read_csv(save_my_uploaded_file('/tmp', path_to_ttss), header=None)
-        uploader_placeholder_tts.empty()
-        st.sidebar.info('File {0} has been analysed.'.format(path_to_ttss.name))
+#### Filters
 
     if path_to_LRP_data and path_to_metadata:
-        st.session_state['tumor_tissue_site'] = find_my_ttss(st.session_state['metadata_df'])
+        filter_catalog = get_column_values(st.session_state['metadata_df'])
 
-        ttss_form = st.sidebar.form('TTSS')
-        with (ttss_form):
+        filters_form = st.sidebar.form('filters')
+        with (filters_form):
+            filters = {}
+            for key, values in filter_catalog.items():
+                filters[key] =  create_multiselect(key, values, filters_form)
 
-            if st.session_state['f_tumor_tissue_site'].empty:
-                st.session_state['ttss_selected'] = ttss_form.multiselect("Please select your tumor tissue sites: ", st.session_state['tumor_tissue_site'],
-                                                                          [],
-                                                                          placeholder="Choose a site.")
-            else:
-                st.session_state['ttss_selected'] = ttss_form.multiselect("Please select your tumor tissue sites: ", st.session_state['tumor_tissue_site'],
-                                                                          st.session_state['f_tumor_tissue_site'][0].tolist(),
-                                                                          placeholder="Choose a site.")
+            sm_button = filters_form.form_submit_button(label='Filter')
 
-            st.session_state['tts_filter_button'] = ttss_form.form_submit_button(label='TTS Filter')
+            if sm_button:
+                desired_barcodes = st.session_state['metadata_df'].data
+                for filter, values in filters.items():
+                    if len(values) > 0:
+                        filter_query = filter + ' == [ ' +  ', '.join(f'"{i}"' for i in values) + ' ]'
+                        desired_barcodes = desired_barcodes.query(filter_query)
 
-            if st.session_state['tts_filter_button'] and st.session_state['ttss_selected']:
-                df = st.session_state['metadata_df'].data.reset_index()
-                col_name = list(df.columns)
-                col_name.remove('tumor_tissue_site')
-                df = df.set_index(col_name).tumor_tissue_site.str.get_dummies(sep='|').stack().reset_index()
-                df = df[df[0] != 0]
-                df = df.drop(0, axis=1)
-                df = df.rename({i: "tumor_tissue_site" for i in df.columns if i not in col_name}, axis="columns")
-                filtered_tts_query = 'tumor_tissue_site == [ ' + ', '.join(f'"{i}"' for i in st.session_state['ttss_selected']) + ' ]'
-                df2 = df.query(filtered_tts_query)
-                valid_bc = list(set(df2['bcr_patient_barcode'].tolist()))
+                valid_bc = list(set(desired_barcodes.index.tolist()))
                 st.session_state['filtered_tts_lrp_df'] = st.session_state['lrp_df'].filter(items=valid_bc, axis=0)
                 if st.session_state['filtered_tts_lrp_df'].empty:
-                    ttss_form.warning("The selection criteria you have chosen are not yielding any results. Please select alternative values.")
+                    sm_button = False
+                    filters_form.warning("The selection criteria you have chosen are not yielding any results. Please select alternative values.")
                 else:
-                    ttss_form.success("Tumor tissue sites filtered successfully! Proceed to the next step.")
-                    st.session_state['ttss_form_completed'] = True
+                    filters_form.success("The selection criteria you have chosen are filtered successfully! Proceed to the next step.")
+                    st.session_state['filters_form_completed'] = True
 
 #### Keywords
-if st.session_state.get('ttss_form_completed', False):
+if st.session_state.get('filters_form_completed', False):
     uploader_placeholder_kwf = st.sidebar.empty()
     path_to_plkeywords = uploader_placeholder_kwf.file_uploader("Upload frequent keywords")
 
