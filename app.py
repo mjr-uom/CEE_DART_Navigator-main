@@ -139,7 +139,8 @@ def plot_my_graph(container, graph):
         bgcolor='#FFFFFF',
         font_color='black',
         select_menu=True,
-        cdn_resources='remote'
+        cdn_resources='remote',
+        filter_menu=True,
     )
     #visor.from_nx(graph.G)
     create_pyvis_graph(visor, graph.G)
@@ -156,6 +157,7 @@ def plot_my_graph(container, graph):
     node_type = []
     for node in visor.nodes:
         node["label"] = node["id"].split('_')[0]
+        node["_type"] = node["id"].split('_')[1]
         node["color"] = node_color_mapper[node["id"].split('_')[1]]
         node["title"] = node["label"]
         node["title"] += " Neighbors:"
@@ -290,7 +292,6 @@ if __name__ == '__main__':
             st.session_state['tts_filter_button'] = ttss_form.form_submit_button(label='TTS Filter')
 
             if st.session_state['tts_filter_button'] and st.session_state['ttss_selected']:
-                print("here < --------------")
                 df = st.session_state['metadata_df'].data.reset_index()
                 col_name = list(df.columns)
                 col_name.remove('tumor_tissue_site')
@@ -320,14 +321,11 @@ if st.session_state.get('ttss_form_completed', False):
 
     if path_to_LRP_data and path_to_metadata:
         if st.session_state['filtered_tts_lrp_df'].empty:
-            print("here 2")
             st.session_state['keywords'] = find_my_keywords(st.session_state['lrp_df'])
         else:
             st.session_state['keywords'] = find_my_keywords(st.session_state['filtered_tts_lrp_df'])
 
         keywords_form = st.sidebar.form('Keywords')
-        print(st.session_state['keywords'])
-        print(st.session_state['frequent_kws'])
         with (keywords_form):
             if st.session_state['frequent_kws'].empty:
                 keywords_selected = keywords_form.multiselect("Please select your keyword: ",
@@ -340,20 +338,19 @@ if st.session_state.get('ttss_form_completed', False):
                                                               st.session_state['frequent_kws'][0].tolist(),
                                                               placeholder="Choose a keyword.")
 
-            print(keywords_selected)
+
             filter_button = keywords_form.form_submit_button(label='Filter')
             if filter_button and keywords_selected:
-                print("here 3")
                 filtered_df = fg.filter_columns_by_keywords(st.session_state['lrp_df'],
                                                             keywords_selected)
                 LRP_to_graphs = fg.prepare_lrp_to_graphs(filtered_df)
                 st.session_state['filtered_data'] = LRP_to_graphs
                 st.session_state['first_form_completed'] = True
+                uploader_placeholder_kwf.empty()
                 keywords_form.success("Keywords filtered successfully! Proceed to the next step.")
 
 ################
 if st.session_state.get('first_form_completed', False):
-    print("here")
     node_selection_form = st.sidebar.form('TopNSelection')
     with node_selection_form:
         LRP_to_graphs = st.session_state.get('filtered_data')
