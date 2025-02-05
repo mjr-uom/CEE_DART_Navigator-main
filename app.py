@@ -40,11 +40,29 @@ if 'G_dict' not in st.session_state:
 if 'keywords' not in st.session_state:
     st.session_state['keywords'] = list()
 
+if 'tumor_tissue_site' not in st.session_state:
+    st.session_state['tumor_tissue_site'] = list()
+
+if 'ttss_selected' not in st.session_state:
+    st.session_state['ttss_selected'] = list()
+
 if 'lrp_df' not in st.session_state:
     st.session_state['lrp_df'] = pd.DataFrame([])
 
+if 'filtered_tts_lrp_df' not in st.session_state:
+    st.session_state['filtered_tts_lrp_df'] = pd.DataFrame([])
+
 if 'metadata_df' not in st.session_state:
     st.session_state['metadata_df'] = pd.DataFrame([])
+
+if 'f_tumor_tissue_site' not in st.session_state:
+    st.session_state['f_tumor_tissue_site'] = pd.DataFrame([])
+
+if 'ttss_form_completed' not in st.session_state:
+    st.session_state['ttss_form_completed'] = None
+
+if 'tts_filter_button' not in st.session_state:
+    st.session_state['tts_filter_button'] = None
 
 if 'frequent_kws' not in st.session_state:
     st.session_state['frequent_kws'] = pd.DataFrame([])
@@ -67,6 +85,15 @@ def save_my_uploaded_file(path, uploaded_file):
         w.write(uploaded_file.getvalue())
     return save_path
 
+def find_my_ttss(df_ttss_org):
+    df_ttss = df_ttss_org.data
+    col_name = list(df_ttss.columns)
+    col_name.remove('tumor_tissue_site')
+    df_tmp = df_ttss.set_index(col_name).tumor_tissue_site.str.get_dummies(sep='|').stack().reset_index().loc[lambda x: x[0] != 0].drop(0, axis=1)
+    df_tmp = df_tmp.rename({i: "tumor_tissue_site" for i in df_tmp.columns if i not in col_name}, axis="columns")
+    tmp_lst = list(df_tmp['tumor_tissue_site'].unique())
+    tmp_lst.sort()
+    return tmp_lst
 
 def find_my_keywords(lrp_df):
     option_tmp = []
@@ -110,7 +137,9 @@ def plot_my_graph(container, graph):
         height='500px',
         width='100%',
         bgcolor='#FFFFFF',
-        font_color='black'
+        font_color='black',
+        select_menu=True,
+        cdn_resources='remote'
     )
     #visor.from_nx(graph.G)
     create_pyvis_graph(visor, graph.G)
@@ -235,6 +264,52 @@ if __name__ == '__main__':
         uploader_placeholder_md.empty()
         st.sidebar.info('File {0} has been analysed.'.format(path_to_metadata.name))
 
+    uploader_placeholder_tts = st.sidebar.empty()
+    path_to_ttss = uploader_placeholder_tts.file_uploader("Upload frequent tumor tissue sites")
+
+    if path_to_ttss is not None:
+        st.session_state['f_tumor_tissue_site'] = pd.read_csv(save_my_uploaded_file('/tmp', path_to_ttss), header=None)
+        uploader_placeholder_tts.empty()
+        st.sidebar.info('File {0} has been analysed.'.format(path_to_ttss.name))
+
+    if path_to_LRP_data and path_to_metadata:
+        st.session_state['tumor_tissue_site'] = find_my_ttss(st.session_state['metadata_df'])
+
+        ttss_form = st.sidebar.form('TTSS')
+        with (ttss_form):
+
+            if st.session_state['f_tumor_tissue_site'].empty:
+                st.session_state['ttss_selected'] = ttss_form.multiselect("Please select your tumor tissue sites: ", st.session_state['tumor_tissue_site'],
+                                                                          [],
+                                                                          placeholder="Choose a site.")
+            else:
+                st.session_state['ttss_selected'] = ttss_form.multiselect("Please select your tumor tissue sites: ", st.session_state['tumor_tissue_site'],
+                                                                          st.session_state['f_tumor_tissue_site'][0].tolist(),
+                                                                          placeholder="Choose a site.")
+
+            st.session_state['tts_filter_button'] = ttss_form.form_submit_button(label='TTS Filter')
+
+            if st.session_state['tts_filter_button'] and st.session_state['ttss_selected']:
+                print("here < --------------")
+                df = st.session_state['metadata_df'].data.reset_index()
+                col_name = list(df.columns)
+                col_name.remove('tumor_tissue_site')
+                df = df.set_index(col_name).tumor_tissue_site.str.get_dummies(sep='|').stack().reset_index()
+                df = df[df[0] != 0]
+                df = df.drop(0, axis=1)
+                df = df.rename({i: "tumor_tissue_site" for i in df.columns if i not in col_name}, axis="columns")
+                filtered_tts_query = 'tumor_tissue_site == [ ' + ', '.join(f'"{i}"' for i in st.session_state['ttss_selected']) + ' ]'
+                df2 = df.query(filtered_tts_query)
+                valid_bc = list(set(df2['bcr_patient_barcode'].tolist()))
+                st.session_state['filtered_tts_lrp_df'] = st.session_state['lrp_df'].filter(items=valid_bc, axis=0)
+                if st.session_state['filtered_tts_lrp_df'].empty:
+                    ttss_form.warning("The selection criteria you have chosen are not yielding any results. Please select alternative values.")
+                else:
+                    ttss_form.success("Tumor tissue sites filtered successfully! Proceed to the next step.")
+                    st.session_state['ttss_form_completed'] = True
+
+#### Keywords
+if st.session_state.get('ttss_form_completed', False):
     uploader_placeholder_kwf = st.sidebar.empty()
     path_to_plkeywords = uploader_placeholder_kwf.file_uploader("Upload frequent keywords")
 
@@ -244,55 +319,66 @@ if __name__ == '__main__':
         st.sidebar.info('File {0} has been analysed.'.format(path_to_plkeywords.name))
 
     if path_to_LRP_data and path_to_metadata:
-        st.session_state['keywords'] = find_my_keywords(st.session_state['lrp_df'])
+        if st.session_state['filtered_tts_lrp_df'].empty:
+            print("here 2")
+            st.session_state['keywords'] = find_my_keywords(st.session_state['lrp_df'])
+        else:
+            st.session_state['keywords'] = find_my_keywords(st.session_state['filtered_tts_lrp_df'])
 
         keywords_form = st.sidebar.form('Keywords')
+        print(st.session_state['keywords'])
+        print(st.session_state['frequent_kws'])
         with (keywords_form):
-
             if st.session_state['frequent_kws'].empty:
-                keywords_selected = keywords_form.multiselect("Please select your keyword: ", st.session_state['keywords'],
+                keywords_selected = keywords_form.multiselect("Please select your keyword: ",
+                                                              st.session_state['keywords'],
                                                               [],
                                                               placeholder="Choose a keyword.")
             else:
-                keywords_selected = keywords_form.multiselect("Please select your keyword: ", st.session_state['keywords'],
+                keywords_selected = keywords_form.multiselect("Please select your keyword: ",
+                                                              st.session_state['keywords'],
                                                               st.session_state['frequent_kws'][0].tolist(),
                                                               placeholder="Choose a keyword.")
 
+            print(keywords_selected)
             filter_button = keywords_form.form_submit_button(label='Filter')
-
             if filter_button and keywords_selected:
-                filtered_df = fg.filter_columns_by_keywords(st.session_state['lrp_df'], keywords_selected)
+                print("here 3")
+                filtered_df = fg.filter_columns_by_keywords(st.session_state['lrp_df'],
+                                                            keywords_selected)
                 LRP_to_graphs = fg.prepare_lrp_to_graphs(filtered_df)
                 st.session_state['filtered_data'] = LRP_to_graphs
                 st.session_state['first_form_completed'] = True
                 keywords_form.success("Keywords filtered successfully! Proceed to the next step.")
 
-        if st.session_state.get('first_form_completed', False):
-            node_selection_form = st.sidebar.form('TopNSelection')
-            with node_selection_form:
-                LRP_to_graphs = st.session_state.get('filtered_data')
-                st.session_state['top_n'] = node_selection_form.slider(
-                    "Please select the number of top n edges",
-                    min_value=1,
-                    max_value=len(LRP_to_graphs.index),
-                    value=len(LRP_to_graphs.index) // 2
-                )
-                submit_button = node_selection_form.form_submit_button(label='Submit')
-                if submit_button:
-                    G_dict = fg.get_all_graphs_from_lrp(LRP_to_graphs, st.session_state['top_n'])
-                    # Validation
-                    assert len(G_dict[1].G.edges) == st.session_state['top_n'], "Edge count mismatch."
-                    fg.get_all_fixed_size_adjacency_matrices(G_dict)
-                    assert len(G_dict[2].all_nodes) == np.shape(G_dict[1].fixed_size_adjacency_matrix)[
-                        1], "Node count mismatch."
-                    fg.get_all_fixed_size_embeddings(G_dict)
+################
+if st.session_state.get('first_form_completed', False):
+    print("here")
+    node_selection_form = st.sidebar.form('TopNSelection')
+    with node_selection_form:
+        LRP_to_graphs = st.session_state.get('filtered_data')
+        st.session_state['top_n'] = node_selection_form.slider(
+            "Please select the number of top n edges",
+            min_value=1,
+            max_value=len(LRP_to_graphs.index),
+            value=len(LRP_to_graphs.index) // 2
+        )
+        submit_button = node_selection_form.form_submit_button(label='Submit')
+        if submit_button:
+            G_dict = fg.get_all_graphs_from_lrp(LRP_to_graphs, st.session_state['top_n'])
+            # Validation
+            assert len(G_dict[1].G.edges) == st.session_state['top_n'], "Edge count mismatch."
+            fg.get_all_fixed_size_adjacency_matrices(G_dict)
+            assert len(G_dict[2].all_nodes) == np.shape(G_dict[1].fixed_size_adjacency_matrix)[
+                1], "Node count mismatch."
+            fg.get_all_fixed_size_embeddings(G_dict)
 
-                    st.session_state['second_form_completed'] = True
-                    st.session_state['G_dict'] = G_dict
-                    node_selection_form.success('{0} graphs have been generated.'.format(len(G_dict)))
+            st.session_state['second_form_completed'] = True
+            st.session_state['G_dict'] = G_dict
+            node_selection_form.success('{0} graphs have been generated.'.format(len(G_dict)))
 
 if st.session_state['second_form_completed']:
-    #Col1, Col2 = st.columns(2)
+    # Col1, Col2 = st.columns(2)
     Col1, Col2, Col3, Col4 = st.tabs(
         ["፨ Selected sample", "⩬ Top N similar", "🔍 Group comparison ", "⚖️ Graph differences"])
     sampleIDs = []
@@ -309,7 +395,7 @@ if st.session_state['second_form_completed']:
 
     st.session_state["selected_gId"] = Col1.selectbox("Please select the sample you want to see:",
                                                       sampleIDs,
-                                                      index=None,
+                                                      index=0,
                                                       help="Choose from the available graphs listed below.",
                                                       key="new_gId",
                                                       placeholder="Select a graph...",
@@ -319,188 +405,195 @@ if st.session_state['second_form_completed']:
     if st.session_state["selected_gId"]:
         print("You selected index: {0}".format(sampleIDs.index(st.session_state["selected_gId"])))
         G = st.session_state['G_dict'][sampleIDs.index(st.session_state["selected_gId"])]
-        embeddings_df = fg.extract_raveled_fixed_size_embedding_all_graphs(st.session_state['G_dict'])
-        sorted_distance_df = fg.compute_sorted_distances(embeddings_df, G.sample_ID)
         container_main = Col1.container(border=False)
         plot_my_graph(container_main, G)
-        # Display the modified text
-        #container_main.title("{0} most similar graphs.".format(top_n_similar))
-        # Get the top n most similar samples
-        def new_stratify_by_callback():
-            st.session_state["top_n_similar"] = st.session_state.new_top_n_similar
 
-        st.session_state["top_n_similar"] = Col2.number_input("Please provide the number of similar graphs to display:",
-                                                              min_value = 1,
-                                                              max_value = 6,
-                                                              step = 1,
-                                                              key = "new_top_n_similar",
-                                                              placeholder = "Select a value...",
-                                                              on_change = new_stratify_by_callback
-                                                              )
-        if st.session_state["top_n_similar"] > 0:
-            top_n_samples = sorted_distance_df.head(st.session_state["top_n_similar"] + 1)
-            Col2_subC_1, Col2_subC_2 = Col2.columns(2)
-            for i in range(st.session_state["top_n_similar"] + 1):
-                #if i == 0:
-                #    continue
-                sample_ID = top_n_samples.iloc[i, 0]
-                G = next(G for G in st.session_state['G_dict'].values() if G.sample_ID == sample_ID)
-                if i % 2:
-                    container_topn = Col2_subC_2.container(border=False)
-                else:
-                    container_topn = Col2_subC_1.container(border=False)
-                plot_my_graph(container_topn, G)
-
-            stratify_by_values = st.session_state['metadata_df'].data.columns.tolist()
-            if "stratify_by" not in st.session_state:
-                st.session_state['stratify_by'] = stratify_by_values[0]
+    # Display the modified text
+    # container_main.title("{0} most similar graphs.".format(top_n_similar))
+    # Get the top n most similar samples
+    G = st.session_state['G_dict'][sampleIDs.index(st.session_state["selected_gId"])]
+    embeddings_df = fg.extract_raveled_fixed_size_embedding_all_graphs(st.session_state['G_dict'])
+    sorted_distance_df = fg.compute_sorted_distances(embeddings_df, G.sample_ID)
 
 
-            def new_stratify_by_callback():
-                st.session_state["stratify_by"] = st.session_state.new_stratify_by
+    def new_stratify_by_callback():
+        st.session_state["top_n_similar"] = st.session_state.new_top_n_similar
 
 
-            st.session_state["stratify_by"] = Col3.selectbox("Stratify by:",
-                                                             stratify_by_values,
-                                                             index=None,
-                                                             help="\"Stratify by criteria.\"",
-                                                             key="new_stratify_by",
-                                                             placeholder="Select a value...",
-                                                             on_change=new_stratify_by_callback,
-                                                             )
+    st.session_state["top_n_similar"] = Col2.number_input(
+        "Please provide the number of similar graphs to display:",
+        min_value=1,
+        max_value=6,
+        step=1,
+        key="new_top_n_similar",
+        placeholder="Select a value...",
+        on_change=new_stratify_by_callback
+    )
+    if st.session_state["top_n_similar"] > 0:
+        top_n_samples = sorted_distance_df.head(st.session_state["top_n_similar"] + 1)
+        Col2_subC_1, Col2_subC_2 = Col2.columns(2)
+        for i in range(st.session_state["top_n_similar"] + 1):
+            # if i == 0:
+            #    continue
+            sample_ID = top_n_samples.iloc[i, 0]
+            G = next(G for G in st.session_state['G_dict'].values() if G.sample_ID == sample_ID)
+            if i % 2:
+                container_topn = Col2_subC_2.container(border=False)
+            else:
+                container_topn = Col2_subC_1.container(border=False)
+            plot_my_graph(container_topn, G)
 
-            if st.session_state["stratify_by"]:
-                st.session_state["LRP_to_graphs_stratified"] = fg.split_and_aggregate_lrp(
-                    st.session_state['filtered_data'],
-                    st.session_state[
-                        'metadata_df'].data,
-                    st.session_state["stratify_by"],
-                    agg_func="mean")
-
-                if len(st.session_state["LRP_to_graphs_stratified"].columns.tolist()) > 4:
-                    filtered_columns = [col for col in st.session_state["LRP_to_graphs_stratified"].columns.tolist()
-                                        if
-                                        "[Not Available]" not in col and "[Not Evaluated]" not in col and "index" not in col]
-
-                    if len(filtered_columns) > 1:
-                        if "group1" not in st.session_state:
-                            st.session_state['group1'] = filtered_columns[0]
-
-
-                        def new_group1_callback():
-                            st.session_state["group1"] = st.session_state.new_group1
+    stratify_by_values = st.session_state['metadata_df'].data.columns.tolist()
+    if "stratify_by" not in st.session_state:
+        st.session_state['stratify_by'] = stratify_by_values[0]
 
 
-                        group_1_values = filtered_columns
-                        st.session_state["group1"] = Col3.selectbox("Group 1 value:",
-                                                                    group_1_values,
-                                                                    index=None,
-                                                                    help="\"Group_1 by criteria.\"",
-                                                                    key="new_group1",
-                                                                    placeholder="Select a value...",
-                                                                    on_change=new_group1_callback,
-                                                                    )
-
-                        if st.session_state["group1"]:
-                            group_2_values = group_1_values
-                            group_2_values.remove(st.session_state["group1"])
-
-                            if "group2" not in st.session_state:
-                                st.session_state['group2'] = group_2_values[0]
+    def new_stratify_by_callback():
+        st.session_state["stratify_by"] = st.session_state.new_stratify_by
 
 
-                            def new_group2_callback():
-                                st.session_state["group2"] = st.session_state.new_group2
+    st.session_state["stratify_by"] = Col3.selectbox("Stratify by:",
+                                                     stratify_by_values,
+                                                     index=None,
+                                                     help="\"Stratify by criteria.\"",
+                                                     key="new_stratify_by",
+                                                     placeholder="Select a value...",
+                                                     on_change=new_stratify_by_callback,
+                                                     )
+
+    if st.session_state["stratify_by"]:
+        st.session_state["LRP_to_graphs_stratified"] = fg.split_and_aggregate_lrp(
+            st.session_state['filtered_data'],
+            st.session_state['metadata_df'].data,
+            st.session_state["stratify_by"],
+            agg_func="mean")
+
+    if len(st.session_state["LRP_to_graphs_stratified"].columns.tolist()) > 4:
+        filtered_columns = [col for col in st.session_state["LRP_to_graphs_stratified"].columns.tolist()
+                            if
+                            "[Not Available]" not in col and "[Not Evaluated]" not in col and "index" not in col]
+
+        if len(filtered_columns) > 1:
+            if "group1" not in st.session_state:
+                st.session_state['group1'] = filtered_columns[0]
 
 
-                            st.session_state["group2"] = Col3.selectbox("Group 2 value:",
-                                                                        group_2_values,
-                                                                        index=None,
-                                                                        help="\"Group_2 by criteria.\"",
-                                                                        key="new_group2",
-                                                                        placeholder="Select a value...",
-                                                                        on_change=new_group2_callback,
-                                                                        )
+            def new_group1_callback():
+                st.session_state["group1"] = st.session_state.new_group1
 
-                            if st.session_state["group2"]:
-                                LRP_to_graphs_stratified_12 = st.session_state["LRP_to_graphs_stratified"][['index',
-                                                                                                            'source_node',
-                                                                                                            'target_node',
-                                                                                                            st.session_state["group1"],
-                                                                                                            st.session_state["group2"]]]
-                                G_dict12 = fg.get_all_graphs_from_lrp(LRP_to_graphs_stratified_12,
-                                                                      st.session_state['top_n'])
-                                fg.get_all_fixed_size_adjacency_matrices(G_dict12)
-                                fg.get_all_fixed_size_embeddings(G_dict12)
-                                Col3_subC_1,Col3_subC_2 = Col3.columns(2)
+
+            group_1_values = filtered_columns
+            st.session_state["group1"] = Col3.selectbox("Group 1 value:",
+                                                        group_1_values,
+                                                        index=None,
+                                                        help="\"Group_1 by criteria.\"",
+                                                        key="new_group1",
+                                                        placeholder="Select a value...",
+                                                        on_change=new_group1_callback,
+                                                        )
+
+            if st.session_state["group1"]:
+                group_2_values = group_1_values
+                group_2_values.remove(st.session_state["group1"])
+
+                if "group2" not in st.session_state:
+                    st.session_state['group2'] = group_2_values[0]
+
+
+                def new_group2_callback():
+                    st.session_state["group2"] = st.session_state.new_group2
+
+
+                st.session_state["group2"] = Col3.selectbox("Group 2 value:",
+                                                            group_2_values,
+                                                            index=None,
+                                                            help="\"Group_2 by criteria.\"",
+                                                            key="new_group2",
+                                                            placeholder="Select a value...",
+                                                            on_change=new_group2_callback,
+                                                            )
+
+                if st.session_state["group2"]:
+                    LRP_to_graphs_stratified_12 = st.session_state["LRP_to_graphs_stratified"][['index',
+                                                                                                'source_node',
+                                                                                                'target_node',
+                                                                                                st.session_state[
+                                                                                                    "group1"],
+                                                                                                st.session_state[
+                                                                                                    "group2"]]]
+                    G_dict12 = fg.get_all_graphs_from_lrp(LRP_to_graphs_stratified_12,
+                                                          st.session_state['top_n'])
+                    fg.get_all_fixed_size_adjacency_matrices(G_dict12)
+                    fg.get_all_fixed_size_embeddings(G_dict12)
+                    Col3_subC_1, Col3_subC_2 = Col3.columns(2)
+                    for i in range(len(G_dict12)):
+                        if not i % 2:
+                            container_topn = Col3_subC_1.container(border=False)
+                        else:
+                            container_topn = Col3_subC_2.container(border=False)
+                        G = G_dict12[i]
+                        plot_my_graph(container_topn, G)
+
+                    adj = []
+                    for i in range(len(G_dict12)):
+                        adj.append(G_dict12[i].fixed_size_adjacency_matrix)
+
+                    adj_diff_list = []
+                    for i in range(1, len(G_dict12), 2):
+                        adj_diff_list.append(
+                            fg.calculate_adjacency_difference(G_dict12[i - 1], G_dict12[i]))
+
+                    threshold_selection_form = Col4.form('ThresSelection')
+                    with threshold_selection_form:
+                        diff_thres = st.slider("Threshold value:",
+                                               min_value=0.0,
+                                               max_value=1.0,
+                                               value=1 / 2,
+                                               help="\"Threshold value.\""
+                                               )
+                        calculate_button = st.form_submit_button(label='Calculate')
+                        if calculate_button:
+                            for adj_diff in adj_diff_list:
+                                edge_df = fg.create_edge_dataframe_from_adj_diff(adj_diff, diff_thres)
+                                if edge_df.empty:
+                                    Col4.subheader(
+                                        "The edges representing graph differences are not above the threshold to plot.",
+                                        divider=True)
+                                else:
+                                    diff_graph = lrpgraph.LRPGraph(
+                                        edges_sample_i=edge_df,
+                                        source_column="source_node",
+                                        target_column="target_node",
+                                        edge_attrs=["LRP", "LRP_norm"],
+                                        top_n_edges=st.session_state['top_n'],
+                                        sample_ID='DIFFERENCE ' + st.session_state["group1"] + ' vs ' +
+                                                  st.session_state["group2"],
+                                    )
+                                    diff_plots_container = Col4.container(border=False)
+                                    plot_my_graph(diff_plots_container, diff_graph)
+
+                                # Create heatmap
+                                sb_t_col1, sb_t_col2 = Col4.columns(2)
+
                                 for i in range(len(G_dict12)):
-                                    if not i%2:
-                                        container_topn = Col3_subC_1.container(border=False)
+                                    if not i % 2:
+                                        container_topn = sb_t_col1.container(border=False)
                                     else:
-                                        container_topn = Col3_subC_2.container(border=False)
+                                        container_topn = sb_t_col2.container(border=False)
                                     G = G_dict12[i]
                                     plot_my_graph(container_topn, G)
 
-                                adj = []
-                                for i in range(len(G_dict12)):
-                                    adj.append(G_dict12[i].fixed_size_adjacency_matrix)
+                                    with sb_t_col1:
+                                        st.subheader("All differences")
+                                        fig, ax = plt.subplots(figsize=(16, 12))
+                                        sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
+                                                    cmap='Reds', vmin=0, vmax=1, ax=ax)
+                                        st.pyplot(fig)
 
-                                adj_diff_list = []
-                                for i in range(1, len(G_dict12), 2):
-                                    adj_diff_list.append(
-                                        fg.calculate_adjacency_difference(G_dict12[i - 1], G_dict12[i]))
-
-                                threshold_selection_form = Col4.form('ThresSelection')
-                                with threshold_selection_form:
-                                    diff_thres = st.slider("Threshold value:",
-                                                           min_value=0.0,
-                                                           max_value=1.0,
-                                                           value=1 / 2,
-                                                           help="\"Threshold value.\""
-                                                           )
-                                    calculate_button = st.form_submit_button(label='Calculate')
-                                    if calculate_button:
-                                        for adj_diff in adj_diff_list:
-                                            edge_df = fg.create_edge_dataframe_from_adj_diff(adj_diff, diff_thres)
-                                            if edge_df.empty:
-                                                Col4.subheader(
-                                                    "The edges representing graph differences are not above the threshold to plot.",
-                                                    divider=True)
-                                            else:
-                                                diff_graph = lrpgraph.LRPGraph(
-                                                    edges_sample_i=edge_df,
-                                                    source_column="source_node",
-                                                    target_column="target_node",
-                                                    edge_attrs=["LRP", "LRP_norm"],
-                                                    top_n_edges=st.session_state['top_n'],
-                                                    sample_ID='DIFFERENCE ' + st.session_state["group1"] + ' vs ' +
-                                                              st.session_state["group2"],
-                                                )
-                                                diff_plots_container = Col4.container(border=False)
-                                                plot_my_graph(diff_plots_container, diff_graph)
-
-                                            # Create heatmap
-                                            sb_t_col1, sb_t_col2 = Col4.columns(2)
-
-                                            for i in range(len(G_dict12)):
-                                                if not i % 2:
-                                                    container_topn = sb_t_col1.container(border=False)
-                                                else:
-                                                    container_topn = sb_t_col2.container(border=False)
-                                                G = G_dict12[i]
-                                                plot_my_graph(container_topn, G)
-
-                                            with sb_t_col1:
-                                                st.subheader("All differences")
-                                                fig, ax = plt.subplots(figsize=(16, 12))
-                                                sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
-                                                            cmap='Reds', vmin=0, vmax=1, ax=ax)
-                                                st.pyplot(fig)
-
-                                            with sb_t_col2:
-                                                st.subheader("Differences above the threshold")
-                                                fig2, ax2 = plt.subplots(figsize=(16, 12))
-                                                sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
-                                                            cmap='Reds', vmin=0, vmax=1, mask=adj_diff < diff_thres,
-                                                            ax=ax2)
-                                                st.pyplot(fig2)
+                                    with sb_t_col2:
+                                        st.subheader("Differences above the threshold")
+                                        fig2, ax2 = plt.subplots(figsize=(16, 12))
+                                        sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
+                                                    cmap='Reds', vmin=0, vmax=1, mask=adj_diff < diff_thres,
+                                                    ax=ax2)
+                                        st.pyplot(fig2)
