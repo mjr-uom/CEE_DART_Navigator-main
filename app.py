@@ -144,7 +144,7 @@ def plot_my_graph(container, graph):
     node_color_mapper = {'exp': 'gray', 'mut': 'red', 'amp': 'orange', 'del': 'green', 'fus': 'blue'}
     #fg.plot_graph(graph, node_color_mapper)
     visor = Network(
-        height='500px',
+        height='700px',
         width='100%',
         bgcolor='#FFFFFF',
         font_color='black',
