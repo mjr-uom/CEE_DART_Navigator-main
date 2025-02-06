@@ -277,6 +277,21 @@ def get_column_values(mdo):
 
     return result
 
+
+def map_index_to_unsorted(index_in_ordered: int, ordered_list: list, unordered_list: list) -> int:
+    if not isinstance(index_in_ordered, int):
+        raise ValueError("The input index must be an integer.")
+    if index_in_ordered < 0 or index_in_ordered >= len(ordered_list):
+        raise IndexError("The input index is out of range for the ordered list.")
+
+    if sorted(ordered_list) != sorted(unordered_list):
+        raise ValueError("The ordered_list and unordered_list must contain the same values.")
+
+    unordered_index_map = {value: idx for idx, value in enumerate(unordered_list)}
+    value_in_ordered = ordered_list[index_in_ordered]
+    unordered_index = unordered_index_map[value_in_ordered]
+    return unordered_index
+
 if __name__ == '__main__':
     st.sidebar.title('፨ LPR Dashboard')
     uploader_placeholder = st.sidebar.empty()
@@ -399,7 +414,8 @@ if st.session_state['second_form_completed']:
     for i in range(len(st.session_state['G_dict'])):
         sampleIDs.append(st.session_state['G_dict'][i].sample_ID)
 
-    sampleIDs.sort()
+    disp_list = sampleIDs.copy()
+    disp_list.sort()
 
     if "selected_gId" not in st.session_state:
         st.session_state['selected_gId'] = sampleIDs[0]
@@ -410,7 +426,7 @@ if st.session_state['second_form_completed']:
 
 
     st.session_state["selected_gId"] = Col1.selectbox("Please select the sample you want to see:",
-                                                      sampleIDs,
+                                                      disp_list,
                                                       index=0,
                                                       help="Choose from the available graphs listed below.",
                                                       key="new_gId",
@@ -419,15 +435,15 @@ if st.session_state['second_form_completed']:
                                                       )
 
     if st.session_state["selected_gId"]:
-        print("You selected index: {0}".format(sampleIDs.index(st.session_state["selected_gId"])))
-        G = st.session_state['G_dict'][sampleIDs.index(st.session_state["selected_gId"])]
+        print("You selected index: {0}".format(disp_list.index(st.session_state["selected_gId"])))
+        G = st.session_state['G_dict'][map_index_to_unsorted(disp_list.index(st.session_state["selected_gId"]), disp_list, sampleIDs)]
         container_main = Col1.container(border=False)
         plot_my_graph(container_main, G)
 
     # Display the modified text
     # container_main.title("{0} most similar graphs.".format(top_n_similar))
     # Get the top n most similar samples
-    G = st.session_state['G_dict'][sampleIDs.index(st.session_state["selected_gId"])]
+    G = st.session_state['G_dict'][map_index_to_unsorted(disp_list.index(st.session_state["selected_gId"]), disp_list, sampleIDs)]
     embeddings_df = fg.extract_raveled_fixed_size_embedding_all_graphs(st.session_state['G_dict'])
     sorted_distance_df = fg.compute_sorted_distances(embeddings_df, G.sample_ID)
 
