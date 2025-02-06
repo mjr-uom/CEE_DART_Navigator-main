@@ -357,11 +357,12 @@ if st.session_state.get('filters_form_completed', False):
 
 
             filter_button = keywords_form.form_submit_button(label='Filter')
-            if filter_button and keywords_selected:
-                filtered_df = fg.filter_columns_by_keywords(st.session_state['lrp_df'],
+            if filter_button:
+                if not keywords_selected:
+                    keywords_selected = None
+                filtered_df = fg.filter_columns_by_keywords(st.session_state['filtered_tts_lrp_df'],
                                                             keywords_selected)
-                LRP_to_graphs = fg.prepare_lrp_to_graphs(filtered_df)
-                st.session_state['filtered_data'] = LRP_to_graphs
+                st.session_state['filtered_data'] = fg.prepare_lrp_to_graphs(filtered_df)
                 st.session_state['first_form_completed'] = True
                 uploader_placeholder_kwf.empty()
                 keywords_form.success("Keywords filtered successfully! Proceed to the next step.")
@@ -370,16 +371,15 @@ if st.session_state.get('filters_form_completed', False):
 if st.session_state.get('first_form_completed', False):
     node_selection_form = st.sidebar.form('TopNSelection')
     with node_selection_form:
-        LRP_to_graphs = st.session_state.get('filtered_data')
         st.session_state['top_n'] = node_selection_form.slider(
             "Please select the number of top n edges",
             min_value=1,
-            max_value=len(LRP_to_graphs.index),
-            value=len(LRP_to_graphs.index) // 2
+            max_value=len(st.session_state['filtered_data'].index),
+            value=len(st.session_state['filtered_data'].index) // 2
         )
         submit_button = node_selection_form.form_submit_button(label='Submit')
         if submit_button:
-            G_dict = fg.get_all_graphs_from_lrp(LRP_to_graphs, st.session_state['top_n'])
+            G_dict = fg.get_all_graphs_from_lrp(st.session_state['filtered_data'], st.session_state['top_n'])
             # Validation
             assert len(G_dict[1].G.edges) == st.session_state['top_n'], "Edge count mismatch."
             fg.get_all_fixed_size_adjacency_matrices(G_dict)
@@ -398,6 +398,8 @@ if st.session_state['second_form_completed']:
     sampleIDs = []
     for i in range(len(st.session_state['G_dict'])):
         sampleIDs.append(st.session_state['G_dict'][i].sample_ID)
+
+    sampleIDs.sort()
 
     if "selected_gId" not in st.session_state:
         st.session_state['selected_gId'] = sampleIDs[0]
