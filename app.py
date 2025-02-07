@@ -6,12 +6,16 @@ import altair as alt
 import networkx as nx
 import matplotlib as mt
 import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 from pyvis.network import Network
 import os
+import hashlib
+import itertools
 import importlib, sys
 from htmls.dynamicLegends import generate_legend_html
+from len_gen import generate_legend_table
 path_to_functions_directory = r'./source'
 if path_to_functions_directory not in sys.path:
     sys.path.append(path_to_functions_directory)
@@ -76,14 +80,40 @@ if 'frequent_kws' not in st.session_state:
 if 'LRP_to_graphs_stratified' not in st.session_state:
     st.session_state['LRP_to_graphs_stratified'] = pd.DataFrame([])
 
+if 'calculate_button' not in st.session_state:
+    st.session_state['calculate_button'] = False
+
+if 'comparison_grp_button' not in st.session_state:
+    st.session_state['comparison_grp_button'] = False
+
+if 'compare_form_complete' not in st.session_state:
+    st.session_state['compare_form_complete'] = False
+
 if 'top_n' not in st.session_state:
     st.session_state['top_n'] = 0
 
 if 'top_n_similar' not in st.session_state:
     st.session_state['top_n_similar'] = None
 
+if 'compare_grp_selected' not in st.session_state:
+    st.session_state["compare_grp_selected"] = list()
 
 st.set_page_config(layout="wide")
+
+
+def assign_colors(strings):
+    color_names = sorted(list(mcolors.CSS4_COLORS.keys()))
+
+    def get_color(string):
+        hash_value = int(hashlib.sha256(string.encode()).hexdigest(), 16)
+        return color_names[hash_value % len(color_names)]
+
+    keys = {string.split("_")[-1] for string in strings}  # Set of unique keys
+    sorted_keys = sorted(keys)  # Sort the keys for deterministic order
+
+    color_dict = {key: get_color(key) for key in sorted_keys}
+    return color_dict
+
 
 def save_my_uploaded_file(path, uploaded_file):
     repository_folder = path
@@ -141,19 +171,19 @@ def create_pyvis_graph(net, G):
 
 
 def plot_my_graph(container, graph):
-    node_color_mapper = {'exp': 'gray', 'mut': 'red', 'amp': 'orange', 'del': 'green', 'fus': 'blue'}
     #fg.plot_graph(graph, node_color_mapper)
     visor = Network(
-        height='700px',
+        height='600px',
         width='100%',
         bgcolor='#FFFFFF',
         font_color='black',
-        select_menu=True,
-        cdn_resources='remote',
-        filter_menu=True,
+        #select_menu=True,
+        #cdn_resources='remote',
+        #filter_menu=True,
     )
     #visor.from_nx(graph.G)
     create_pyvis_graph(visor, graph.G)
+    node_color_mapper = assign_colors(sorted([node["id"] for node in visor.nodes]))
     neighbor_map = visor.get_adj_list()
     edge_dist = list(nx.get_edge_attributes(graph.G, 'LRP_norm').values())
     norm_colour = mt.colors.Normalize(vmin=0.0, vmax=max(edge_dist), clip=True)
@@ -196,6 +226,8 @@ def plot_my_graph(container, graph):
     #                                  }
     #                ''')
 
+    if isinstance(graph.sample_ID, int):
+        graph.sample_ID = str(graph.sample_ID)
 
     try:
         path = '/tmp'
@@ -208,7 +240,8 @@ def plot_my_graph(container, graph):
         HtmlFile = open(f'{path}/pyvis_graph_' + graph.sample_ID + '.html', 'r', encoding='utf-8')
 
     path = './htmls/legends.html'
-    chart_legend_css = generate_legend_html(list(set(node_type)))
+    #chart_legend_css = generate_legend_html(list(set(node_type)))
+    chart_legend_css =  generate_legend_table(node_color_mapper)
 
     style_heading = 'text-align: center'
     css = r'''<style>
@@ -227,8 +260,22 @@ def plot_my_graph(container, graph):
         f"<h2 style='{style_heading}'>Graph of the top '{graph.top_n_edges}' edges with the highest LRP values </h2>",
         unsafe_allow_html=True)
 
+    zoom_options = """
+    var options = {
+    "interaction": {
+        "zoomView": true,  
+        "zoomSpeed": 1.2   
+    },
+    "layout": {
+        "randomSeed": 42,  
+        "scale": 50.0       
+    }
+       }
+    """
+    visor.set_options(zoom_options)
+
     with container:
-        subCol1, subCol2 = st.columns([4, 1])
+        subCol1, subCol2 = st.columns([5, 1])
         with subCol1:
             components.html(HtmlFile.read(), height=620, scrolling=True)
             with subCol2:
@@ -475,6 +522,12 @@ if st.session_state['second_form_completed']:
                 container_topn = Col2_subC_1.container(border=False)
             plot_my_graph(container_topn, G)
 
+###############
+#
+#  Second part
+#
+###############
+
     stratify_by_values = st.session_state['metadata_df'].data.columns.tolist()
     if "stratify_by" not in st.session_state:
         st.session_state['stratify_by'] = stratify_by_values[0]
@@ -500,69 +553,35 @@ if st.session_state['second_form_completed']:
             st.session_state["stratify_by"],
             agg_func="mean")
 
-
+######<-----here
     #if len(st.session_state["LRP_to_graphs_stratified"].columns.tolist()) > 4:
     filtered_columns = [col for col in st.session_state["LRP_to_graphs_stratified"].columns
-                        if (isinstance(col, str) and not any(substr in col for substr in ["index", "source_node", "target_node"])) or
+                        if (isinstance(col, str) and not any(
+            substr in col for substr in ["index", "source_node", "target_node"])) or
                         isinstance(col, int)]
-    #filtered_columns = [col for col in st.session_state["LRP_to_graphs_stratified"].columns.tolist()
+    # filtered_columns = [col for col in st.session_state["LRP_to_graphs_stratified"].columns.tolist()
     #                    if
     #                    isinstance(col, str) and "index" not in col and "source_node" not in col and "target_node" not in col]
 
-    print(st.session_state["LRP_to_graphs_stratified"])
-    print(filtered_columns)
-    if len(filtered_columns) > 1:
-        if "group1" not in st.session_state:
-            st.session_state['group1'] = filtered_columns[0]
+    compare_form = Col3.form('Compare')
+    with (compare_form):
+        if len(filtered_columns):
+            st.session_state["compare_grp_selected"] = compare_form.multiselect("Please select your comparison groups: ",
+                                                                                filtered_columns,
+                                                                                [],
+                                                                                placeholder="Choose a comparison group.")
+        else:
+            compare_form.warning("Unfortunately, your selection criteria are not generating any comparison group.")
 
+        st.session_state["comparison_grp_button"]  = compare_form.form_submit_button(label='Submit')
 
-        def new_group1_callback():
-            st.session_state["group1"] = st.session_state.new_group1
+        if st.session_state["comparison_grp_button"] and st.session_state["compare_grp_selected"]:
+            LRP_to_graphs_stratified_sel_grps = st.session_state["LRP_to_graphs_stratified"][
+                ['index', 'source_node', 'target_node'] + st.session_state["compare_grp_selected"]]
 
-
-        group_1_values = filtered_columns
-        st.session_state["group1"] = Col3.selectbox("Group 1 value:",
-                                                    group_1_values,
-                                                    index=None,
-                                                    help="\"Group_1 by criteria.\"",
-                                                    key="new_group1",
-                                                    placeholder="Select a value...",
-                                                    on_change=new_group1_callback,
-                                                    )
-
-        if st.session_state["group1"]:
-            group_2_values = group_1_values
-            group_2_values.remove(st.session_state["group1"])
-
-            if "group2" not in st.session_state:
-                st.session_state['group2'] = group_2_values[0]
-
-
-            def new_group2_callback():
-                st.session_state["group2"] = st.session_state.new_group2
-
-
-            st.session_state["group2"] = Col3.selectbox("Group 2 value:",
-                                                        group_2_values,
-                                                        index=None,
-                                                        help="\"Group_2 by criteria.\"",
-                                                        key="new_group2",
-                                                        placeholder="Select a value...",
-                                                        on_change=new_group2_callback,
-                                                        )
-
-            if st.session_state["group2"]:
-                LRP_to_graphs_stratified_12 = st.session_state["LRP_to_graphs_stratified"][['index',
-                                                                                            'source_node',
-                                                                                            'target_node',
-                                                                                            st.session_state[
-                                                                                                "group1"],
-                                                                                            st.session_state[
-                                                                                                "group2"]]]
-                G_dict12 = fg.get_all_graphs_from_lrp(LRP_to_graphs_stratified_12,
-                                                      st.session_state['top_n'])
-                fg.get_all_fixed_size_adjacency_matrices(G_dict12)
-                fg.get_all_fixed_size_embeddings(G_dict12)
+            G_dict12 = fg.get_all_graphs_from_lrp(LRP_to_graphs_stratified_sel_grps,
+                                                  st.session_state['top_n'])
+            if len(st.session_state["compare_grp_selected"]) > 1:
                 Col3_subC_1, Col3_subC_2 = Col3.columns(2)
                 for i in range(len(G_dict12)):
                     if not i % 2:
@@ -571,67 +590,92 @@ if st.session_state['second_form_completed']:
                         container_topn = Col3_subC_2.container(border=False)
                     G = G_dict12[i]
                     plot_my_graph(container_topn, G)
-
-                adj = []
+            else:
                 for i in range(len(G_dict12)):
-                    adj.append(G_dict12[i].fixed_size_adjacency_matrix)
+                    container_topn = Col3.container(border=False)
+                    G = G_dict12[i]
+                    plot_my_graph(container_topn, G)
+            st.session_state["compare_form_complete"] = True
+###############
+#  comparisons
+#
+###############
+if st.session_state.get('compare_form_complete', False):
+    if len(st.session_state["compare_grp_selected"]) < 2:
+        Col4.subheader(
+            "Regrettably, your selection criteria are not generating a sufficient number of comparison groups.",
+            divider=True)
+    else:
+        LRP_to_graphs_stratified_sel_grps = st.session_state["LRP_to_graphs_stratified"][
+            ['index', 'source_node', 'target_node'] + st.session_state["compare_grp_selected"]]
 
-                adj_diff_list = []
-                for i in range(1, len(G_dict12), 2):
-                    adj_diff_list.append(
-                        fg.calculate_adjacency_difference(G_dict12[i - 1], G_dict12[i]))
+        G_dict12 = fg.get_all_graphs_from_lrp(LRP_to_graphs_stratified_sel_grps,
+                                              st.session_state['top_n'])
 
-                threshold_selection_form = Col4.form('ThresSelection')
-                with threshold_selection_form:
-                    diff_thres = st.slider("Threshold value:",
-                                           min_value=0.0,
-                                           max_value=1.0,
-                                           value=1 / 2,
-                                           help="\"Threshold value.\""
-                                           )
-                    calculate_button = st.form_submit_button(label='Calculate')
-                    if calculate_button:
-                        for adj_diff in adj_diff_list:
-                            edge_df = fg.create_edge_dataframe_from_adj_diff(adj_diff, diff_thres)
-                            if edge_df.empty:
-                                Col4.subheader(
-                                    "The edges representing graph differences are not above the threshold to plot.",
-                                    divider=True)
-                            else:
-                                diff_graph = lrpgraph.LRPGraph(
-                                    edges_sample_i=edge_df,
-                                    source_column="source_node",
-                                    target_column="target_node",
-                                    edge_attrs=["LRP", "LRP_norm"],
-                                    top_n_edges=st.session_state['top_n'],
-                                    sample_ID='DIFFERENCE ' + st.session_state["group1"] + ' vs ' +
-                                              st.session_state["group2"],
-                                )
-                                diff_plots_container = Col4.container(border=False)
-                                plot_my_graph(diff_plots_container, diff_graph)
+        fg.get_all_fixed_size_adjacency_matrices(G_dict12)
+        fg.get_all_fixed_size_embeddings(G_dict12)
 
-                            # Create heatmap
+        adj = []
+        for i in range(len(G_dict12)):
+            adj.append(G_dict12[i].fixed_size_adjacency_matrix)
+
+        pairs = list(itertools.combinations(range(len(G_dict12)), 2))
+        adj_diff_list = []
+        for i,j in pairs:
+            adj_diff_list.append(fg.calculate_adjacency_difference(G_dict12[i], G_dict12[j]))
+
+        threshold_selection_form = Col4.form('ThresSelection')
+        with threshold_selection_form:
+            diff_thres = st.slider("Threshold value:",
+                                   min_value=0.0,
+                                   max_value=1.0,
+                                   value=0.5,
+                                   help="\"Threshold value.\""
+                                   )
+            # st.session_state['calculate_button'] = st.form_submit_button(label='Calculate')
+            # print(st.session_state['calculate_button'])
+            # if st.session_state.get('calculate_button', False):
+            calculate_button = st.form_submit_button(label='Calculate')
+            if calculate_button:
+                for adj_diff in adj_diff_list:
+                    edge_df = fg.create_edge_dataframe_from_adj_diff(adj_diff, diff_thres)
+                    if edge_df.empty:
+                        Col4.subheader(
+                            "The edges representing graph differences are not above the threshold to plot.",
+                            divider=True)
+                    else:
+                        for i, j in pairs:
+                            diff_graph = lrpgraph.LRPGraph(
+                                edges_sample_i=edge_df,
+                                source_column="source_node",
+                                target_column="target_node",
+                                edge_attrs=["LRP", "LRP_norm"],
+                                top_n_edges=st.session_state['top_n'],
+                                sample_ID='DIFFERENCE ' + st.session_state["compare_grp_selected"][i] + ' vs ' +
+                                          st.session_state["compare_grp_selected"][j],
+                            )
+                            diff_plots_container = Col4.container(border=False)
+                            plot_my_graph(diff_plots_container, diff_graph)
+
                             sb_t_col1, sb_t_col2 = Col4.columns(2)
+                            container_difn_x = sb_t_col1.container(border=False)
+                            container_difn_y = sb_t_col2.container(border=False)
+                            plot_my_graph(container_difn_x, G_dict12[i])
+                            plot_my_graph(container_difn_y, G_dict12[j])
 
-                            for i in range(len(G_dict12)):
-                                if not i % 2:
-                                    container_topn = sb_t_col1.container(border=False)
-                                else:
-                                    container_topn = sb_t_col2.container(border=False)
-                                G = G_dict12[i]
-                                plot_my_graph(container_topn, G)
+                            with sb_t_col1:
+                                st.subheader("All differences")
+                                fig, ax = plt.subplots(figsize=(16, 12))
+                                sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
+                                            cmap='Reds', vmin=0, vmax=1, ax=ax)
+                                st.pyplot(fig)
 
-                                with sb_t_col1:
-                                    st.subheader("All differences")
-                                    fig, ax = plt.subplots(figsize=(16, 12))
-                                    sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
-                                                cmap='Reds', vmin=0, vmax=1, ax=ax)
-                                    st.pyplot(fig)
+                            with sb_t_col2:
+                                st.subheader("Differences above the threshold")
+                                fig2, ax2 = plt.subplots(figsize=(16, 12))
+                                sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
+                                            cmap='Reds', vmin=0, vmax=1, mask=adj_diff < diff_thres,
+                                            ax=ax2)
+                                st.pyplot(fig2)
 
-                                with sb_t_col2:
-                                    st.subheader("Differences above the threshold")
-                                    fig2, ax2 = plt.subplots(figsize=(16, 12))
-                                    sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
-                                                cmap='Reds', vmin=0, vmax=1, mask=adj_diff < diff_thres,
-                                                ax=ax2)
-                                    st.pyplot(fig2)
+                            Col4.divider()
