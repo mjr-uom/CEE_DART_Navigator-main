@@ -198,13 +198,13 @@ def plot_my_graph(container, graph):
     for node in visor.nodes:
         node["label"] = node["id"].split('_')[0]
         node["_type"] = node["id"].split('_')[1]
-        node["color"] = node_color_mapper[node["id"].split('_')[1]]
+        node["color"] = node_color_mapper[node["id"].split('_')[-1]]
         node["title"] = node["label"]
         node["title"] += " Neighbors:"
-        node_type.append(node["id"].split('_')[1])
+        node_type.append(node["id"].split('_')[-1])
 
     for _, item in enumerate(neighbor_map[node["id"]]):
-        node["title"] += "\n" + item.split('_')[0]
+        node["title"] += "\n" + item.split('_')[:-1]
         #node["value"] = len(neighbor_map[node["id"]])
 
     #visor.repulsion(
