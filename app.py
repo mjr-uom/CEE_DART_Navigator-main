@@ -204,7 +204,7 @@ def plot_my_graph(container, graph):
         node_type.append(node["id"].split('_')[-1])
 
     for _, item in enumerate(neighbor_map[node["id"]]):
-        node["title"] += "\n" + item.split('_')[:-1]
+        node["title"] += "\n" + "_".join(item.split('_')[:-1])
         #node["value"] = len(neighbor_map[node["id"]])
 
     #visor.repulsion(
