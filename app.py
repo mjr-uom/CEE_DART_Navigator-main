@@ -200,12 +200,12 @@ def plot_my_graph(container, graph):
         node["_type"] = node["id"].split('_')[-1]
         node["color"] = node_color_mapper[node["id"].split('_')[-1]]
         node["title"] = node["label"]
+        node["value"] = len(neighbor_map[node["id"]])
         node["title"] += " Neighbors:"
         node_type.append(node["id"].split('_')[-1])
 
         for _, item in enumerate(neighbor_map[node["id"]]):
             node["title"] += "\n" + "_".join(item.split('_')[:-1])
-            node["value"] = len(neighbor_map[node["id"]])
 
     #visor.repulsion(
     #    node_distance=420,
