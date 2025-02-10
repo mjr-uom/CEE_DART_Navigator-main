@@ -138,7 +138,7 @@ def find_my_metadata_catalog(col_name):
 def find_my_keywords(lrp_df):
     option_tmp = []
     for opr_element in lrp_df.columns:
-        tmp_ele = opr_element.split("-")[-1].split("_")[0].strip()
+        tmp_ele = "_".join(opr_element.split("-")[-1].strip().split("_")[:-1])
         option_tmp.append(tmp_ele)
 
     keywords = list(dict.fromkeys(option_tmp))
@@ -196,16 +196,16 @@ def plot_my_graph(container, graph):
 
     node_type = []
     for node in visor.nodes:
-        node["label"] = node["id"].split('_')[:-1]
+        node["label"] = "_".join(node["id"].split('_')[:-1])
         node["_type"] = node["id"].split('_')[-1]
         node["color"] = node_color_mapper[node["id"].split('_')[-1]]
         node["title"] = node["label"]
         node["title"] += " Neighbors:"
         node_type.append(node["id"].split('_')[-1])
 
-    for _, item in enumerate(neighbor_map[node["id"]]):
-        node["title"] += "\n" + "_".join(item.split('_')[:-1])
-        #node["value"] = len(neighbor_map[node["id"]])
+        for _, item in enumerate(neighbor_map[node["id"]]):
+            node["title"] += "\n" + "_".join(item.split('_')[:-1])
+            #node["value"] = len(neighbor_map[node["id"]])
 
     #visor.repulsion(
     #    node_distance=420,
