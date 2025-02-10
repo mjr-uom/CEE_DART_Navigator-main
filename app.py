@@ -138,7 +138,7 @@ def find_my_metadata_catalog(col_name):
 def find_my_keywords(lrp_df):
     option_tmp = []
     for opr_element in lrp_df.columns:
-        tmp_ele = opr_element.split("-")[-1].split("_")[:-1].strip()
+        tmp_ele = opr_element.split("-")[-1].split("_")[0].strip()
         option_tmp.append(tmp_ele)
 
     keywords = list(dict.fromkeys(option_tmp))
