@@ -205,7 +205,7 @@ def plot_my_graph(container, graph):
 
         for _, item in enumerate(neighbor_map[node["id"]]):
             node["title"] += "\n" + "_".join(item.split('_')[:-1])
-            #node["value"] = len(neighbor_map[node["id"]])
+            node["value"] = len(neighbor_map[node["id"]])
 
     #visor.repulsion(
     #    node_distance=420,
@@ -637,6 +637,7 @@ if st.session_state.get('compare_form_complete', False):
             # if st.session_state.get('calculate_button', False):
             calculate_button = st.form_submit_button(label='Calculate')
             if calculate_button:
+                pair_counter = 0
                 for adj_diff in adj_diff_list:
                     edge_df = fg.create_edge_dataframe_from_adj_diff(adj_diff, diff_thres)
                     if edge_df.empty:
@@ -644,38 +645,40 @@ if st.session_state.get('compare_form_complete', False):
                             "The edges representing graph differences are not above the threshold to plot.",
                             divider=True)
                     else:
-                        for i, j in pairs:
-                            diff_graph = lrpgraph.LRPGraph(
-                                edges_sample_i=edge_df,
-                                source_column="source_node",
-                                target_column="target_node",
-                                edge_attrs=["LRP", "LRP_norm"],
-                                top_n_edges=st.session_state['top_n'],
-                                sample_ID='DIFFERENCE ' + st.session_state["compare_grp_selected"][i] + ' vs ' +
-                                          st.session_state["compare_grp_selected"][j],
-                            )
-                            diff_plots_container = Col4.container(border=False)
-                            plot_my_graph(diff_plots_container, diff_graph)
+                        i = pairs[pair_counter][0]
+                        j = pairs[pair_counter][1]
+                        diff_graph = lrpgraph.LRPGraph(
+                            edges_sample_i=edge_df,
+                            source_column="source_node",
+                            target_column="target_node",
+                            edge_attrs=["LRP", "LRP_norm"],
+                            top_n_edges=st.session_state['top_n'],
+                            sample_ID='DIFFERENCE ' + st.session_state["compare_grp_selected"][i] + ' vs ' +
+                                      st.session_state["compare_grp_selected"][j],
+                        )
+                        diff_plots_container = Col4.container(border=False)
+                        plot_my_graph(diff_plots_container, diff_graph)
 
-                            sb_t_col1, sb_t_col2 = Col4.columns(2)
-                            container_difn_x = sb_t_col1.container(border=False)
-                            container_difn_y = sb_t_col2.container(border=False)
-                            plot_my_graph(container_difn_x, G_dict12[i])
-                            plot_my_graph(container_difn_y, G_dict12[j])
+                        sb_t_col1, sb_t_col2 = Col4.columns(2)
+                        container_difn_x = sb_t_col1.container(border=False)
+                        container_difn_y = sb_t_col2.container(border=False)
+                        plot_my_graph(container_difn_x, G_dict12[i])
+                        plot_my_graph(container_difn_y, G_dict12[j])
 
-                            with sb_t_col1:
-                                st.subheader("All differences")
-                                fig, ax = plt.subplots(figsize=(16, 12))
-                                sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
-                                            cmap='Reds', vmin=0, vmax=1, ax=ax)
-                                st.pyplot(fig)
+                        with sb_t_col1:
+                            st.subheader("All differences")
+                            fig, ax = plt.subplots(figsize=(16, 12))
+                            sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
+                                        cmap='Reds', vmin=0, vmax=1, ax=ax)
+                            st.pyplot(fig)
 
-                            with sb_t_col2:
-                                st.subheader("Differences above the threshold")
-                                fig2, ax2 = plt.subplots(figsize=(16, 12))
-                                sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
-                                            cmap='Reds', vmin=0, vmax=1, mask=adj_diff < diff_thres,
-                                            ax=ax2)
-                                st.pyplot(fig2)
+                        with sb_t_col2:
+                            st.subheader("Differences above the threshold")
+                            fig2, ax2 = plt.subplots(figsize=(16, 12))
+                            sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
+                                        cmap='Reds', vmin=0, vmax=1, mask=adj_diff < diff_thres,
+                                        ax=ax2)
+                            st.pyplot(fig2)
 
-                            Col4.divider()
+                        Col4.divider()
+                    pair_counter += 1
