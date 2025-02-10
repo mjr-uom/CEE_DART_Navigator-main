@@ -98,6 +98,7 @@ if 'top_n_similar' not in st.session_state:
 if 'compare_grp_selected' not in st.session_state:
     st.session_state["compare_grp_selected"] = list()
 
+sidebar_logo_DCR = "./images/CRUK_NBC_DCR.png"
 sidebar_logo = "./images/CCE_Dart_logo.png"
 main_body_logo   = "./images/CCE_Dart_icon.png"
 
@@ -343,7 +344,9 @@ def map_index_to_unsorted(index_in_ordered: int, ordered_list: list, unordered_l
     return unordered_index
 
 if __name__ == '__main__':
-    st.logo(sidebar_logo,size="large", icon_image=main_body_logo)
+    st.logo("./images/space.png", size="large", icon_image="./images/CCE_Dart_icon.png")
+    st.sidebar.image("./images/CRUK_NBC_DCR.png", width=150)
+    st.sidebar.image("./images/CCE_Dart_logo.png", width=150)
     st.sidebar.title('፨ LPR Dashboard')
     uploader_placeholder = st.sidebar.empty()
     path_to_LRP_data = uploader_placeholder.file_uploader("Upload data LPR")
