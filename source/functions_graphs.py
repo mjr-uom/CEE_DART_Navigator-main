@@ -256,13 +256,14 @@ def extract_raveled_fixed_size_embedding_all_graphs(G_dict: dict) -> np.ndarray:
     
 
 import matplotlib.pyplot as plt
-def plot_graph(graph, node_color_mapper):
+def plot_graph(graph, node_color_mapper, community_df=None):
     """
     Plots a graph with specified node colors and edge widths.
 
     Parameters:
     graph 
     node_color_mapper (dict): A dictionary mapping node types to colors.
+    community_df (pd.DataFrame, optional): DataFrame containing node names and community numbers.
 
     Returns:
     None
@@ -273,32 +274,66 @@ def plot_graph(graph, node_color_mapper):
     widths = list(nx.get_edge_attributes(G, 'LRP_norm').values())
     widths = [x * 2 for x in widths]
 
-    edge_colors = plt.cm.Greys(widths)
+    
 
     fig, ax = plt.subplots(figsize=(12, 12))
-    ls = list(node_color_mapper.keys())
-    cl = list(node_color_mapper.values())
-    for label, color in zip(ls, cl):
-        ax.plot([], [], 'o', color=color, label=label)
-    ax.legend(title='Nodes', loc='best')
 
-    node_colors = pd.Series([i.split('_')[1] for i in list(G.nodes)]).map(node_color_mapper)
-    node_labels = {node: node.split('_')[0] for node in G.nodes()}
+    if community_df is not None:
+        # Map community numbers to distinct colors
+        
+        communities = community_df['community'].unique()
+        colors = plt.cm.get_cmap('Set2', len(communities))
+        if len(communities) > 8:  # Set2 has 8 colors, switch to tab20 if more colors are needed
+            colors = plt.cm.get_cmap('tab20', len(communities))
+        else:
+            colors = plt.cm.get_cmap('Set2', len(communities))
+        community_color_mapper = {community: colors(i) for i, community in enumerate(communities)}
+        # Map node colors based on community
+        node_colors = community_df.set_index('node')['community'].map(community_color_mapper)
+        
+        node_labels = {node: node.rsplit('_', 1)[0] for node in G.nodes()}
+        
+        node_colors = node_colors.reindex(G.nodes())
+        edge_colors = 'gray'
+        edge_widths = 1
+        for community, color in community_color_mapper.items():
+            ax.plot([], [], 'o', color=color, label=f'Community {community}')
+        ax.legend(title='Communities', loc='best')
+        node_sizes = degrees_norm * 1500
+
+    else:
+        # Use provided node_color_mapper
+        ls = list(node_color_mapper.keys())
+        cl = list(node_color_mapper.values())
+        for label, color in zip(ls, cl):
+            ax.plot([], [], 'o', color=color, label=label)
+        ax.legend(title='Nodes', loc='best')
+        node_colors = pd.Series([i.rsplit('_', 1)[-1] for i in list(G.nodes)]).map(node_color_mapper)
+        node_labels = {node: node.rsplit('_', 1)[0] for node in G.nodes()}
+
+        widths_norm = 0.2 + (widths - np.min(widths)) / (np.max(widths) - np.min(widths)) * 0.8
+        edge_colors = plt.cm.Reds(widths_norm)
+        edge_widths = np.array(widths_norm)*5
+        node_sizes = degrees_norm * 500
 
     pos = nx.spring_layout(G, weight='LRP_norm')
+    pos = nx.kamada_kawai_layout(G)
 
     nx.draw(G, with_labels=True,
             labels=node_labels,
             node_color=node_colors,
-            width=np.array(widths)*2,
+            width=edge_widths,
             pos=pos,
             edge_color=edge_colors,
             ax=ax,
-            node_size=degrees_norm * 500,
+            node_size=node_sizes,
             edgecolors='white',
             linewidths=0.5,
             font_size=8)
     ax.set_title('Sample ' + graph.sample_ID + '\nGraph of the top {} edges with the highest LRP values'.format(graph.top_n_edges))
+    
+    
+
 
 
 from scipy.spatial.distance import cdist
@@ -390,9 +425,9 @@ def create_edge_dataframe_from_adj_diff(adj_diff, threshold):
     edge_data = []
 
     # Iterate over the adjacency matrix to extract edges
-    for source_node in adj_diff.index:
-        for target_node in adj_diff.columns:
-            if adj_diff.loc[source_node, target_node] > 0:
+    for i, source_node in enumerate(adj_diff.index):
+        for j, target_node in enumerate(adj_diff.columns):
+            if i < j and adj_diff.loc[source_node, target_node] > 0:
                 edge_data.append({
                     'edge': f"{source_node} - {target_node}",
                     'source_node': source_node,
@@ -403,5 +438,21 @@ def create_edge_dataframe_from_adj_diff(adj_diff, threshold):
 
     # Create a dataframe from the edge data
     edge_df = pd.DataFrame(edge_data)
-
+    if not edge_df.empty:
+        edge_df.sort_values(by = 'LRP', ascending=False, inplace=True)
+        edge_df.reset_index(drop=True, inplace=True)
+    
     return edge_df
+
+def add_set_of_node_names(self):
+    """
+    Add a set of node names to the graph object.
+
+    Parameters:
+    diff_graph (Graph): The graph object to which the set of node names will be added.
+
+    Returns:
+    None: The function modifies the input graph object in place.
+    """
+    self.G.set_of_node_names = set(node.rsplit('_', 1)[0] for node in self.G.nodes)
+    
