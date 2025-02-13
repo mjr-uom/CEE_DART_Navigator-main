@@ -9,7 +9,6 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
-from holoviews.plotting.bokeh.styles import font_size
 from pyvis.network import Network
 import os
 import hashlib
