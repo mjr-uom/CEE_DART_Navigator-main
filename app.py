@@ -502,72 +502,8 @@ if st.session_state.get('first_form_completed', False):
 
 if st.session_state['second_form_completed']:
     # Col1, Col2 = st.columns(2)
-    Col1, Col2, Col3, Col4 = st.tabs(
-        ["፨ Selected sample", "⩬ Top N similar", "🔍 Group comparison ", "⚖️ Graph differences"])
-    sampleIDs = []
-    for i in range(len(st.session_state['G_dict'])):
-        sampleIDs.append(st.session_state['G_dict'][i].sample_ID)
-
-    disp_list = sampleIDs.copy()
-    disp_list.sort()
-
-    if "selected_gId" not in st.session_state:
-        st.session_state['selected_gId'] = sampleIDs[0]
-
-
-    def new_gid_callback():
-        st.session_state["selected_gId"] = st.session_state.new_gId
-
-
-    st.session_state["selected_gId"] = Col1.selectbox("Please select the sample you want to see:",
-                                                      disp_list,
-                                                      index=0,
-                                                      help="Choose from the available graphs listed below.",
-                                                      key="new_gId",
-                                                      placeholder="Select a graph...",
-                                                      on_change=new_gid_callback,
-                                                      )
-
-    if st.session_state["selected_gId"]:
-        print("You selected index: {0}".format(disp_list.index(st.session_state["selected_gId"])))
-        G = st.session_state['G_dict'][map_index_to_unsorted(disp_list.index(st.session_state["selected_gId"]), disp_list, sampleIDs)]
-        container_main = Col1.container(border=False)
-        plot_my_graph(container_main, G)
-
-    # Display the modified text
-    # container_main.title("{0} most similar graphs.".format(top_n_similar))
-    # Get the top n most similar samples
-    G = st.session_state['G_dict'][map_index_to_unsorted(disp_list.index(st.session_state["selected_gId"]), disp_list, sampleIDs)]
-    embeddings_df = fg.extract_raveled_fixed_size_embedding_all_graphs(st.session_state['G_dict'])
-    sorted_distance_df = fg.compute_sorted_distances(embeddings_df, G.sample_ID)
-
-
-    def new_stratify_by_callback():
-        st.session_state["top_n_similar"] = st.session_state.new_top_n_similar
-
-
-    st.session_state["top_n_similar"] = Col2.number_input(
-        "Please provide the number of similar graphs to display:",
-        min_value=1,
-        max_value=6,
-        step=1,
-        key="new_top_n_similar",
-        placeholder="Select a value...",
-        on_change=new_stratify_by_callback
-    )
-    if st.session_state["top_n_similar"] > 0:
-        top_n_samples = sorted_distance_df.head(st.session_state["top_n_similar"] + 1)
-        Col2_subC_1, Col2_subC_2 = Col2.columns(2)
-        for i in range(st.session_state["top_n_similar"] + 1):
-            # if i == 0:
-            #    continue
-            sample_ID = top_n_samples.iloc[i, 0]
-            G = next(G for G in st.session_state['G_dict'].values() if G.sample_ID == sample_ID)
-            if i % 2:
-                container_topn = Col2_subC_2.container(border=False)
-            else:
-                container_topn = Col2_subC_1.container(border=False)
-            plot_my_graph(container_topn, G)
+    Col3, Col4 = st.tabs(
+        ["🔍 Group comparison ", "⚖️ Graph differences"])
 
 ###############
 #
