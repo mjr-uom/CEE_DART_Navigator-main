@@ -22,6 +22,10 @@ path_to_functions_directory = r'./source'
 if path_to_functions_directory not in sys.path:
     sys.path.append(path_to_functions_directory)
 
+import civic_data_code as civic
+
+importlib.reload(civic)
+
 import dataloaders as dtl
 
 importlib.reload(dtl)
@@ -63,6 +67,9 @@ if 'filtered_tts_lrp_df' not in st.session_state:
 
 if 'metadata_df' not in st.session_state:
     st.session_state['metadata_df'] = pd.DataFrame([])
+
+if 'civic_data' not in st.session_state:
+    st.session_state['civic_data'] = pd.DataFrame([])
 
 if 'f_tumor_tissue_site' not in st.session_state:
     st.session_state['f_tumor_tissue_site'] = pd.DataFrame([])
@@ -382,9 +389,27 @@ if __name__ == '__main__':
         uploader_placeholder_md.empty()
         st.sidebar.info('File {0} has been analysed.'.format(path_to_metadata.name))
 
+    uploader_placeholder_cf = st.sidebar.empty()
+    civic_features_path = uploader_placeholder_cf.file_uploader("Upload CivicDatabase features")
+    if civic_features_path is not None:
+
+        uploader_placeholder_cf.empty()
+        st.sidebar.info('File {0} has been analysed.'.format(civic_features_path.name))
+
+    uploader_placeholder_mp = st.sidebar.empty()
+    civic_mp_path = uploader_placeholder_mp.file_uploader("Upload Molecular Profile Summaries")
+    if civic_mp_path is not None:
+
+        uploader_placeholder_mp.empty()
+        st.sidebar.info('File {0} has been analysed.'.format(civic_mp_path.name))
+
+    if civic_features_path and civic_mp_path:
+        st.session_state['civic_data'] = civic.CivicData(civic_features_path, civic_mp_path)
+        st.session_state['civic_data'].load_data()
+
 #### Filters
 
-    if path_to_LRP_data and path_to_metadata:
+    if path_to_LRP_data and path_to_metadata and civic_features_path and civic_mp_path:
         filter_catalog = get_column_values(st.session_state['metadata_df'])
 
         filters_form = st.sidebar.form('filters')
@@ -685,6 +710,8 @@ if st.session_state.get('compare_form_complete', False):
                             sample_ID='DIFFERENCE ' + st.session_state["compare_grp_selected"][i] + ' vs ' +
                                       st.session_state["compare_grp_selected"][j],
                         )
+                        st.session_state['civic_data'].get_molecular_profiles_matching_nodes(diff_graph)
+                        st.session_state['civic_data'].get_features_matching_nodes(diff_graph)
                         diff_plots_container = Col4.container(border=False)
                         sb_t_col1, sb_t_col2 = Col4.columns(2)
                         container_difn_x = sb_t_col1.container(border=False)
@@ -727,5 +754,22 @@ if st.session_state.get('compare_form_complete', False):
                             #            ax=ax2)
                             st.pyplot(fig2)
 
+                        st.session_state['civic_data'].get_mps_summaries()
+                        Col4.subheader("MPS summaries")
+                        mps_summaries = Col4.expander("See MPS summaries")
+                        mps_summaries.write(st.session_state['civic_data'].mps_summaries)
+
+                        st.session_state['civic_data'].get_features_matching_nodes(diff_graph)
+                        st.session_state['civic_data'].get_features_descriptions()
+                        Col4.subheader("Features descriptions")
+                        mps_summaries = Col4.expander("See features descriptions")
+                        mps_summaries.write(st.session_state['civic_data'].features_descriptions)
+
+                        st.session_state['civic_data'].get_evidence_ids_df()
+                        st.session_state['civic_data'].get_evidence_desctiptions()
+                        st.session_state['civic_data'].agragate_all_facts()
+                        Col4.subheader("All facts")
+                        mps_summaries = Col4.expander("See all facts")
+                        mps_summaries.write(st.session_state['civic_data'].all_facts)
                         Col4.divider()
                     pair_counter += 1
