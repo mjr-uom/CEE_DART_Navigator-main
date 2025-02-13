@@ -9,13 +9,15 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
+from holoviews.plotting.bokeh.styles import font_size
 from pyvis.network import Network
 import os
 import hashlib
 import itertools
 import importlib, sys
+import matplotlib.pyplot as plt
 from htmls.dynamicLegends import generate_legend_html
-from len_gen import generate_legend_table
+from len_gen import generate_legend_table, generate_legend_table_community
 path_to_functions_directory = r'./source'
 if path_to_functions_directory not in sys.path:
     sys.path.append(path_to_functions_directory)
@@ -104,7 +106,6 @@ main_body_logo   = "./images/CCE_Dart_icon.png"
 
 st.set_page_config(layout="wide")
 
-
 def assign_colors(strings):
     color_names = sorted(list(mcolors.CSS4_COLORS.keys()))
 
@@ -116,6 +117,20 @@ def assign_colors(strings):
     sorted_keys = sorted(keys)  # Sort the keys for deterministic order
 
     color_dict = {key: get_color(key) for key in sorted_keys}
+    return color_dict
+
+def assign_colors_int(ids):
+    # Get a sorted list of color names
+    color_names = sorted(list(mcolors.CSS4_COLORS.keys()))
+
+    def get_color(id):
+        # Convert the integer id to a string before hashing
+        hash_value = int(hashlib.sha256(str(id).encode()).hexdigest(), 16)
+        # Map the hash value to a color
+        return color_names[hash_value % len(color_names)]
+
+    # Create a dictionary mapping each id to a color
+    color_dict = {id: get_color(id) for id in ids}
     return color_dict
 
 
@@ -174,8 +189,14 @@ def create_pyvis_graph(net, G):
     #                ''')
 
 
-def plot_my_graph(container, graph):
+def plot_my_graph(container, graph, communities=None):
     #fg.plot_graph(graph, node_color_mapper)
+    if communities is not None and not communities.empty:
+        # Ensure 'node' and 'community' columns exist in the DataFrame
+        if "node" in communities.columns and "community" in communities.columns:
+            node_community_mapping = dict(zip(communities["node"], communities["community"]))
+            group_list = sorted(communities["community"].unique())
+            group_color_mapper = assign_colors_int(group_list)
     visor = Network(
         height='600px',
         width='100%',
@@ -202,7 +223,10 @@ def plot_my_graph(container, graph):
     for node in visor.nodes:
         node["label"] = "_".join(node["id"].split('_')[:-1])
         node["_type"] = node["id"].split('_')[-1]
-        node["color"] = node_color_mapper[node["id"].split('_')[-1]]
+        if communities is not None:
+            node["color"] = group_color_mapper[node_community_mapping[node["id"]]]
+        else:
+            node["color"] = node_color_mapper[node["id"].split('_')[-1]]
         node["title"] = node["label"]
         node["value"] = len(neighbor_map[node["id"]])
         node["title"] += " Neighbors:"
@@ -230,6 +254,7 @@ def plot_my_graph(container, graph):
     #                                  }
     #                ''')
 
+
     if isinstance(graph.sample_ID, int):
         graph.sample_ID = str(graph.sample_ID)
 
@@ -245,7 +270,11 @@ def plot_my_graph(container, graph):
 
     path = './htmls/legends.html'
     #chart_legend_css = generate_legend_html(list(set(node_type)))
-    chart_legend_css =  generate_legend_table(node_color_mapper)
+    if communities is not None:
+        chart_legend_css = generate_legend_table_community(group_color_mapper)
+    else:
+        chart_legend_css =  generate_legend_table(node_color_mapper)
+
 
     style_heading = 'text-align: center'
     css = r'''<style>
@@ -257,26 +286,13 @@ def plot_my_graph(container, graph):
                                }
                </style>
                  '''
-
+    communities_label = " / Communities " if communities is not None else ""
     container.markdown(css, unsafe_allow_html=True)
-    container.markdown(f"<h1 style='{style_heading}'>Sample '{graph.sample_ID}' </h1>", unsafe_allow_html=True)
+    container.markdown(f"<h1 style='{style_heading}'>Sample '{graph.sample_ID}' {communities_label} </h1>", unsafe_allow_html=True)
     container.markdown(
         f"<h2 style='{style_heading}'>Graph of the top '{graph.top_n_edges}' edges with the highest LRP values </h2>",
         unsafe_allow_html=True)
 
-    zoom_options = """
-    var options = {
-    "interaction": {
-        "zoomView": true,  
-        "zoomSpeed": 1.2   
-    },
-    "layout": {
-        "randomSeed": 42,  
-        "scale": 50.0       
-    }
-       }
-    """
-    visor.set_options(zoom_options)
 
     with container:
         subCol1, subCol2 = st.columns([5, 1])
@@ -631,6 +647,12 @@ if st.session_state.get('compare_form_complete', False):
         for i,j in pairs:
             adj_diff_list.append(fg.calculate_adjacency_difference(G_dict12[i], G_dict12[j]))
 
+
+        #st.session_state['metadata_df'].match_index_with_lrp_df(st.session_state['lrp_df'])
+        #st.session_state['metadata_df'].validate_data_indices(st.session_state['lrp_df'])
+        #filtered_df = st.session_state['filtered_data']
+        #G_dict = fg.get_all_graphs_from_lrp(filtered_df, st.session_state['top_n'])
+
         threshold_selection_form = Col4.form('ThresSelection')
         with threshold_selection_form:
             diff_thres = st.slider("Threshold value:",
@@ -664,7 +686,19 @@ if st.session_state.get('compare_form_complete', False):
                                       st.session_state["compare_grp_selected"][j],
                         )
                         diff_plots_container = Col4.container(border=False)
-                        plot_my_graph(diff_plots_container, diff_graph)
+                        sb_t_col1, sb_t_col2 = Col4.columns(2)
+                        container_difn_x = sb_t_col1.container(border=False)
+                        container_difn_y = sb_t_col2.container(border=False)
+
+                        plot_my_graph(container_difn_x, diff_graph)
+                        diff_graph.get_communitites()
+                        plot_my_graph(container_difn_y, diff_graph, diff_graph.communitites)
+
+                        edge_df_sizes = []
+                        for diff_thres in np.arange(0.0, 1., 0.02):
+                            edge_df_tmp = fg.create_edge_dataframe_from_adj_diff(adj_diff, diff_thres)
+                            edge_df_sizes.append((diff_thres, len(edge_df_tmp)))
+
 
                         sb_t_col1, sb_t_col2 = Col4.columns(2)
                         container_difn_x = sb_t_col1.container(border=False)
@@ -673,18 +707,24 @@ if st.session_state.get('compare_form_complete', False):
                         plot_my_graph(container_difn_y, G_dict12[j])
 
                         with sb_t_col1:
-                            st.subheader("All differences")
-                            fig, ax = plt.subplots(figsize=(16, 12))
-                            sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
-                                        cmap='Reds', vmin=0, vmax=1, ax=ax)
+                            st.subheader("Number of Edges vs Difference Threshold")
+                            fig, ax = plt.subplots(1, 1, figsize=(16, 12))
+                            ax.plot(*zip(*edge_df_sizes), '-o')
+                            fig.supxlabel('Difference Threshold', fontsize=25, fontweight=900)
+                            fig.supylabel('Number of Edges', fontsize=25, fontweight=900)
+                            #sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
+                            #            cmap='Reds', vmin=0, vmax=1, ax=ax)
                             st.pyplot(fig)
 
                         with sb_t_col2:
-                            st.subheader("Differences above the threshold")
-                            fig2, ax2 = plt.subplots(figsize=(16, 12))
-                            sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
-                                        cmap='Reds', vmin=0, vmax=1, mask=adj_diff < diff_thres,
-                                        ax=ax2)
+                            st.subheader("LRP values for edges sorted by LRP value")
+                            fig2, ax2 = plt.subplots(1,1, figsize=(16, 12))
+                            ax2.plot(edge_df['LRP'])
+                            fig2.supxlabel('Edge #', fontsize=25, fontweight=900)
+                            fig2.supylabel('LRP', fontsize=25, fontweight=900)
+                            #sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
+                            #            cmap='Reds', vmin=0, vmax=1, mask=adj_diff < diff_thres,
+                            #            ax=ax2)
                             st.pyplot(fig2)
 
                         Col4.divider()
