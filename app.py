@@ -710,7 +710,6 @@ if st.session_state.get('compare_form_complete', False):
                                       st.session_state["compare_grp_selected"][j],
                         )
                         st.session_state['civic_data'].get_molecular_profiles_matching_nodes(diff_graph)
-                        st.session_state['civic_data'].get_features_matching_nodes(diff_graph)
                         diff_plots_container = Col4.container(border=False)
                         sb_t_col1, sb_t_col2 = Col4.columns(2)
                         container_difn_x = sb_t_col1.container(border=False)
