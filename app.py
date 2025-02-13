@@ -272,7 +272,7 @@ def plot_my_graph(container, graph):
     },
     "layout": {
         "randomSeed": 42,  
-        "scale": 50.0       
+        "scale": 55.0       
     }
        }
     """
