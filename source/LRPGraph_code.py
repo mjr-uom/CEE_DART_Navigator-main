@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+import pandas as pd
 def get_edges_subset(edges_sample_i, top_n_edges=None):
     """
     Get the top `n_` edges based on the LRP values, or all edges if `n_` is not specified.
@@ -75,6 +76,9 @@ class LRPGraph:
         # Laplacian embedding dimensions 
         self.embedding_dim = embedding_dim
         self.all_nodes = None
+
+        # get node names that do not include the node type
+        self.set_of_node_names_no_type = set(node.rsplit('_', 1)[0] for node in self.G.nodes)
 
         """
         This graph represents the structure of relationships between nodes as defined 
@@ -216,7 +220,18 @@ class LRPGraph:
 
         self.fixed_size_adjacency_matrix = adjacency_matrix
 
+    def get_communitites(self):
+        """
+        Identifies communities in the graph using the Louvain method and stores the result in a DataFrame.
+        This method uses the Louvain algorithm to detect communities within the graph `self.G`. It then creates a 
+        DataFrame where each row corresponds to a node and its associated community. The DataFrame is stored in 
+        the `self.communitites` attribute.
+        Returns:
+            None
+        """
+        partition = nx.community.louvain_communities(self.G )
+        partition_sorted = sorted(partition, key=len, reverse=True)
+        partition_dict = {i+1: community for i, community in enumerate(partition_sorted)}
 
-# Example usage
-# Assuming `edges_temp` is your DataFrame, and you have dictionaries `max_nodes_dict` and `all_nodes_dict` for configuration:
-# graph = GraphClass(edges_temp, "source_node", "target_node", ["LRP", "LRP_norm"], embedding_dim=10, max_nodes_dict=max_nodes_dict, all_nodes_dict=all_nodes_dict, n_key=n_)
+        community_df = pd.DataFrame([(node, community) for community, nodes in partition_dict.items() for node in nodes], columns=['node', 'community'])
+        self.communitites = community_df
