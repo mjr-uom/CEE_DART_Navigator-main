@@ -180,7 +180,7 @@ def plot_my_graph(container, graph):
         height='600px',
         width='100%',
         bgcolor='#FFFFFF',
-        font_color='black',
+        font_color='red',
         #select_menu=True,
         #cdn_resources='remote',
         #filter_menu=True,
