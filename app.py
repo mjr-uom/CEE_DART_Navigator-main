@@ -522,7 +522,7 @@ if st.session_state.get('filters_form_completed', False):
 ################
 if st.session_state.get('first_form_completed', False):
     Col1, Col2, Col3, Col4 = st.tabs(
-        ["፨ Selected sample", "⩬ Top N similar", "🔍 Group comparison ", "⚖️ Graph differences"])
+        ["፨ selected sample", "⩬ top n similar", "🔍 group comparison ", "⚖️ graph differences"])
     st.session_state['enable_comparison'] = True
     node_selection_form = Col1.form('TopNSelection')
     with node_selection_form:
