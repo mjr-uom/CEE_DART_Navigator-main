@@ -231,8 +231,12 @@ def plot_my_graph(container, graph, communities=None):
         data["value"]  = data["LRP_norm"]
         data["click"]  = 'LRP_norm: {:.4f}'.format(data["LRP_norm"])
 
+    pos = nx.kamada_kawai_layout(newG, weight="LRP_norm", scale=500)
     node_type = []
     for node, data in newG.nodes(data=True):
+        x, y = pos[node]
+        data["x"] = x
+        data["y"] = y
         data["label"] = "_".join(node.split('_')[:-1])
         data["_type"] = node.split('_')[-1]
         data["click"] = f" Node: {data['label']} \n Type: {node.split('_')[-1]}"
@@ -332,7 +336,7 @@ def plot_my_graph(container, graph, communities=None):
     fig = gv.d3(newG, use_node_size_normalization=True, node_size_data_source='value', node_hover_tooltip = True,
                 node_hover_neighborhood = True, show_node_label = True, node_label_data_source = 'label',
                 use_edge_size_normalization=True, edge_size_data_source='weight', edge_curvature = 0.0,
-                edge_hover_tooltip = True)
+                edge_hover_tooltip = True, zoom_factor=0.55)
 
     with container:
         subCol1, subCol2 = st.columns([5, 1])
