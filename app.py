@@ -408,9 +408,9 @@ if __name__ == '__main__':
     st.logo("./images/space.png", size="large", icon_image="./images/CCE_Dart_icon.png")
     st.sidebar.image("./images/CRUK_NBC_DCR.png", width=150)
     st.sidebar.image("./images/CCE_Dart_logo.png", width=150)
-    st.sidebar.title('፨ LPR Dashboard')
+    st.sidebar.title('፨ LRP Dashboard')
     uploader_placeholder = st.sidebar.empty()
-    path_to_LRP_data = uploader_placeholder.file_uploader("Upload data LPR")
+    path_to_LRP_data = uploader_placeholder.file_uploader("Upload data LRP")
 
     if path_to_LRP_data is not None:
         st.session_state['lrp_df'] = dtl.LRPData(file_path=save_my_uploaded_file('/tmp', path_to_LRP_data),
@@ -436,12 +436,13 @@ if __name__ == '__main__':
     #
     civic_features_path = "./data/01-Feb-2025-FeatureSummaries.tsv"
 
-    uploader_placeholder_mp = st.sidebar.empty()
-    civic_mp_path = uploader_placeholder_mp.file_uploader("Upload Molecular Profile Summaries")
-    if civic_mp_path is not None:
-
-        uploader_placeholder_mp.empty()
-        st.sidebar.info('File {0} has been analysed.'.format(civic_mp_path.name))
+    #uploader_placeholder_mp = st.sidebar.empty()
+    #civic_mp_path = uploader_placeholder_mp.file_uploader("Upload Molecular Profile Summaries")
+    #if civic_mp_path is not None:
+    #
+    #    uploader_placeholder_mp.empty()
+    #    st.sidebar.info('File {0} has been analysed.'.format(civic_mp_path.name))
+    civic_mp_path = "./data/01-Feb-2025-MolecularProfileSummaries.tsv"
 
     if civic_features_path and civic_mp_path:
         st.session_state['civic_data'] = civic.CivicData(civic_features_path, civic_mp_path)
