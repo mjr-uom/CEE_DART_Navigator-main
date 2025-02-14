@@ -2,6 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 import seaborn as sns
+import gravis as gv
 import altair as alt
 import networkx as nx
 import matplotlib as mt
@@ -217,11 +218,37 @@ def plot_my_graph(container, graph, communities=None):
     )
     #visor.from_nx(graph.G)
     create_pyvis_graph(visor, graph.G)
+    newG =graph.G
     node_color_mapper = assign_colors(sorted([node["id"] for node in visor.nodes]))
     neighbor_map = visor.get_adj_list()
-    edge_dist = list(nx.get_edge_attributes(graph.G, 'LRP_norm').values())
+    edge_dist = list(nx.get_edge_attributes(newG, 'LRP_norm').values())
     norm_colour = mt.colors.Normalize(vmin=0.0, vmax=max(edge_dist), clip=True)
     colour_mapper = (cm.ScalarMappable(norm=norm_colour, cmap=cm.Greys))
+    for u, v, data in newG.edges(data=True):
+        data["hover"]  = 'LRP_norm: {:.4f}'.format(data["LRP_norm"])
+        data["color"]  = mt.colors.rgb2hex(colour_mapper.to_rgba(data["LRP_norm"]))
+        data["weight"] = data["LRP_norm"]
+        data["value"]  = data["LRP_norm"]
+        data["click"]  = 'LRP_norm: {:.4f}'.format(data["LRP_norm"])
+
+    node_type = []
+    for node, data in newG.nodes(data=True):
+        data["label"] = "_".join(node.split('_')[:-1])
+        data["_type"] = node.split('_')[-1]
+        data["click"] = f" Node: {data['label']} \n Type: {node.split('_')[-1]}"
+        if communities is not None:
+            data["color"] = group_color_mapper[node_community_mapping[node]]
+        else:
+            data["color"] = node_color_mapper[node.split('_')[-1]]
+        data["hover"] = data["label"]
+        data["value"] = len(neighbor_map[node])
+        data["hover"] += " Neighbors:"
+        node_type.append(node.split('_')[-1])
+
+        for _, item in enumerate(neighbor_map[node]):
+            data["hover"] += "\n" + "_".join(item.split('_')[:-1])
+
+
     for edge in visor.edges:
         edge["title"] = 'LRP_norm: {:.4f}'.format(edge["LRP_norm"])
         edge["color"] = mt.colors.rgb2hex(colour_mapper.to_rgba(edge["LRP_norm"]))
@@ -302,11 +329,16 @@ def plot_my_graph(container, graph, communities=None):
         f"<h2 style='{style_heading}'>Graph of the top '{graph.top_n_edges}' edges with the highest LRP values </h2>",
         unsafe_allow_html=True)
 
+    fig = gv.d3(newG, use_node_size_normalization=True, node_size_data_source='value', node_hover_tooltip = True,
+                node_hover_neighborhood = True, show_node_label = True, node_label_data_source = 'label',
+                use_edge_size_normalization=True, edge_size_data_source='weight', edge_curvature = 0.0,
+                edge_hover_tooltip = True)
 
     with container:
         subCol1, subCol2 = st.columns([5, 1])
         with subCol1:
-            components.html(HtmlFile.read(), height=620, scrolling=True)
+            #components.html(HtmlFile.read(), height=620, scrolling=True)
+            components.html(fig.to_html(), height=620, scrolling=True)
             with subCol2:
                 components.html(chart_legend_css, height=620)
 
