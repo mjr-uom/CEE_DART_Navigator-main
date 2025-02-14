@@ -478,6 +478,8 @@ if st.session_state.get('filters_form_completed', False):
 
 ################
 if st.session_state.get('first_form_completed', False):
+    st.session_state['top_n'] = len(st.session_state['filtered_data'].index)
+    st.session_state['G_dict'] = fg.get_all_graphs_from_lrp(st.session_state['filtered_data'], st.session_state['top_n'])
     # Col1, Col2 = st.columns(2)
     Col1, Col3, Col4 = st.tabs(
         ["፨ Selected sample", "🔍 Group comparison ", "⚖️ Graph differences"])
