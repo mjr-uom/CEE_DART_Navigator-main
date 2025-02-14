@@ -43,6 +43,9 @@ if 'first_form_completed' not in st.session_state:
 if 'second_form_completed' not in st.session_state:
     st.session_state['second_form_completed'] = False
 
+if 'enable_comparison' not in st.session_state:
+    st.session_state['enable_comparison'] = False
+
 if 'G_dict' not in st.session_state:
     st.session_state['G_dict'] = {}
 
@@ -476,13 +479,36 @@ if st.session_state.get('filters_form_completed', False):
                 uploader_placeholder_kwf.empty()
                 keywords_form.success("Keywords filtered successfully! Proceed to the next step.")
 
+
 ################
 if st.session_state.get('first_form_completed', False):
-    st.session_state['top_n'] = len(st.session_state['filtered_data'].index) // 2
-    st.session_state['G_dict'] = fg.get_all_graphs_from_lrp(st.session_state['filtered_data'], st.session_state['top_n'])
-    # Col1, Col2 = st.columns(2)
-    Col1, Col3, Col4 = st.tabs(
-        ["፨ Selected sample", "🔍 Group comparison ", "⚖️ Graph differences"])
+    Col1, Col2, Col3, Col4 = st.tabs(
+        ["፨ Selected sample", "⩬ Top N similar", "🔍 Group comparison ", "⚖️ Graph differences"])
+    st.session_state['enable_comparison'] = True
+    node_selection_form = Col1.form('TopNSelection')
+    with node_selection_form:
+        st.session_state['top_n'] = node_selection_form.slider(
+            "Please select the number of top n edges",
+            min_value=1,
+            max_value=len(st.session_state['filtered_data'].index),
+            value=len(st.session_state['filtered_data'].index) // 2
+        )
+        submit_button = node_selection_form.form_submit_button(label='Submit')
+        if submit_button:
+            G_dict = fg.get_all_graphs_from_lrp(st.session_state['filtered_data'], st.session_state['top_n'])
+            # Validation
+            assert len(G_dict[1].G.edges) == st.session_state['top_n'], "Edge count mismatch."
+            fg.get_all_fixed_size_adjacency_matrices(G_dict)
+            assert len(G_dict[2].all_nodes) == np.shape(G_dict[1].fixed_size_adjacency_matrix)[
+                1], "Node count mismatch."
+            fg.get_all_fixed_size_embeddings(G_dict)
+
+            st.session_state['second_form_completed'] = True
+            st.session_state['G_dict'] = G_dict
+            node_selection_form.success('{0} graphs have been generated.'.format(len(G_dict)))
+
+if st.session_state['second_form_completed']:
+
     sampleIDs = []
     for i in range(len(st.session_state['G_dict'])):
         sampleIDs.append(st.session_state['G_dict'][i].sample_ID)
@@ -513,12 +539,47 @@ if st.session_state.get('first_form_completed', False):
         container_main = Col1.container(border=False)
         plot_my_graph(container_main, G)
 
+    # Display the modified text
+    # container_main.title("{0} most similar graphs.".format(top_n_similar))
+    # Get the top n most similar samples
+    G = st.session_state['G_dict'][map_index_to_unsorted(disp_list.index(st.session_state["selected_gId"]), disp_list, sampleIDs)]
+    embeddings_df = fg.extract_raveled_fixed_size_embedding_all_graphs(st.session_state['G_dict'])
+    sorted_distance_df = fg.compute_sorted_distances(embeddings_df, G.sample_ID)
+
+
+    def new_top_n_similar_callback():
+        st.session_state["top_n_similar"] = st.session_state.new_top_n_similar
+
+
+    st.session_state["top_n_similar"] = Col2.number_input(
+        "Please provide the number of similar graphs to display:",
+        min_value=1,
+        max_value=6,
+        step=1,
+        key="new_top_n_similar",
+        placeholder="Select a value...",
+        on_change=new_top_n_similar_callback
+    )
+    if st.session_state["top_n_similar"] > 0:
+        top_n_samples = sorted_distance_df.head(st.session_state["top_n_similar"] + 1)
+        Col2_subC_1, Col2_subC_2 = Col2.columns(2)
+        for i in range(st.session_state["top_n_similar"] + 1):
+            # if i == 0:
+            #    continue
+            sample_ID = top_n_samples.iloc[i, 0]
+            G = next(G for G in st.session_state['G_dict'].values() if G.sample_ID == sample_ID)
+            if i % 2:
+                container_topn = Col2_subC_2.container(border=False)
+            else:
+                container_topn = Col2_subC_1.container(border=False)
+            plot_my_graph(container_topn, G)
+
 ###############
 #
 #  Second part
 #
 ###############
-
+if st.session_state.get('first_form_completed', False):
     stratify_by_values = st.session_state['metadata_df'].data.columns.tolist()
     if "stratify_by" not in st.session_state:
         st.session_state['stratify_by'] = stratify_by_values[0]
@@ -548,8 +609,7 @@ if st.session_state.get('first_form_completed', False):
     #if len(st.session_state["LRP_to_graphs_stratified"].columns.tolist()) > 4:
     filtered_columns = [col for col in st.session_state["LRP_to_graphs_stratified"].columns
                         if (isinstance(col, str) and not any(
-            substr in col for substr in ["index", "source_node", "target_node"])) or
-                        isinstance(col, int)]
+            substr in col for substr in ["index", "source_node", "target_node"])) or isinstance(col, int)]
     # filtered_columns = [col for col in st.session_state["LRP_to_graphs_stratified"].columns.tolist()
     #                    if
     #                    isinstance(col, str) and "index" not in col and "source_node" not in col and "target_node" not in col]
@@ -591,7 +651,7 @@ if st.session_state.get('first_form_completed', False):
 #  comparisons
 #
 ###############
-if st.session_state.get('compare_form_complete', False):
+if st.session_state.get('enable_comparison', False):
     if len(st.session_state["compare_grp_selected"]) < 2:
         Col4.subheader(
             "Regrettably, your selection criteria are not generating a sufficient number of comparison groups.",
