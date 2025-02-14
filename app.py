@@ -104,6 +104,9 @@ if 'compare_form_complete' not in st.session_state:
 if 'top_n' not in st.session_state:
     st.session_state['top_n'] = 0
 
+if 'top_diff_n' not in st.session_state:
+    st.session_state['top_diff_n'] = 0
+
 if 'top_n_similar' not in st.session_state:
     st.session_state['top_n_similar'] = None
 
@@ -660,6 +663,12 @@ if st.session_state.get('first_form_completed', False):
                                                                                 filtered_columns,
                                                                                 [],
                                                                                 placeholder="Choose a comparison group.")
+
+            st.session_state['top_diff_n'] = compare_form.slider("Please select the number of top n edges",
+                                                                        min_value=1,
+                                                                        max_value=len(st.session_state['filtered_data'].index),
+                                                                        value=len(st.session_state['filtered_data'].index) // 2
+                                                                        )
         else:
             compare_form.warning("Unfortunately, your selection criteria are not generating any comparison group.")
 
@@ -670,7 +679,7 @@ if st.session_state.get('first_form_completed', False):
                 ['index', 'source_node', 'target_node'] + st.session_state["compare_grp_selected"]]
 
             G_dict12 = fg.get_all_graphs_from_lrp(LRP_to_graphs_stratified_sel_grps,
-                                                  st.session_state['top_n'])
+                                                  st.session_state['top_diff_n'])
             if len(st.session_state["compare_grp_selected"]) > 1:
                 Col3_subC_1, Col3_subC_2 = Col3.columns(2)
                 for i in range(len(G_dict12)):
@@ -700,7 +709,7 @@ if st.session_state.get('enable_comparison', False):
             ['index', 'source_node', 'target_node'] + st.session_state["compare_grp_selected"]]
 
         G_dict12 = fg.get_all_graphs_from_lrp(LRP_to_graphs_stratified_sel_grps,
-                                              st.session_state['top_n'])
+                                              st.session_state['top_diff_n'])
 
         fg.get_all_fixed_size_adjacency_matrices(G_dict12)
         fg.get_all_fixed_size_embeddings(G_dict12)
@@ -748,7 +757,7 @@ if st.session_state.get('enable_comparison', False):
                             source_column="source_node",
                             target_column="target_node",
                             edge_attrs=["LRP", "LRP_norm"],
-                            top_n_edges=st.session_state['top_n'],
+                            top_n_edges=st.session_state['top_diff_n'],
                             sample_ID='DIFFERENCE ' + st.session_state["compare_grp_selected"][i] + ' vs ' +
                                       st.session_state["compare_grp_selected"][j],
                         )
