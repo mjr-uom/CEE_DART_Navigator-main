@@ -427,12 +427,14 @@ if __name__ == '__main__':
         uploader_placeholder_md.empty()
         st.sidebar.info('File {0} has been analysed.'.format(path_to_metadata.name))
 
-    uploader_placeholder_cf = st.sidebar.empty()
-    civic_features_path = uploader_placeholder_cf.file_uploader("Upload CivicDatabase features")
-    if civic_features_path is not None:
-
-        uploader_placeholder_cf.empty()
-        st.sidebar.info('File {0} has been analysed.'.format(civic_features_path.name))
+    #uploader_placeholder_cf = st.sidebar.empty()
+    #civic_features_path = uploader_placeholder_cf.file_uploader("Upload CivicDatabase features")
+    #if civic_features_path is not None:
+    #
+    #    uploader_placeholder_cf.empty()
+    #    st.sidebar.info('File {0} has been analysed.'.format(civic_features_path.name))
+    #
+    civic_features_path = "./data/01-Feb-2025-FeatureSummaries.tsv"
 
     uploader_placeholder_mp = st.sidebar.empty()
     civic_mp_path = uploader_placeholder_mp.file_uploader("Upload Molecular Profile Summaries")
