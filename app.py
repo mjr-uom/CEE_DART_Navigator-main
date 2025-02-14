@@ -478,32 +478,38 @@ if st.session_state.get('filters_form_completed', False):
 
 ################
 if st.session_state.get('first_form_completed', False):
-    node_selection_form = st.sidebar.form('TopNSelection')
-    with node_selection_form:
-        st.session_state['top_n'] = node_selection_form.slider(
-            "Please select the number of top n edges",
-            min_value=1,
-            max_value=len(st.session_state['filtered_data'].index),
-            value=len(st.session_state['filtered_data'].index) // 2
-        )
-        submit_button = node_selection_form.form_submit_button(label='Submit')
-        if submit_button:
-            G_dict = fg.get_all_graphs_from_lrp(st.session_state['filtered_data'], st.session_state['top_n'])
-            # Validation
-            assert len(G_dict[1].G.edges) == st.session_state['top_n'], "Edge count mismatch."
-            fg.get_all_fixed_size_adjacency_matrices(G_dict)
-            assert len(G_dict[2].all_nodes) == np.shape(G_dict[1].fixed_size_adjacency_matrix)[
-                1], "Node count mismatch."
-            fg.get_all_fixed_size_embeddings(G_dict)
-
-            st.session_state['second_form_completed'] = True
-            st.session_state['G_dict'] = G_dict
-            node_selection_form.success('{0} graphs have been generated.'.format(len(G_dict)))
-
-if st.session_state['second_form_completed']:
     # Col1, Col2 = st.columns(2)
-    Col3, Col4 = st.tabs(
-        ["🔍 Group comparison ", "⚖️ Graph differences"])
+    Col1, Col3, Col4 = st.tabs(
+        ["፨ Selected sample", "🔍 Group comparison ", "⚖️ Graph differences"])
+    sampleIDs = []
+    for i in range(len(st.session_state['G_dict'])):
+        sampleIDs.append(st.session_state['G_dict'][i].sample_ID)
+
+    disp_list = sampleIDs.copy()
+    disp_list.sort()
+
+    if "selected_gId" not in st.session_state:
+        st.session_state['selected_gId'] = sampleIDs[0]
+
+
+    def new_gid_callback():
+        st.session_state["selected_gId"] = st.session_state.new_gId
+
+
+    st.session_state["selected_gId"] = Col1.selectbox("Please select the sample you want to see:",
+                                                      disp_list,
+                                                      index=0,
+                                                      help="Choose from the available graphs listed below.",
+                                                      key="new_gId",
+                                                      placeholder="Select a graph...",
+                                                      on_change=new_gid_callback,
+                                                      )
+
+    if st.session_state["selected_gId"]:
+        print("You selected index: {0}".format(disp_list.index(st.session_state["selected_gId"])))
+        G = st.session_state['G_dict'][map_index_to_unsorted(disp_list.index(st.session_state["selected_gId"]), disp_list, sampleIDs)]
+        container_main = Col1.container(border=False)
+        plot_my_graph(container_main, G)
 
 ###############
 #
