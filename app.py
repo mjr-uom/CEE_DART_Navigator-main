@@ -8,7 +8,6 @@ import networkx as nx
 import matplotlib as mt
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
 import numpy as np
 from pyvis.network import Network
 import os
@@ -16,7 +15,7 @@ import hashlib
 import itertools
 import importlib, sys
 import matplotlib.pyplot as plt
-from htmls.dynamicLegends import generate_legend_html
+
 from len_gen import generate_legend_table, generate_legend_table_community
 path_to_functions_directory = r'./source'
 if path_to_functions_directory not in sys.path:
@@ -38,86 +37,43 @@ import LRPGraph_code as lrpgraph
 
 importlib.reload(lrpgraph)
 
-if 'first_form_completed' not in st.session_state:
-    st.session_state['first_form_completed'] = False
+default_session_state = {
+    'first_form_completed': False,
+    'second_form_completed': False,
+    'enable_comparison': False,
+    'G_dict': {},
+    'keywords': list(),
+    'tumor_tissue_site': list(),
+    'ttss_selected': list(),
+    'acronym': list(),
+    'lrp_df': pd.DataFrame([]),
+    'filtered_tts_lrp_df': pd.DataFrame([]),
+    'metadata_df': pd.DataFrame([]),
+    'civic_data': pd.DataFrame([]),
+    'f_tumor_tissue_site': pd.DataFrame([]),
+    'f_acronym': pd.DataFrame([]),
+    'filters_form_completed': None,
+    'tts_filter_button': None,
+    'frequent_kws': pd.DataFrame([]),
+    'LRP_to_graphs_stratified': pd.DataFrame([]),
+    'calculate_button': False,
+    'comparison_grp_button': False,
+    'compare_form_complete': False,
+    'top_n': 0,
+    'top_diff_n': 0,
+    'top_n_similar': None,
+    'compare_grp_selected': list(),
+}
 
-if 'second_form_completed' not in st.session_state:
-    st.session_state['second_form_completed'] = False
-
-if 'enable_comparison' not in st.session_state:
-    st.session_state['enable_comparison'] = False
-
-if 'G_dict' not in st.session_state:
-    st.session_state['G_dict'] = {}
-
-if 'keywords' not in st.session_state:
-    st.session_state['keywords'] = list()
-
-if 'tumor_tissue_site' not in st.session_state:
-    st.session_state['tumor_tissue_site'] = list()
-
-if 'ttss_selected' not in st.session_state:
-    st.session_state['ttss_selected'] = list()
-
-if 'acronym' not in st.session_state:
-    st.session_state['acronym'] = list()
-
-if 'lrp_df' not in st.session_state:
-    st.session_state['lrp_df'] = pd.DataFrame([])
-
-if 'filtered_tts_lrp_df' not in st.session_state:
-    st.session_state['filtered_tts_lrp_df'] = pd.DataFrame([])
-
-if 'metadata_df' not in st.session_state:
-    st.session_state['metadata_df'] = pd.DataFrame([])
-
-if 'civic_data' not in st.session_state:
-    st.session_state['civic_data'] = pd.DataFrame([])
-
-if 'f_tumor_tissue_site' not in st.session_state:
-    st.session_state['f_tumor_tissue_site'] = pd.DataFrame([])
-
-if 'f_acronym' not in st.session_state:
-    st.session_state['f_acronym'] = pd.DataFrame([])
-
-if 'filters_form_completed' not in st.session_state:
-    st.session_state['filters_form_completed'] = None
-
-if 'tts_filter_button' not in st.session_state:
-    st.session_state['tts_filter_button'] = None
-
-if 'frequent_kws' not in st.session_state:
-    st.session_state['frequent_kws'] = pd.DataFrame([])
-
-if 'LRP_to_graphs_stratified' not in st.session_state:
-    st.session_state['LRP_to_graphs_stratified'] = pd.DataFrame([])
-
-if 'calculate_button' not in st.session_state:
-    st.session_state['calculate_button'] = False
-
-if 'comparison_grp_button' not in st.session_state:
-    st.session_state['comparison_grp_button'] = False
-
-if 'compare_form_complete' not in st.session_state:
-    st.session_state['compare_form_complete'] = False
-
-if 'top_n' not in st.session_state:
-    st.session_state['top_n'] = 0
-
-if 'top_diff_n' not in st.session_state:
-    st.session_state['top_diff_n'] = 0
-
-if 'top_n_similar' not in st.session_state:
-    st.session_state['top_n_similar'] = None
-
-if 'compare_grp_selected' not in st.session_state:
-    st.session_state["compare_grp_selected"] = list()
+for key, default_value in default_session_state.items():
+    if key not in st.session_state:
+        st.session_state[key] = default_value
 
 sidebar_logo_DCR = "./images/CRUK_NBC_DCR.png"
 sidebar_logo = "./images/CCE_Dart_logo.png"
 main_body_logo   = "./images/CCE_Dart_icon.png"
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title = "LRP Dashboard", page_icon = main_body_logo, layout = "wide")
 
 def assign_colors(strings):
     color_names = sorted(list(mcolors.CSS4_COLORS.keys()))
@@ -154,19 +110,6 @@ def save_my_uploaded_file(path, uploaded_file):
         w.write(uploaded_file.getvalue())
     return save_path
 
-def find_my_ttss(df_ttss_org):
-    df_ttss = df_ttss_org.data
-    col_name = list(df_ttss.columns)
-    col_name.remove('tumor_tissue_site')
-    df_tmp = df_ttss.set_index(col_name).tumor_tissue_site.str.get_dummies(sep='|').stack().reset_index().loc[lambda x: x[0] != 0].drop(0, axis=1)
-    df_tmp = df_tmp.rename({i: "tumor_tissue_site" for i in df_tmp.columns if i not in col_name}, axis="columns")
-    tmp_lst = list(df_tmp['tumor_tissue_site'].unique())
-    tmp_lst.sort()
-    return tmp_lst
-
-def find_my_metadata_catalog(col_name):
-    return list(set(st.session_state['metadata_df'].data[col_name].tolist()))
-
 def find_my_keywords(lrp_df):
     option_tmp = []
     for opr_element in lrp_df.columns:
@@ -177,198 +120,107 @@ def find_my_keywords(lrp_df):
     keywords.sort()
     return keywords
 
-def create_pyvis_graph(net, G):
-    # Position nodes using a layout where edge weights affect distances
-    #pos = nx.kamada_kawai_layout(G, weight="LRP_norm")  # Kamada-Kawai considers edge weights
-    pos = nx.spring_layout(G, weight="LRP_norm", scale=1000)
-
-    for node in G.nodes():
-        x, y = pos[node]
-        #print("({:.4f} , {:.4f})".format(x, y))
-        net.add_node(node, x = x , y=y , physics=False)
-
-    for u, v, data in G.edges(data=True):
-        net.add_edge(u, v, LRP_norm=data["LRP_norm"], physics=False)
-
-    #net.set_options('''
-    #                    var options = {
-    #                                    "nodes": {
-    #                                                "fixed": {
-    #                                                            "x": true,
-    #                                                            "y": true
-    #                                                         }
-    #                                              }
-    #                                  }
-    #                ''')
-
+def get_adj_list(G):
+    adj_list = {node: set() for node in G.nodes}  # Initialize adjacency list
+    for u, v in G.edges:
+        adj_list[u].add(v)
+        adj_list[v].add(u)
+    return adj_list
 
 def plot_my_graph(container, graph, communities=None):
-    #fg.plot_graph(graph, node_color_mapper)
-    if communities is not None and not communities.empty:
-        # Ensure 'node' and 'community' columns exist in the DataFrame
-        if "node" in communities.columns and "community" in communities.columns:
-            node_community_mapping = dict(zip(communities["node"], communities["community"]))
-            group_list = sorted(communities["community"].unique())
-            group_color_mapper = assign_colors_int(group_list)
-    visor = Network(
-        height='600px',
-        width='100%',
-        bgcolor='#FFFFFF',
-        font_color='black',
-        #select_menu=True,
-        #cdn_resources='remote',
-        #filter_menu=True,
-    )
-    #visor.from_nx(graph.G)
-    create_pyvis_graph(visor, graph.G)
-    newG =graph.G
-    node_color_mapper = assign_colors(sorted([node["id"] for node in visor.nodes]))
-    neighbor_map = visor.get_adj_list()
-    edge_dist = list(nx.get_edge_attributes(newG, 'LRP_norm').values())
-    norm_colour = mt.colors.Normalize(vmin=0.0, vmax=max(edge_dist), clip=True)
-    colour_mapper = (cm.ScalarMappable(norm=norm_colour, cmap=cm.Greys))
-    for u, v, data in newG.edges(data=True):
-        data["hover"]  = 'LRP_norm: {:.4f}'.format(data["LRP_norm"])
-        data["color"]  = mt.colors.rgb2hex(colour_mapper.to_rgba(data["LRP_norm"]))
-        data["weight"] = data["LRP_norm"]
-        data["value"]  = data["LRP_norm"]
-        data["click"]  = 'LRP_norm: {:.4f}'.format(data["LRP_norm"])
+    # Helper function: Assign community-related colors
+    def prepare_communities_data(communities):
+        if communities is not None and not communities.empty:
+            if "node" in communities.columns and "community" in communities.columns:
+                node_community_mapping = dict(zip(communities["node"], communities["community"]))
+                group_list = sorted(communities["community"].unique())
+                group_color_mapper = assign_colors_int(group_list)
+                return node_community_mapping, group_color_mapper
+        return None, None
 
+    # Helper function: Format edge attributes
+    def format_edge_data(newG):
+        edge_dist = list(nx.get_edge_attributes(newG, 'LRP_norm').values())
+        norm_colour = mt.colors.Normalize(vmin=0.0, vmax=max(edge_dist), clip=True)
+        colour_mapper = cm.ScalarMappable(norm=norm_colour, cmap=cm.Greys)
+        for u, v, data in newG.edges(data=True):
+            lrp_norm = data.get("LRP_norm", 0)
+            data.update({
+                "hover": f'LRP_norm: {lrp_norm:.4f}',
+                "color": mt.colors.rgb2hex(colour_mapper.to_rgba(lrp_norm)),
+                "weight": lrp_norm,
+                "value": lrp_norm,
+                "click": f'LRP_norm: {lrp_norm:.4f}'
+            })
+
+    # Helper function: Format node attributes
+    def format_node_data(newG, pos, neighbor_map, node_community_mapping, group_color_mapper, node_color_mapper):
+        for node, data in newG.nodes(data=True):
+            x, y = pos[node]
+            label = "_".join(node.split('_')[:-1])
+            node_type = node.split('_')[-1]
+            neighbors = neighbor_map[node]
+
+            # Update node attributes
+            data.update({
+                "x": x, "y": y, "label": label, "_type": node_type,
+                "click": f"Node: {label} \nType: {node_type} \nNeighbors: \n" + "\n".join(["_".join(n.split('_')[:-1]) for n in neighbors]),
+                "hover": f"{label} Neighbors: " + "\n".join(["_".join(n.split('_')[:-1]) for n in neighbors]),
+                "value": len(neighbors),
+                "color": (group_color_mapper[node_community_mapping[node]]
+                          if node_community_mapping else node_color_mapper[node_type])
+            })
+
+    # Prepare community data
+    node_community_mapping, group_color_mapper = prepare_communities_data(communities)
+
+    # Generate graph and layout
+    newG = graph.G
+    node_color_mapper = assign_colors(sorted([node for node in newG.nodes]))
+    neighbor_map = get_adj_list(newG)
     pos = nx.kamada_kawai_layout(newG, weight="LRP_norm", scale=500)
-    node_type = []
-    for node, data in newG.nodes(data=True):
-        x, y = pos[node]
-        data["x"] = x
-        data["y"] = y
-        data["label"] = "_".join(node.split('_')[:-1])
-        data["_type"] = node.split('_')[-1]
-        data["click"] = f" Node: {data['label']} \n Type: {node.split('_')[-1]}"
-        if communities is not None:
-            data["color"] = group_color_mapper[node_community_mapping[node]]
-        else:
-            data["color"] = node_color_mapper[node.split('_')[-1]]
-        data["hover"] = data["label"]
-        data["value"] = len(neighbor_map[node])
-        data["hover"] += " Neighbors:"
-        node_type.append(node.split('_')[-1])
 
-        for _, item in enumerate(neighbor_map[node]):
-            data["hover"] += "\n" + "_".join(item.split('_')[:-1])
+    # Format graph data
+    format_edge_data(newG)
+    format_node_data(newG, pos, neighbor_map, node_community_mapping, group_color_mapper, node_color_mapper)
 
+    # Generate legend
+    chart_legend_css = (generate_legend_table_community(group_color_mapper)
+                        if communities is not None else generate_legend_table(node_color_mapper))
 
-    for edge in visor.edges:
-        edge["title"] = 'LRP_norm: {:.4f}'.format(edge["LRP_norm"])
-        edge["color"] = mt.colors.rgb2hex(colour_mapper.to_rgba(edge["LRP_norm"]))
-        edge["minlen"] = edge["LRP_norm"]
-        edge["value"] = edge["LRP_norm"]
-
-    node_type = []
-    for node in visor.nodes:
-        node["label"] = "_".join(node["id"].split('_')[:-1])
-        node["_type"] = node["id"].split('_')[-1]
-        if communities is not None:
-            node["color"] = group_color_mapper[node_community_mapping[node["id"]]]
-        else:
-            node["color"] = node_color_mapper[node["id"].split('_')[-1]]
-        node["title"] = node["label"]
-        node["value"] = len(neighbor_map[node["id"]])
-        node["title"] += " Neighbors:"
-        node_type.append(node["id"].split('_')[-1])
-
-        for _, item in enumerate(neighbor_map[node["id"]]):
-            node["title"] += "\n" + "_".join(item.split('_')[:-1])
-
-    #visor.repulsion(
-    #    node_distance=420,
-    #    central_gravity=0.33,
-    #    spring_length=110,
-    #    spring_strength=0.10,
-    #    damping=0.95
-    #)
-    visor.show_buttons(filter_=['nodes','edges','physics'])
-    #visor.set_options('''
-    #                    var options = {
-    #                                    "nodes": {
-    #                                                "fixed": {
-    #                                                            "x": true,
-    #                                                            "y": true
-    #                                                         }
-    #                                              }
-    #                                  }
-    #                ''')
-
-
-    if isinstance(graph.sample_ID, int):
-        graph.sample_ID = str(graph.sample_ID)
-
-    try:
-        path = '/tmp'
-        visor.save_graph(f'{path}/pyvis_graph_' + graph.sample_ID + '.html')
-        HtmlFile = open(f'{path}/pyvis_graph_' + graph.sample_ID + '.html', 'r', encoding='utf-8')
-
-    except:
-        path = '/html_files'
-        visor.save_graph(f'{path}/pyvis_graph_' + graph.sample_ID + '.html')
-        HtmlFile = open(f'{path}/pyvis_graph_' + graph.sample_ID + '.html', 'r', encoding='utf-8')
-
-    path = './htmls/legends.html'
-    #chart_legend_css = generate_legend_html(list(set(node_type)))
-    if communities is not None:
-        chart_legend_css = generate_legend_table_community(group_color_mapper)
-    else:
-        chart_legend_css =  generate_legend_table(node_color_mapper)
-
-
+    # Styling
+    css = """
+    <style>
+        body {
+            margin: 0; padding: 10px; border: 1px solid white;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+    """
     style_heading = 'text-align: center'
-    css = r'''<style>
-                             body {
-                              margin: 0; /* Remove default margin */
-                             padding: 10px; /* Add padding inside the border */
-                              border: 1px solid white; /* Border around the entire page */
-                         font-family: Arial, sans-serif;
-                               }
-               </style>
-                 '''
-    communities_label = " / Communities " if communities is not None else ""
-    container.markdown(css, unsafe_allow_html=True)
-    container.markdown(f"<h1 style='{style_heading}'>Sample '{graph.sample_ID}' {communities_label} </h1>", unsafe_allow_html=True)
-    container.markdown(
-        f"<h2 style='{style_heading}'>Graph of the top '{graph.top_n_edges}' edges with the highest LRP values </h2>",
-        unsafe_allow_html=True)
+    communities_label = " / Communities" if communities is not None else ""
 
-    fig = gv.d3(newG, use_node_size_normalization=True, node_size_data_source='value', node_hover_tooltip = True,
-                node_hover_neighborhood = True, show_node_label = True, node_label_data_source = 'label',
-                use_edge_size_normalization=True, edge_size_data_source='weight', edge_curvature = 0.0,
-                edge_hover_tooltip = True, zoom_factor=0.55)
+    # Render in Streamlit container
+    container.markdown(css, unsafe_allow_html=True)
+    container.markdown(f"<h1 style='{style_heading}'>Sample '{graph.sample_ID}' {communities_label}</h1>", unsafe_allow_html=True)
+    container.markdown(f"<h2 style='{style_heading}'>Graph of the top '{graph.top_n_edges}' edges with the highest LRP values</h2>", unsafe_allow_html=True)
+
+    # Create and display graph visualization
+    fig = gv.d3(
+        newG,
+        use_node_size_normalization=True, node_size_data_source='value', node_hover_tooltip=True,
+        node_hover_neighborhood=True, show_node_label=True, node_label_data_source='label',
+        use_edge_size_normalization=True, edge_size_data_source='weight', edge_curvature=0.0,
+        edge_hover_tooltip=True, zoom_factor=0.55
+    )
 
     with container:
         subCol1, subCol2 = st.columns([5, 1])
         with subCol1:
-            #components.html(HtmlFile.read(), height=620, scrolling=True)
             components.html(fig.to_html(), height=620, scrolling=True)
-            with subCol2:
-                components.html(chart_legend_css, height=620)
+        with subCol2:
+            components.html(chart_legend_css, height=620)
 
-
-def make_heatmap(input_df, input_y, input_x, input_color, input_color_theme):
-    heatmap = alt.Chart(input_df).mark_rect().encode(
-            y=alt.Y(f'{input_y}:O', axis=alt.Axis(title="Year", titleFontSize=18, titlePadding=15, titleFontWeight=900, labelAngle=0)),
-            x=alt.X(f'{input_x}:O', axis=alt.Axis(title="", titleFontSize=18, titlePadding=15, titleFontWeight=900)),
-            color=alt.Color(f'max({input_color}):Q',
-                             legend=None,
-                             scale=alt.Scale(scheme=input_color_theme)),
-            stroke=alt.value('black'),
-            strokeWidth=alt.value(0.25),
-        ).properties(width=900
-        ).configure_axis(
-        labelFontSize=12,
-        titleFontSize=12
-        )
-    # height=300
-    return heatmap
-
-#def initialise_my_app():
-#    pyautogui.hotkey("ctrl","F5")
 
 def create_multiselect(catalog_name: str, values: list, container: object):
     with container:
@@ -391,7 +243,6 @@ def get_column_values(mdo):
                 result[column] = unique_values
 
     return result
-
 
 def map_index_to_unsorted(index_in_ordered: int, ordered_list: list, unordered_list: list) -> int:
     if not isinstance(index_in_ordered, int):
@@ -430,21 +281,7 @@ if __name__ == '__main__':
         uploader_placeholder_md.empty()
         st.sidebar.info('File {0} has been analysed.'.format(path_to_metadata.name))
 
-    #uploader_placeholder_cf = st.sidebar.empty()
-    #civic_features_path = uploader_placeholder_cf.file_uploader("Upload CivicDatabase features")
-    #if civic_features_path is not None:
-    #
-    #    uploader_placeholder_cf.empty()
-    #    st.sidebar.info('File {0} has been analysed.'.format(civic_features_path.name))
-    #
     civic_features_path = "./data/01-Feb-2025-FeatureSummaries.tsv"
-
-    #uploader_placeholder_mp = st.sidebar.empty()
-    #civic_mp_path = uploader_placeholder_mp.file_uploader("Upload Molecular Profile Summaries")
-    #if civic_mp_path is not None:
-    #
-    #    uploader_placeholder_mp.empty()
-    #    st.sidebar.info('File {0} has been analysed.'.format(civic_mp_path.name))
     civic_mp_path = "./data/01-Feb-2025-MolecularProfileSummaries.tsv"
 
     if civic_features_path and civic_mp_path:
@@ -581,8 +418,6 @@ if st.session_state['second_form_completed']:
         container_main = Col1.container(border=False)
         plot_my_graph(container_main, G)
 
-    # Display the modified text
-    # container_main.title("{0} most similar graphs.".format(top_n_similar))
     # Get the top n most similar samples
     G = st.session_state['G_dict'][map_index_to_unsorted(disp_list.index(st.session_state["selected_gId"]), disp_list, sampleIDs)]
     embeddings_df = fg.extract_raveled_fixed_size_embedding_all_graphs(st.session_state['G_dict'])
@@ -606,8 +441,6 @@ if st.session_state['second_form_completed']:
         top_n_samples = sorted_distance_df.head(st.session_state["top_n_similar"] + 1)
         Col2_subC_1, Col2_subC_2 = Col2.columns(2)
         for i in range(st.session_state["top_n_similar"] + 1):
-            # if i == 0:
-            #    continue
             sample_ID = top_n_samples.iloc[i, 0]
             G = next(G for G in st.session_state['G_dict'].values() if G.sample_ID == sample_ID)
             if i % 2:
@@ -648,13 +481,9 @@ if st.session_state.get('first_form_completed', False):
             agg_func="mean")
 
 ######<-----here
-    #if len(st.session_state["LRP_to_graphs_stratified"].columns.tolist()) > 4:
     filtered_columns = [col for col in st.session_state["LRP_to_graphs_stratified"].columns
                         if (isinstance(col, str) and not any(
             substr in col for substr in ["index", "source_node", "target_node"])) or isinstance(col, int)]
-    # filtered_columns = [col for col in st.session_state["LRP_to_graphs_stratified"].columns.tolist()
-    #                    if
-    #                    isinstance(col, str) and "index" not in col and "source_node" not in col and "target_node" not in col]
 
     compare_form = Col3.form('Compare')
     with (compare_form):
@@ -665,10 +494,10 @@ if st.session_state.get('first_form_completed', False):
                                                                                 placeholder="Choose a comparison group.")
 
             st.session_state['top_diff_n'] = compare_form.slider("Please select the number of top n edges",
-                                                                        min_value=1,
-                                                                        max_value=len(st.session_state['filtered_data'].index),
-                                                                        value=len(st.session_state['filtered_data'].index) // 2
-                                                                        )
+                                                                 min_value=1,
+                                                                 max_value=len(st.session_state['filtered_data'].index),
+                                                                 value=len(st.session_state['filtered_data'].index) // 2
+                                                                 )
         else:
             compare_form.warning("Unfortunately, your selection criteria are not generating any comparison group.")
 
@@ -723,12 +552,6 @@ if st.session_state.get('enable_comparison', False):
         for i,j in pairs:
             adj_diff_list.append(fg.calculate_adjacency_difference(G_dict12[i], G_dict12[j]))
 
-
-        #st.session_state['metadata_df'].match_index_with_lrp_df(st.session_state['lrp_df'])
-        #st.session_state['metadata_df'].validate_data_indices(st.session_state['lrp_df'])
-        #filtered_df = st.session_state['filtered_data']
-        #G_dict = fg.get_all_graphs_from_lrp(filtered_df, st.session_state['top_n'])
-
         threshold_selection_form = Col4.form('ThresSelection')
         with threshold_selection_form:
             diff_thres = st.slider("Threshold value:",
@@ -737,9 +560,7 @@ if st.session_state.get('enable_comparison', False):
                                    value=0.5,
                                    help="\"Threshold value.\""
                                    )
-            # st.session_state['calculate_button'] = st.form_submit_button(label='Calculate')
-            # print(st.session_state['calculate_button'])
-            # if st.session_state.get('calculate_button', False):
+
             calculate_button = st.form_submit_button(label='Calculate')
             if calculate_button:
                 pair_counter = 0
@@ -785,24 +606,30 @@ if st.session_state.get('enable_comparison', False):
 
                         with sb_t_col1:
                             st.subheader("Number of Edges vs Difference Threshold")
-                            fig, ax = plt.subplots(1, 1, figsize=(16, 12))
-                            ax.plot(*zip(*edge_df_sizes), '-o')
-                            fig.supxlabel('Difference Threshold', fontsize=25, fontweight=900)
-                            fig.supylabel('Number of Edges', fontsize=25, fontweight=900)
-                            #sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
-                            #            cmap='Reds', vmin=0, vmax=1, ax=ax)
-                            st.pyplot(fig)
-
+                            tmp_df = pd.DataFrame(edge_df_sizes, columns=["x", "y"])
+                            st.vega_lite_chart(
+                                tmp_df,
+                                {
+                                    "mark": {
+                                        "type": "line",
+                                        "point": True
+                                    },
+                                    "encoding": {
+                                        "x": { "field": "x", "type": "quantitative", "title": "Difference Threshold" },
+                                        "y": { "field": "y", "type": "quantitative", "title": "Number of Edges"}
+                                    },
+                                    "selection": {
+                                        "brush": {
+                                            "type": "interval",
+                                            "bind": "scales"
+                                        }
+                                    }
+                                },
+                                use_container_width=True
+                            )
                         with sb_t_col2:
                             st.subheader("LRP values for edges sorted by LRP value")
-                            fig2, ax2 = plt.subplots(1,1, figsize=(16, 12))
-                            ax2.plot(edge_df['LRP'])
-                            fig2.supxlabel('Edge #', fontsize=25, fontweight=900)
-                            fig2.supylabel('LRP', fontsize=25, fontweight=900)
-                            #sns.heatmap(adj_diff, xticklabels=1, yticklabels=1, linewidths=0.2,
-                            #            cmap='Reds', vmin=0, vmax=1, mask=adj_diff < diff_thres,
-                            #            ax=ax2)
-                            st.pyplot(fig2)
+                            st.line_chart(edge_df['LRP'], x_label='Edge #', y_label='LRP')
 
                         st.session_state['civic_data'].get_mps_summaries()
                         Col4.subheader("MPS summaries")
