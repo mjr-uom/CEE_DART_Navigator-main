@@ -211,13 +211,13 @@ def plot_my_graph(container, graph, communities=None):
         }
     </style>
     """
-    style_heading = 'text-align: center'
+    style_heading = 'text-align: center; font-size: 0.6em;'
     communities_label = " / Communities" if communities is not None else ""
 
     # Render in Streamlit container
     container.markdown(css, unsafe_allow_html=True)
-    container.markdown(f"<h1 style='{style_heading}'>Sample '{graph.sample_ID}' {communities_label}</h1>", unsafe_allow_html=True)
-    container.markdown(f"<h2 style='{style_heading}'>Graph of the top '{graph.top_n_edges}' edges with the highest LRP values</h2>", unsafe_allow_html=True)
+    container.markdown(f"<h1 style='{style_heading}'> '{graph.sample_ID}' {communities_label}</h1>", unsafe_allow_html=True)
+    container.markdown(f"<h2 style='{style_heading}'>Top '{graph.top_n_edges}' edges with the highest LRP values</h2>", unsafe_allow_html=True)
 
     # Create and display graph visualization
     fig = gv.d3(
@@ -376,7 +376,7 @@ if st.session_state.get('filters_form_completed', False):
 ################
 if st.session_state.get('first_form_completed', False):
     Col1, Col2, Col3, Col4, Col5 = st.tabs(
-        ["፨ selected sample", "⩬ top n similar", "🔍 group comparison ", "⚖️ graph differences", "🤖 chatbot"])
+        ["፨ selected sample", "⩬ top n similar (under dev.)", "🔍 compare groups", "⚖️ show differences", "🤖 AI interpreter"])
     st.session_state['enable_comparison'] = True
     node_selection_form = Col1.form('TopNSelection')
     with node_selection_form:
@@ -646,14 +646,14 @@ if st.session_state.get('enable_comparison', False):
                             st.line_chart(edge_df['LRP'], x_label='Edge #', y_label='LRP')
 
                         st.session_state['civic_data'].get_mps_summaries()
-                        Col4.subheader("MPS summaries")
-                        mps_summaries = Col4.expander("See MPS summaries")
+                        Col4.subheader("Molecular Profiles summaries")
+                        mps_summaries = Col4.expander("See Molecular Profiles summaries")
                         mps_summaries.write(st.session_state['civic_data'].mps_summaries)
 
                         st.session_state['civic_data'].get_features_matching_nodes(diff_graph)
                         st.session_state['civic_data'].get_features_descriptions()
-                        Col4.subheader("Features descriptions")
-                        mps_summaries = Col4.expander("See features descriptions")
+                        Col4.subheader("Genes descriptions")
+                        mps_summaries = Col4.expander("See genes descriptions")
                         mps_summaries.write(st.session_state['civic_data'].features_descriptions)
 
                         st.session_state['civic_data'].get_evidence_ids_df()
