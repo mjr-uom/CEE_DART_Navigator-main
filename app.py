@@ -752,12 +752,13 @@ if st.session_state.get('enable_comparison', False):
                         f"In the next part, I will provide the **specific context** for your analysis."
                         )
         agent = OpenAIAgent(prompt_part1)
+        st.session_state["context_input"] = ""
         Col_sub_5_1, Col_sub_5_2 = Col5.columns([1, 2])
         Con_Col_sub_5_1 = Col_sub_5_1.container(height=400)
         Con_Col_sub_5_2 = Col_sub_5_2.container(height=325)
         with Con_Col_sub_5_1:
             Col5_context_form = st.form(key='context_form')
-            st.session_state["context_input"] = Col5_context_form.text_area("Please provide some context", "", )
+            st.session_state["context_input"] = Col5_context_form.text_area("Please provide some context", st.session_state["context_input"])
             submit_button_cb_f = Col5_context_form.form_submit_button(label='Submit')
 
             if submit_button_cb_f:
