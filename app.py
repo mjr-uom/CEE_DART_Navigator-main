@@ -761,7 +761,7 @@ if st.session_state.get('enable_comparison', False):
             st.session_state["context_input"] = Col5_context_form.text_area("Please provide some context", st.session_state["context_input"])
             submit_button_cb_f = Col5_context_form.form_submit_button(label='Submit')
 
-            if submit_button_cb_f:
+            if submit_button_cb_f and st.session_state["awaiting_context"]:
                 st.warning(" ℹ Context provided. ")
                 st.session_state["messages"] = []
                 prompt_part2 = (f"**Context:** {st.session_state['context_input']}\n\n"
