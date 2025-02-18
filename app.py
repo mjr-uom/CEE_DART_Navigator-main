@@ -729,7 +729,7 @@ if st.session_state.get('enable_comparison', False):
         st.session_state['civic_data'].agragate_all_facts()
         all_facts = st.session_state['civic_data'].all_facts
         prot_gen_results = return_gen_prot(st.session_state["edge_df"])
-        prompt_part1 = (f"You are an expert in molecular genomics and cancer research. "
+        prompt_part1 = (
                         f"I will provide you with context in the next part, followed by a list of key molecular facts and specific biomolecules of interest. "
                         f"Your task is to generate an in-depth analysis integrating these components.\n\n"
 
@@ -741,13 +741,13 @@ if st.session_state.get('enable_comparison', False):
 
                         f"**Task:**\n"
                         f"Analyze the given molecular and cancer-related context, emphasizing the provided proteins and genes. Your response should:\n"
-                        f"1. Explain the functional roles of these proteins in cancer progression.\n"
-                        f"2. Describe the genomic implications and interactions of the specified genes.\n"
-                        f"3. Integrate relevant molecular pathways and their impact on tumorigenesis.\n"
-                        f"4. Provide insights into potential therapeutic targets or biomarker relevance.\n\n"
+                        f"no longer than 200 characters.\n\n"
+                        #f"1. Explain the functional roles of these proteins in cancer progression.\n"
+                        #f"2. Describe the genomic implications and interactions of the specified genes.\n"
+                        #f"3. Integrate relevant molecular pathways and their impact on tumorigenesis.\n"
+                        #f"4. Provide insights into potential therapeutic targets or biomarker relevance.\n\n"
 
-                        f"Format your response with clear sectioning for readability. If applicable, include references to known databases "
-                        f"(e.g., COSMIC, TCGA, CIViC) and cite relevant studies where possible.\n\n"
+                        f"Format your response with clear sectioning for readability. \n\n"
 
                         f"In the next part, I will provide the **specific context** for your analysis."
                         )

@@ -7,7 +7,7 @@ class OpenAIAgent:
    def __init__(
        self,
        agent_name="OpenAI Agent",
-       system_role = "You are a helpful assistant."
+       system_role = "You are an expert in molecular genomics and cancer research. You always focus on specific proteins and genes of interest and the facts provided to you. Your reasoning is based on the context provided."
    ):
        self.client = AzureOpenAI(
            api_key="d8d1b0b5a5b94cc7a5fb12a49283fae3",
