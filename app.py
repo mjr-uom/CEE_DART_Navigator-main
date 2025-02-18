@@ -211,7 +211,7 @@ def plot_my_graph(container, graph, communities=None):
         }
     </style>
     """
-    style_heading = 'text-align: center; font-size: 0.6em;'
+    style_heading = 'text-align: center; font-size: 0.9em;'
     communities_label = " / Communities" if communities is not None else ""
 
     # Render in Streamlit container
