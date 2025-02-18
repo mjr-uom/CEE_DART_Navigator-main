@@ -729,7 +729,7 @@ if st.session_state.get('enable_comparison', False):
         st.session_state['civic_data'].agragate_all_facts()
         all_facts = st.session_state['civic_data'].all_facts
         prot_gen_results = return_gen_prot(st.session_state["edge_df"])
-        prompt_part1 = (
+        prompt_part1 = (f"You are an expert in molecular genomics and cancer research. You always focus on specific proteins and genes of interest and the facts provided to you. Your reasoning is based on the context provided.\n\n"
                         f"I will provide you with context in the next part, followed by a list of key molecular facts and specific biomolecules of interest. "
                         f"Your task is to generate an in-depth analysis integrating these components.\n\n"
 
@@ -741,7 +741,7 @@ if st.session_state.get('enable_comparison', False):
 
                         f"**Task:**\n"
                         f"Analyze the given molecular and cancer-related context, emphasizing the provided proteins and genes.\n"
-                        f" Your response should be no longer than 200 characters.\n\n"
+                        f" Your response should be concise and specific, no need to explain basic facts, as the intended reader is an oncologist.\n\n"
                         #f"1. Explain the functional roles of these proteins in cancer progression.\n"
                         #f"2. Describe the genomic implications and interactions of the specified genes.\n"
                         #f"3. Integrate relevant molecular pathways and their impact on tumorigenesis.\n"
@@ -751,7 +751,7 @@ if st.session_state.get('enable_comparison', False):
 
                         f"In the next part, I will provide the **specific context** for your analysis."
                         )
-        agent = OpenAIAgent(prompt_part1)
+        agent = OpenAIAgent(system_role=prompt_part1)
         st.session_state["context_input"] = ""
         Col_sub_5_1, Col_sub_5_2 = Col5.columns([1, 2])
         Con_Col_sub_5_1 = Col_sub_5_1.container(height=400)
