@@ -8,3 +8,4 @@ pandera
 scipy
 seaborn
 gravis
+gptAgent
