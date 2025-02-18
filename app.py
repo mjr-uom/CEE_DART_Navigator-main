@@ -740,8 +740,8 @@ if st.session_state.get('enable_comparison', False):
                         f"- **Genes of Interest:** {prot_gen_results[1]}\n\n"
 
                         f"**Task:**\n"
-                        f"Analyze the given molecular and cancer-related context, emphasizing the provided proteins and genes. Your response should:\n"
-                        f"no longer than 200 characters.\n\n"
+                        f"Analyze the given molecular and cancer-related context, emphasizing the provided proteins and genes.\n"
+                        f" Your response should be no longer than 200 characters.\n\n"
                         #f"1. Explain the functional roles of these proteins in cancer progression.\n"
                         #f"2. Describe the genomic implications and interactions of the specified genes.\n"
                         #f"3. Integrate relevant molecular pathways and their impact on tumorigenesis.\n"
