@@ -69,12 +69,107 @@ for key, default_value in default_session_state.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
 
-sidebar_logo_DCR = "./images/CRUK_NBC_DCR.png"
-sidebar_logo = "./images/CCE_Dart_logo.png"
+#sidebar_logo_DCR = "./images/CRUK_NBC_DCR.png"
+#sidebar_logo = "./images/CCE_Dart_logo.png"
 main_body_logo   = "./images/CCE_Dart_icon.png"
 
 st.set_page_config(page_title = "LRP Dashboard", page_icon = main_body_logo, layout = "wide")
 
+
+# Logo in the top left corner (on the home page)
+st.image("./images/MIS_Portal_logo.png", width=300)  # Logo w lewym górnym rogu
+
+# Main frame with text + buttons inside
+st.markdown("""
+    <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
+                margin-top:20px; text-align:center; font-size:18px;">
+        <strong>The Portal Analyzes Molecular Interaction Signatures</strong><br>
+        <br>
+        The <strong>public version</strong> of the MIS portal provides a <strong>framework</strong> for comparing biological samples based on molecular interaction signatures. 
+        Using deep learning metrics, statistical tests, and graph-based methods, it identifies key interaction patterns and assesses their biological relevance for <strong>biomarker discovery and hypothesis generation.</strong>
+        <br><br>
+        <a href="?page=analyse" style="display:inline-block; background:white; color:#0078D4; 
+            border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px; margin-right:10px;">Analyse Your Samples</a>
+        <a href="?page=examples" style="display:inline-block; background:white; color:#0078D4; 
+            border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">See Examples</a>
+    </div>
+""", unsafe_allow_html=True)
+
+
+# Break before next frames
+st.markdown("<br>", unsafe_allow_html=True)
+
+
+# Two columns next to each other
+col1, col2 = st.columns(2)
+
+# First column (left)
+with col1:
+    st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)  # Wyśrodkowanie logo
+    st.image("./images/evidence.png", width=50)  # Logo nad ramką
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Frame with text and button
+    st.markdown(
+        """
+        <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
+                    text-align:center; font-size:16px; padding:20px;">
+            <strong>The Portal uses distinct levels of supporting evidence</strong><br>
+            Molecular Interaction Signatures (MIS) are derived from the analysis of molecular profiles and are annotated by a comprehensive set of knowledgebases and computational estimations.
+            <br><br>
+            <a href="?page=readmore" style="display:inline-block; background:white; color:#0078D4; 
+                border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">Read more</a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Second column (right)
+with col2:
+    st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)  # Wyśrodkowanie logo
+    st.image("./images/expert.png", width=50)  # Logo nad ramką
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Frame with text and button
+    st.markdown(
+        """
+        <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
+                    text-align:center; font-size:16px; padding:20px;">
+            <strong>The Portal follows clinical expert consensus</strong><br>
+            The MIS portal is designed to support the interpretation of molecular interaction signatures in the context of clinical expert consensus developed under the Cancer Core Europe umbrella and the latest scientific evidence.
+            <br><br>
+            <a href="?page=aboutus" style="display:inline-block; background:white; color:#0078D4; 
+                border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">About us</a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Information text under frames
+st.markdown("""
+    <div style="margin-top:30px; text-align:justify; font-size:16px;">
+        <p><strong>This is an open-access version of the Molecular Interaction Signatures Portal, designed for the comparative study of biological samples based on molecular interaction signatures.</strong></p>
+        <p>The portal utilizes computational methods, including deep learning-derived relevance metrics and statistical analyses, with references to the applied algorithms and data sources provided in the results. 
+        Some resources integrated within the portal may require a license for commercial applications or clinical use; therefore, this version is strictly limited to academic research. 
+        Users must accept these terms upon first login, which requires a valid email address. When using this portal, please cite:</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# Four logos in one row
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.image("./images/CRUK_NBC.png", width=220)  
+
+with col2:
+    st.image("./images/CRUK_NBC_DCR.png", width=220)  
+
+with col3:
+    st.image("./images/CCE.png", width=170)  
+
+with col4:
+    st.image("./images/CCE_DART.png", width=170)  
+    
 def assign_colors(strings):
     color_names = sorted(list(mcolors.CSS4_COLORS.keys()))
 
@@ -259,10 +354,34 @@ def map_index_to_unsorted(index_in_ordered: int, ordered_list: list, unordered_l
     return unordered_index
 
 if __name__ == '__main__':
-    st.logo("./images/space.png", size="large", icon_image="./images/CCE_Dart_icon.png")
-    st.sidebar.image("./images/CRUK_NBC_DCR.png", width=150)
-    st.sidebar.image("./images/CCE_Dart_logo.png", width=150)
-    st.sidebar.title('፨ LRP Dashboard')
+    # Logo in sidebar
+    st.sidebar.image("./images/MIS_Portal_logo.png", width=250)
+
+    # Added navigation buttons in the sidebar
+    st.sidebar.markdown("""
+        <style>
+        .stButton>button {
+            text-align: left;
+            padding: 10px 20px;
+            margin: 2px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+        }
+        .stButton>button>span {
+            padding-left: 10px;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Navigation buttons
+    st.sidebar.button('Home', key="home")
+    st.sidebar.button('Analyse', key="analyse")
+    st.sidebar.button('FAQ', key="faq")
+    st.sidebar.button('About', key="about")
+    st.sidebar.button('News', key="news")
+
+    # Data upload buttons
     uploader_placeholder = st.sidebar.empty()
     path_to_LRP_data = uploader_placeholder.file_uploader("Upload data LRP")
 
@@ -273,7 +392,7 @@ if __name__ == '__main__':
         uploader_placeholder.info('File {0} has been analysed.'.format(path_to_LRP_data.name))
 
     uploader_placeholder_md = st.sidebar.empty()
-    path_to_metadata = uploader_placeholder_md.file_uploader("Upload data-meta data")
+    path_to_metadata = uploader_placeholder_md.file_uploader("Upload metadata")
 
     if path_to_metadata is not None:
         st.session_state['metadata_df'] = dtl.MetaData(file_path=save_my_uploaded_file('/tmp', path_to_metadata),
@@ -288,8 +407,7 @@ if __name__ == '__main__':
         st.session_state['civic_data'] = civic.CivicData(civic_features_path, civic_mp_path)
         st.session_state['civic_data'].load_data()
 
-#### Filters
-
+    # Data filtering
     if path_to_LRP_data and path_to_metadata and civic_features_path and civic_mp_path:
         filter_catalog = get_column_values(st.session_state['metadata_df'])
 
