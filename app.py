@@ -15,6 +15,7 @@ import hashlib
 import itertools
 import importlib, sys
 import matplotlib.pyplot as plt
+from gptAgent import OpenAIAgent
 
 from len_gen import generate_legend_table, generate_legend_table_community
 path_to_functions_directory = r'./source'
@@ -63,6 +64,15 @@ default_session_state = {
     'top_diff_n': 0,
     'top_n_similar': None,
     'compare_grp_selected': list(),
+    'enable_chat_bot' : False,
+    'messages' : list(),
+    'context_input' : None,
+    'awaiting_context' : True,
+    'user_input' : "",
+    'disabled' : False,
+    'openai_model' : "gpt-3.5-turbo",
+    'edge_df' : pd.DataFrame([]),
+    'all_facts' : "" ,
 }
 
 for key, default_value in default_session_state.items():
@@ -72,6 +82,10 @@ for key, default_value in default_session_state.items():
 #sidebar_logo_DCR = "./images/CRUK_NBC_DCR.png"
 #sidebar_logo = "./images/CCE_Dart_logo.png"
 main_body_logo   = "./images/CCE_Dart_icon.png"
+
+if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = "gpt-3.5-turbo"
+
 
 st.set_page_config(page_title = "LRP Dashboard", page_icon = main_body_logo, layout = "wide")
 
@@ -292,13 +306,13 @@ def plot_my_graph(container, graph, communities=None):
         }
     </style>
     """
-    style_heading = 'text-align: center'
+    style_heading = 'text-align: center; font-size: 0.9em;'
     communities_label = " / Communities" if communities is not None else ""
 
     # Render in Streamlit container
     container.markdown(css, unsafe_allow_html=True)
-    container.markdown(f"<h1 style='{style_heading}'>Sample '{graph.sample_ID}' {communities_label}</h1>", unsafe_allow_html=True)
-    container.markdown(f"<h2 style='{style_heading}'>Graph of the top '{graph.top_n_edges}' edges with the highest LRP values</h2>", unsafe_allow_html=True)
+    container.markdown(f"<h1 style='{style_heading}'> '{graph.sample_ID}' {communities_label}</h1>", unsafe_allow_html=True)
+    container.markdown(f"<h2 style='{style_heading}'>Top '{graph.top_n_edges}' edges with the highest LRP values</h2>", unsafe_allow_html=True)
 
     # Create and display graph visualization
     fig = gv.d3(
@@ -479,8 +493,8 @@ if st.session_state.get('filters_form_completed', False):
 
 ################
 if st.session_state.get('first_form_completed', False):
-    Col1, Col2, Col3, Col4 = st.tabs(
-        ["፨ selected sample", "⩬ top n similar", "🔍 group comparison ", "⚖️ graph differences"])
+    Col1, Col2, Col3, Col4, Col5 = st.tabs(
+        ["፨ selected sample", "⩬ top n similar (under dev.)", "🔍 compare groups", "⚖️ show differences", "🤖 AI interpreter"])
     st.session_state['enable_comparison'] = True
     node_selection_form = Col1.form('TopNSelection')
     with node_selection_form:
@@ -750,14 +764,14 @@ if st.session_state.get('enable_comparison', False):
                             st.line_chart(edge_df['LRP'], x_label='Edge #', y_label='LRP')
 
                         st.session_state['civic_data'].get_mps_summaries()
-                        Col4.subheader("MPS summaries")
-                        mps_summaries = Col4.expander("See MPS summaries")
+                        Col4.subheader("Molecular Profiles summaries")
+                        mps_summaries = Col4.expander("See Molecular Profiles summaries")
                         mps_summaries.write(st.session_state['civic_data'].mps_summaries)
 
                         st.session_state['civic_data'].get_features_matching_nodes(diff_graph)
                         st.session_state['civic_data'].get_features_descriptions()
-                        Col4.subheader("Features descriptions")
-                        mps_summaries = Col4.expander("See features descriptions")
+                        Col4.subheader("Genes descriptions")
+                        mps_summaries = Col4.expander("See genes descriptions")
                         mps_summaries.write(st.session_state['civic_data'].features_descriptions)
 
                         st.session_state['civic_data'].get_evidence_ids_df()
@@ -765,6 +779,149 @@ if st.session_state.get('enable_comparison', False):
                         st.session_state['civic_data'].agragate_all_facts()
                         Col4.subheader("All facts")
                         mps_summaries = Col4.expander("See all facts")
+                        st.session_state["edge_df"] = edge_df
+                        st.session_state["all_facts"] = st.session_state['civic_data'].all_facts
+                        print(st.session_state['civic_data'].all_facts)
                         mps_summaries.write(st.session_state['civic_data'].all_facts)
+                        st.session_state["enable_chat_bot"] = True
                         Col4.divider()
                     pair_counter += 1
+###########
+#
+# Chatbot
+#
+#
+###########
+    import random
+    import time
+
+
+    def return_gen_prot(datafm):
+        proteins = set()
+        genes = set()
+
+        # Process both 'source_node' and 'target_node' in a single loop
+        for node in itertools.chain(datafm['source_node'].unique(), datafm['target_node'].unique()):
+            parts = node.rsplit("_", 1)  # Efficient split from the right
+            if len(parts) == 2:
+                name, ext = parts
+                if ext == 'prot':
+                    proteins.add(name)
+                else:
+                    genes.add(name)
+
+        return list(proteins), list(genes)
+
+    def response_generator():
+        response = random.choice(
+            [
+                "Hello there! How can I assist you today?",
+                "Hi, human! Is there anything I can help you with?",
+                "Do you need help?",
+            ]
+        )
+        for word in response.split():
+            yield word + " "
+            time.sleep(0.05)
+
+
+    if not st.session_state.enable_chat_bot:
+        Col5.subheader("You have not made any comparisons between groups yet.", divider=True)
+    else:
+        Col5.title("💬 Chatbot")
+        diff_graph = lrpgraph.LRPGraph(
+            edges_sample_i=st.session_state["edge_df"],
+            source_column="source_node",
+            target_column="target_node",
+            edge_attrs=["LRP", "LRP_norm"],
+            top_n_edges=st.session_state['top_diff_n'],
+            sample_ID='DIFFERENCE ' + st.session_state["compare_grp_selected"][i] + ' vs ' +
+                      st.session_state["compare_grp_selected"][j],
+        )
+        st.session_state['civic_data'].get_molecular_profiles_matching_nodes(diff_graph)
+        st.session_state['civic_data'].get_mps_summaries()
+        st.session_state['civic_data'].get_features_matching_nodes(diff_graph)
+        st.session_state['civic_data'].get_features_descriptions()
+        st.session_state['civic_data'].get_evidence_ids_df()
+        st.session_state['civic_data'].get_evidence_desctiptions()
+        st.session_state['civic_data'].agragate_all_facts()
+        all_facts = st.session_state['civic_data'].all_facts
+        prot_gen_results = return_gen_prot(st.session_state["edge_df"])
+        prompt_part1 = (f"You are an expert in molecular genomics and cancer research. You always focus on specific proteins and genes of interest and the facts provided to you. Your reasoning is based on the context provided.\n\n"
+                        f"I will provide you with context in the next part, followed by a list of key molecular facts and specific biomolecules of interest. "
+                        f"Your task is to generate an in-depth analysis integrating these components.\n\n"
+
+                        f"**Key Molecular Facts:** {all_facts}\n\n"
+
+                        f"**Focus Areas:**\n"
+                        f"- **Proteins of Interest:** {prot_gen_results[0]}\n"
+                        f"- **Genes of Interest:** {prot_gen_results[1]}\n\n"
+
+                        f"**Task:**\n"
+                        f"Analyze the given molecular and cancer-related context, emphasizing the provided proteins and genes.\n"
+                        f" Your response should be concise and specific, no need to explain basic facts, as the intended reader is an oncologist.\n\n"
+                        #f"1. Explain the functional roles of these proteins in cancer progression.\n"
+                        #f"2. Describe the genomic implications and interactions of the specified genes.\n"
+                        #f"3. Integrate relevant molecular pathways and their impact on tumorigenesis.\n"
+                        #f"4. Provide insights into potential therapeutic targets or biomarker relevance.\n\n"
+
+                        f"Format your response with clear sectioning for readability. \n\n"
+
+                        f"In the next part, I will provide the **specific context** for your analysis."
+                        )
+        agent = OpenAIAgent(system_role=prompt_part1)
+        st.session_state["context_input"] = ""
+        Col_sub_5_1, Col_sub_5_2 = Col5.columns([1, 2])
+        Con_Col_sub_5_1 = Col_sub_5_1.container(height=400)
+        Con_Col_sub_5_2 = Col_sub_5_2.container(height=325)
+        with Con_Col_sub_5_1:
+            Col5_context_form = st.form(key='context_form')
+            st.session_state["context_input"] = Col5_context_form.text_area("Please provide some context", st.session_state["context_input"])
+            submit_button_cb_f = Col5_context_form.form_submit_button(label='Submit')
+
+            if submit_button_cb_f and st.session_state["awaiting_context"]:
+                st.warning(" ℹ Context provided. ")
+                st.session_state["messages"] = []
+                prompt_part2 = (f"**Context:** {st.session_state['context_input']}\n\n"
+                                f'At the end of your response, confirm by saying: **"OK, I am ready."**'
+                                )
+                agent.query(prompt_part2)
+                st.session_state["context_input"] = ""
+                st.session_state["awaiting_context"] = False
+
+        with Con_Col_sub_5_2:
+            if not st.session_state["awaiting_context"]:
+                for message in st.session_state.messages:
+                    with st.chat_message(message["role"]):
+                        st.markdown(message["content"])
+
+                if prompt := Col_sub_5_2.chat_input("Please write your question"):
+                    # Add user message to chat history
+                    st.session_state.messages.append({"role": "user", "content": prompt})
+                    # Display user message in chat message container
+                    with st.chat_message("user"):
+                        st.markdown(prompt)
+
+                    # Display assistant response in chat message container
+                    with st.chat_message("assistant"):
+                        response = st.write_stream(agent.query(prompt))
+                    # Add assistant response to chat history
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -144,10 +144,42 @@ def create_edges_from_lrp(LRP_to_graphs, i):
     return edges
 
 
+def get_all_graphs_from_lrp(LRP_to_graphs: pd.DataFrame, top_n_edges = None) -> dict:
+    """
+    Generate a dictionary of graphs from LRP data.
+
+    Parameters:
+    - LRP_to_graphs (pd.DataFrame): DataFrame containing LRP data.
+    - top_n_edges (int, optional): Number of edges to select for each graph. Default is None.
+
+    Returns:
+    - dict: A dictionary where each key is a sample index and the value is an LRPGraph instance.
+    """
+    # Ensure the first three columns are ['index', 'source_node', 'target_node']
+    fixed_columns = {"index", "source_node", "target_node"}
+    ordered_columns = ["index", "source_node", "target_node"] + [
+        col for col in LRP_to_graphs.columns if col not in fixed_columns
+    ]
+    LRP_to_graphs = LRP_to_graphs[ordered_columns]
+
+    # Generate graphs using dictionary comprehension
+    return {
+        i: lrpgraph.LRPGraph(
+            edges_sample_i=create_edges_from_lrp(LRP_to_graphs, i + 3),
+            source_column="source_node",
+            target_column="target_node",
+            edge_attrs=["LRP", "LRP_norm"],
+            top_n_edges=top_n_edges,
+            sample_ID=LRP_to_graphs.columns[i + 3],
+        )
+        for i in range(LRP_to_graphs.shape[1] - 3)
+    }
 
 
 
-def get_all_graphs_from_lrp(LRP_to_graphs: pd.DataFrame, top_n_edges: int = None) -> dict:
+
+
+def get_all_graphs_from_lrp_old(LRP_to_graphs: pd.DataFrame, top_n_edges: int = None) -> dict:
     """
     Generate a dictionary of graphs from LRP data.
     This function processes LRP (Layer-wise Relevance Propagation) data to create a dictionary of graphs.
