@@ -89,100 +89,6 @@ if "openai_model" not in st.session_state:
 
 st.set_page_config(page_title = "LRP Dashboard", page_icon = main_body_logo, layout = "wide")
 
-
-# Logo in the top left corner (on the home page)
-st.image("./images/MIS_Portal_logo.png", width=300)  # Logo w lewym górnym rogu
-
-# Main frame with text + buttons inside
-st.markdown("""
-    <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
-                margin-top:20px; text-align:center; font-size:18px;">
-        <strong>The Portal Analyzes Molecular Interaction Signatures</strong><br>
-        <br>
-        The <strong>public version</strong> of the MIS portal provides a <strong>framework</strong> for comparing biological samples based on molecular interaction signatures. 
-        Using deep learning metrics, statistical tests, and graph-based methods, it identifies key interaction patterns and assesses their biological relevance for <strong>biomarker discovery and hypothesis generation.</strong>
-        <br><br>
-        <a href="?page=analyse" style="display:inline-block; background:white; color:#0078D4; 
-            border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px; margin-right:10px;">Analyse Your Samples</a>
-        <a href="?page=examples" style="display:inline-block; background:white; color:#0078D4; 
-            border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">See Examples</a>
-    </div>
-""", unsafe_allow_html=True)
-
-
-# Break before next frames
-st.markdown("<br>", unsafe_allow_html=True)
-
-
-# Two columns next to each other
-col1, col2 = st.columns(2)
-
-# First column (left)
-with col1:
-    st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)  # Wyśrodkowanie logo
-    st.image("./images/evidence.png", width=50)  # Logo nad ramką
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Frame with text and button
-    st.markdown(
-        """
-        <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
-                    text-align:center; font-size:16px; padding:20px;">
-            <strong>The Portal uses distinct levels of supporting evidence</strong><br>
-            Molecular Interaction Signatures (MIS) are derived from the analysis of molecular profiles and are annotated by a comprehensive set of knowledgebases and computational estimations.
-            <br><br>
-            <a href="?page=readmore" style="display:inline-block; background:white; color:#0078D4; 
-                border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">Read more</a>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-# Second column (right)
-with col2:
-    st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)  # Wyśrodkowanie logo
-    st.image("./images/expert.png", width=50)  # Logo nad ramką
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Frame with text and button
-    st.markdown(
-        """
-        <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
-                    text-align:center; font-size:16px; padding:20px;">
-            <strong>The Portal follows clinical expert consensus</strong><br>
-            The MIS portal is designed to support the interpretation of molecular interaction signatures in the context of clinical expert consensus developed under the Cancer Core Europe umbrella and the latest scientific evidence.
-            <br><br>
-            <a href="?page=aboutus" style="display:inline-block; background:white; color:#0078D4; 
-                border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">About us</a>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-# Information text under frames
-st.markdown("""
-    <div style="margin-top:30px; text-align:justify; font-size:16px;">
-        <p><strong>This is an open-access version of the Molecular Interaction Signatures Portal, designed for the comparative study of biological samples based on molecular interaction signatures.</strong></p>
-        <p>The portal utilizes computational methods, including deep learning-derived relevance metrics and statistical analyses, with references to the applied algorithms and data sources provided in the results. 
-        Some resources integrated within the portal may require a license for commercial applications or clinical use; therefore, this version is strictly limited to academic research. 
-        Users must accept these terms upon first login, which requires a valid email address. When using this portal, please cite:</p>
-    </div>
-""", unsafe_allow_html=True)
-
-# Four logos in one row
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.image("./images/CRUK_NBC.png", width=220)  
-
-with col2:
-    st.image("./images/CRUK_NBC_DCR.png", width=220)  
-
-with col3:
-    st.image("./images/CCE.png", width=170)  
-
-with col4:
-    st.image("./images/CCE_DART.png", width=170)  
     
 def assign_colors(strings):
     color_names = sorted(list(mcolors.CSS4_COLORS.keys()))
@@ -335,6 +241,7 @@ def create_multiselect(catalog_name: str, values: list, container: object):
     with container:
         selected_values = st.multiselect("Please select \"" + catalog_name + "\" : ",
             values,
+            placeholder="Select one or more options (optional)"
         )
 
     return selected_values
@@ -388,108 +295,297 @@ if __name__ == '__main__':
         </style>
     """, unsafe_allow_html=True)
 
+    # Initialize the page state
+    if "page" not in st.session_state:
+        st.session_state.page = "Home"
+
     # Navigation buttons
-    st.sidebar.button('Home', key="home")
-    st.sidebar.button('Analyse', key="analyse")
-    st.sidebar.button('FAQ', key="faq")
-    st.sidebar.button('About', key="about")
-    st.sidebar.button('News', key="news")
+    if st.sidebar.button('Home'):
+        st.session_state.page = "Home"
+    if st.sidebar.button('Analyse'):
+        st.session_state.page = "Analyse"
+    if st.sidebar.button('FAQ'):
+        st.session_state.page = "FAQ"
+    if st.sidebar.button('About'):
+        st.session_state.page = "About"
+    if st.sidebar.button('News'):
+        st.session_state.page = "News"
 
-    # Data upload buttons
-    uploader_placeholder = st.sidebar.empty()
-    path_to_LRP_data = uploader_placeholder.file_uploader("Upload data LRP")
 
-    if path_to_LRP_data is not None:
-        st.session_state['lrp_df'] = dtl.LRPData(file_path=save_my_uploaded_file('/tmp', path_to_LRP_data),
-                                                 delimiter=",").read_and_validate()
-        uploader_placeholder.empty()
-        uploader_placeholder.info('File {0} has been analysed.'.format(path_to_LRP_data.name))
+    # Render content based on the current page state
+    if st.session_state.page == "Home":
+        #st.title("Home")
+        # Logo in the top left corner (on the home page)
+        st.image("./images/MIS_Portal_logo.png", width=300)  # Logo w lewym górnym rogu
+        # Main frame with text + buttons inside
+        st.markdown("""
+    <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
+                margin-top:20px; text-align:center; font-size:18px;">
+        <strong>The Portal Analyzes Molecular Interaction Signatures</strong><br>
+        <br>
+        The <strong>public version</strong> of the MIS portal provides a <strong>framework</strong> for comparing biological samples based on molecular interaction signatures. 
+        Using deep learning metrics, statistical tests, and graph-based methods, it identifies key interaction patterns and assesses their biological relevance for <strong>biomarker discovery and hypothesis generation.</strong>
+        <br><br>
+        <button onclick="window.location.href = window.location.href.split('?')[0] + '?page=Analyse'; window.location.reload();" style="display:inline-block; background:white; color:#0078D4; 
+            border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px; margin-right:10px;">Analyse Your Samples</button>
+        <button onclick="window.location.href='?page=Examples'" style="display:inline-block; background:white; color:#0078D4; 
+            border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">See Examples</button>
+    </div>
+""", unsafe_allow_html=True)
+        # Break before next frames
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Two columns next to each other
+        col1, col2 = st.columns([1, 1])
+        # First column (left)
+        with col1:
+            st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)  # Center the logo
+            st.image("./images/evidence.png", width=50)  # Logo above the frame
+            st.markdown("</div>", unsafe_allow_html=True)
+            # Frame with text and button
+            st.markdown(
+                """
+                <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
+                            text-align:center; font-size:16px; padding:20px;">
+                    <strong>The Portal uses distinct levels of supporting evidence</strong><br>
+                    Molecular Interaction Signatures (MIS) are derived from the analysis of molecular profiles and are annotated by a comprehensive set of knowledgebases and computational estimations.
+                    <br><br>
+                    <button onclick="window.location.href='?page=FAQ'" style="display:inline-block; background:white; color:#0078D4; 
+                        border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">Read more</button>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        # Second column (right)
+        with col2:
+            st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)  # Center the logo
+            st.image("./images/expert.png", width=50)  # Logo above the frame
+            st.markdown("</div>", unsafe_allow_html=True)
+            # Frame with text and button
+            st.markdown(
+                """
+                <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
+                            text-align:center; font-size:16px; padding:20px;">
+                    <strong>The Portal follows clinical expert consensus</strong><br>
+                    The MIS portal is designed to support the interpretation of molecular interaction signatures in the context of clinical expert consensus developed under the Cancer Core Europe umbrella and the latest scientific evidence.
+                    <br><br>
+                    <button onclick="window.location.href='?page=About'" style="display:inline-block; background:white; color:#0078D4; 
+                        border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">About us</button>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        # Text below the columns
+        st.markdown("""
+            <div style="margin-top:30px; text-align:justify; font-size:16px;">
+                <p><strong>This is an open-access version of the Molecular Interaction Signatures Portal, designed for the comparative study of biological samples based on molecular interaction signatures.</strong></p>
+                <p>The portal utilizes computational methods, including deep learning-derived relevance metrics and statistical analyses, with references to the applied algorithms and data sources provided in the results. 
+                Some resources integrated within the portal may require a license for commercial applications or clinical use; therefore, this version is strictly limited to academic research. 
+                Users must accept these terms upon first login, which requires a valid email address. When using this portal, please cite:</p>
+            </div>
+        """, unsafe_allow_html=True)
+        # Four logos in one row
+        col1, col2, col3, col4 = st.columns(4)
 
-    uploader_placeholder_md = st.sidebar.empty()
-    path_to_metadata = uploader_placeholder_md.file_uploader("Upload metadata")
+        with col1:
+            st.image("./images/CRUK_NBC.png", width=220)  
 
-    if path_to_metadata is not None:
-        st.session_state['metadata_df'] = dtl.MetaData(file_path=save_my_uploaded_file('/tmp', path_to_metadata),
-                                                       delimiter=",")
-        uploader_placeholder_md.empty()
-        st.sidebar.info('File {0} has been analysed.'.format(path_to_metadata.name))
+        with col2:
+            st.image("./images/CRUK_NBC_DCR.png", width=220)  
 
-    civic_features_path = "./data/01-Feb-2025-FeatureSummaries.tsv"
-    civic_mp_path = "./data/01-Feb-2025-MolecularProfileSummaries.tsv"
+        with col3:
+            st.image("./images/CCE.png", width=150)  
 
-    if civic_features_path and civic_mp_path:
-        st.session_state['civic_data'] = civic.CivicData(civic_features_path, civic_mp_path)
-        st.session_state['civic_data'].load_data()
+        with col4:
+            st.image("./images/CCE_DART.png", width=170)   
 
-    # Data filtering
-    if path_to_LRP_data and path_to_metadata and civic_features_path and civic_mp_path:
-        filter_catalog = get_column_values(st.session_state['metadata_df'])
+    elif st.session_state.page == "Analyse":
+        st.title("Analyse Molecular Interaction Signatures")
+        st.markdown("""
+            <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
+                        margin-top:20px; text-align:center; font-size:18px;">
+                <strong>Analyse Your Samples</strong><br>
+                <br>
+                Compare and interpret biological samples based on molecular interaction signatures according to multiple evidence sources.
+                Upload your LRP-based Interaction Metrics data and metadata to start analyzing your samples based on molecular interaction signatures.
+                <br><br>
+            </div>
+        """, unsafe_allow_html=True)
 
-        filters_form = st.sidebar.form('filters')
-        with (filters_form):
-            filters = {}
-            for key, values in filter_catalog.items():
-                filters[key] =  create_multiselect(key, values, filters_form)
+        # Create a column layout with two columns for the upload buttons
+        col1, col2 = st.columns(2)
 
-            sm_button = filters_form.form_submit_button(label='Filter')
+        with col1:
+            # Data upload button for LRP data
+            path_to_LRP_data = st.file_uploader("Provide LRP-based data")
 
-            if sm_button:
+            if path_to_LRP_data is not None:
+                st.session_state['lrp_df'] = dtl.LRPData(file_path=save_my_uploaded_file('/tmp', path_to_LRP_data),
+                                                        delimiter=",").read_and_validate()
+                st.markdown(f"""
+                    <div style="background-color: #e6f7ff; color: black; padding: 4px 10px; border-radius: 4px; font-size: 14px;">
+                        File {path_to_LRP_data.name} has been analyzed.
+                    </div>
+                """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        with col2:
+            # Data upload button for metadata
+            path_to_metadata = st.file_uploader("Provide metadata")
+
+            if path_to_metadata is not None:
+                st.session_state['metadata_df'] = dtl.MetaData(file_path=save_my_uploaded_file('/tmp', path_to_metadata),
+                                                            delimiter=",")
+                st.markdown(f"""
+                    <div style="background-color: #e6f7ff; color: black; padding: 4px 10px; border-radius: 4px; font-size: 14px;">
+                        File {path_to_metadata.name} has been analyzed.
+                    </div>
+                """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        civic_features_path = "./data/01-Feb-2025-FeatureSummaries.tsv"
+        civic_mp_path = "./data/01-Feb-2025-MolecularProfileSummaries.tsv"
+
+        if civic_features_path and civic_mp_path:
+            st.session_state['civic_data'] = civic.CivicData(civic_features_path, civic_mp_path)
+            st.session_state['civic_data'].load_data()
+
+        # Check if all required data paths exist
+        if path_to_LRP_data and path_to_metadata and civic_features_path and civic_mp_path:
+            # Retrieve column values from metadata_df
+            filter_catalog = get_column_values(st.session_state['metadata_df'])
+
+            # Create a combined form for both data filtering and keyword selection
+            combined_form = st.form('combined_filters')
+            with combined_form:
+                st.markdown("### Data Filtering")
+                # Create widgets for filtering based on metadata columns
+                filters = {}
+                for key, values in filter_catalog.items():
+                    filters[key] = create_multiselect(key, values, combined_form)
+
+                st.markdown("### Upload Frequent Keywords")
+                # File uploader widget for frequent keywords
+                path_to_plkeywords = st.file_uploader("Upload frequent keywords")
+                if path_to_plkeywords is not None:
+                    st.session_state['frequent_kws'] = pd.read_csv(
+                        save_my_uploaded_file('/tmp', path_to_plkeywords), header=None
+                    )
+                    st.info('File {0} has been analysed.'.format(path_to_plkeywords.name))
+
+                st.markdown("### Keyword Selection")
+                # Set up the keywords list based on whether a file was uploaded
+                if st.session_state.get('frequent_kws') is None or st.session_state['frequent_kws'].empty:
+                    # No file uploaded – generate keywords from data
+                    keywords = find_my_keywords(
+                        st.session_state['lrp_df']
+                        if st.session_state['filtered_tts_lrp_df'].empty
+                        else st.session_state['filtered_tts_lrp_df']
+                    )
+                    default_keywords = []
+                else:
+                    # File uploaded – use its content as the default selection
+                    keywords = find_my_keywords(
+                        st.session_state['filtered_tts_lrp_df']
+                        if not st.session_state['filtered_tts_lrp_df'].empty
+                        else st.session_state['lrp_df']
+                    )
+                    default_keywords = st.session_state['frequent_kws'][0].tolist()
+
+                # Multiselect widget for selecting keywords
+                keywords_selected = combined_form.multiselect(
+                    "Please select your keyword: ",
+                    keywords,
+                    default_keywords,
+                    placeholder="Select one or more options (optional)"
+                )
+
+                # A single "Run" button to execute both filtering steps
+                run_button = combined_form.form_submit_button(label='Run')
+
+            # Execute filtering when the "Run" button is clicked
+            if run_button:
+                # Filter data based on the selected metadata filters
                 desired_barcodes = st.session_state['metadata_df'].data
-                for filter, values in filters.items():
+                for filter_name, values in filters.items():
                     if len(values) > 0:
-                        filter_query = filter + ' == [ ' +  ', '.join(f'"{i}"' for i in values) + ' ]'
+                        filter_query = filter_name + ' == [ ' + ', '.join(f'"{i}"' for i in values) + ' ]'
                         desired_barcodes = desired_barcodes.query(filter_query)
-
                 valid_bc = list(set(desired_barcodes.index.tolist()))
                 st.session_state['filtered_tts_lrp_df'] = st.session_state['lrp_df'].filter(items=valid_bc, axis=0)
                 if st.session_state['filtered_tts_lrp_df'].empty:
-                    sm_button = False
-                    filters_form.warning("The selection criteria you have chosen are not yielding any results. Please select alternative values.")
+                    st.warning("The selection criteria you have chosen are not yielding any results. Please select alternative values.")
                 else:
-                    filters_form.success("The selection criteria you have chosen are filtered successfully! Proceed to the next step.")
+                    # Custom success message with lower frame size (smaller padding and font size)
+                    custom_success_html = """
+                    <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 5px 10px; border-radius: 4px; font-size: 14px;">
+                    The selection criteria you have chosen are filtered successfully! Proceed to the next step.
+                    </div>
+                    """
+                    st.markdown(custom_success_html, unsafe_allow_html=True)
                     st.session_state['filters_form_completed'] = True
 
-#### Keywords
-if st.session_state.get('filters_form_completed', False):
-    uploader_placeholder_kwf = st.sidebar.empty()
-    path_to_plkeywords = uploader_placeholder_kwf.file_uploader("Upload frequent keywords")
-
-    if path_to_plkeywords is not None:
-        st.session_state['frequent_kws'] = pd.read_csv(save_my_uploaded_file('/tmp', path_to_plkeywords), header=None)
-        uploader_placeholder_kwf.empty()
-        st.sidebar.info('File {0} has been analysed.'.format(path_to_plkeywords.name))
-
-    if path_to_LRP_data and path_to_metadata:
-        if st.session_state['filtered_tts_lrp_df'].empty:
-            st.session_state['keywords'] = find_my_keywords(st.session_state['lrp_df'])
-        else:
-            st.session_state['keywords'] = find_my_keywords(st.session_state['filtered_tts_lrp_df'])
-
-        keywords_form = st.sidebar.form('Keywords')
-        with (keywords_form):
-            if st.session_state['frequent_kws'].empty:
-                keywords_selected = keywords_form.multiselect("Please select your keyword: ",
-                                                              st.session_state['keywords'],
-                                                              [],
-                                                              placeholder="Choose a keyword.")
-            else:
-                keywords_selected = keywords_form.multiselect("Please select your keyword: ",
-                                                              st.session_state['keywords'],
-                                                              st.session_state['frequent_kws'][0].tolist(),
-                                                              placeholder="Choose a keyword.")
-
-
-            filter_button = keywords_form.form_submit_button(label='Filter')
-            if filter_button:
+                # Filter data based on the selected keywords
                 if not keywords_selected:
                     keywords_selected = None
-                filtered_df = fg.filter_columns_by_keywords(st.session_state['filtered_tts_lrp_df'],
-                                                            keywords_selected)
+                filtered_df = fg.filter_columns_by_keywords(st.session_state['filtered_tts_lrp_df'], keywords_selected)
                 st.session_state['filtered_data'] = fg.prepare_lrp_to_graphs(filtered_df)
                 st.session_state['first_form_completed'] = True
-                uploader_placeholder_kwf.empty()
-                keywords_form.success("Keywords filtered successfully! Proceed to the next step.")
+                #st.success("Keywords filtered successfully! Proceed to the next step.")
 
+    elif st.session_state.page == "Examples":
+        st.title("Examples")
+        st.markdown("""
+            <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
+                        margin-top:20px; text-align:center; font-size:18px;">
+                <strong>Examples of Analyses</strong><br>
+                <br>
+                Here you can find examples of analyses performed using the Molecular Interaction Signatures Portal.
+                <br><br>
+                Explore the examples to understand how to use the portal for your own analyses.
+            </div>
+        """, unsafe_allow_html=True)
+
+    elif st.session_state.page == "FAQ":
+        st.title("Frequently Asked Questions")
+        st.markdown("""
+            <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
+                        margin-top:20px; text-align:center; font-size:18px;">
+                <strong>Frequently Asked Questions</strong><br>
+                <br>
+                Here you can find answers to the most commonly asked questions about the Molecular Interaction Signatures Portal.
+                <br><br>
+                If you have any other questions, please contact us at support@misportal.org.
+            </div>
+        """, unsafe_allow_html=True)
+
+    elif st.session_state.page == "About":
+        st.title("About Us")
+        st.markdown("""
+            <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
+                        margin-top:20px; text-align:center; font-size:18px;">
+                <strong>About the Molecular Interaction Signatures Portal</strong><br>
+                <br>
+                The Molecular Interaction Signatures (MIS) Portal is a comprehensive platform designed to analyze and compare biological samples based on molecular interaction signatures. 
+                Our portal leverages advanced computational methods, including deep learning metrics, statistical tests, and graph-based techniques, to identify key interaction patterns and assess their biological relevance.
+                <br><br>
+                Our mission is to facilitate biomarker discovery and hypothesis generation by providing researchers with a robust framework for analyzing molecular profiles. 
+                The portal integrates data from various knowledgebases and computational estimations to offer a detailed and insightful analysis of molecular interactions.
+                <br><br>
+                <strong>Contact Us:</strong><br>
+                For more information, please visit our website or contact us at info@misportal.org.
+            </div>
+        """, unsafe_allow_html=True)
+
+    elif st.session_state.page == "News":
+        st.title("News")
+        st.markdown("""
+            <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
+                        margin-top:20px; text-align:center; font-size:18px;">
+                <strong>Latest News</strong><br>
+                <br>
+                Stay updated with the latest news and updates about the Molecular Interaction Signatures Portal.
+                <br><br>
+                Check back regularly for new features, updates, and announcements.
+            </div>
+        """, unsafe_allow_html=True)
 
 ################
 if st.session_state.get('first_form_completed', False):
