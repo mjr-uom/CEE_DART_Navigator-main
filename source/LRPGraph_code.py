@@ -78,7 +78,7 @@ class LRPGraph:
         self.all_nodes = None
 
         # get node names that do not include the node type
-        self.set_of_node_names_no_type = set(node.rsplit('_', 1)[0] for node in self.G.nodes)
+        self.set_of_node_names_no_type = sorted(list(set(node.rsplit('_', 1)[0] for node in self.G.nodes)))
 
         """
         This graph represents the structure of relationships between nodes as defined 
