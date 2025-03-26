@@ -45,16 +45,16 @@ class LRPGraph:
     """
     def __init__(self, edges_sample_i, source_column, target_column, edge_attrs, embedding_dim=2, top_n_edges=None, sample_ID = None):
         """
-        Initialize the GraphClass object and compute embeddings.
+        Initialize the LRPGraph object and compute embeddings.
         
         Parameters:
-            edges (DataFrame): The edge list dataframe containing graph edges. Each row represents an edge between two nodes.
+            edges_sample_i (DataFrame): The edge list dataframe containing graph edges. Each row represents an edge between two nodes.
             source_column (str): Name of the source node column in the edge list dataframe.
             target_column (str): Name of the target node column in the edge list dataframe.
             edge_attrs (list): List of edge attributes to include in the graph. These attributes are added as edge weights or metadata.
             embedding_dim (int): Dimension of the Laplacian embedding (default is 2). Determines the size of the embedding vector for each node.
-            all_nodes (list): List of all possible nodes in the graph. Used to construct a fixed-size embedding matrix.
-            n_key (any): Optional key to index specific configurations or data related to this graph instance.
+            top_n_edges (int, optional): Number of top edges to retain based on LRP values. If None, all edges are retained.
+            sample_ID (any, optional): Identifier for the graph instance, useful for tracking or indexing.
         """
 
         self.sample_ID = sample_ID

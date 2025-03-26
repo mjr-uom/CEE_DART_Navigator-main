@@ -261,10 +261,10 @@ def get_all_graphs_from_lrp(
 
     Parameters:
     LRP_to_graphs (pd.DataFrame): DataFrame containing LRP data.
-    n_ (int, optional): Number of edges to select for each graph. Default is None.
+    top_n_edges (int, optional): Number of edges to select for each graph. Default is None.
 
     Returns:
-    dict: A dictionary where each key is a sample index and the value is another dictionary containing the graph 'G'.
+    dict: A dictionary where each key is a sample index and the value is a graph object.
     """
     # make sure that columns ['index', 'source_node', 'target_node'] are the first 3 columns in the LRP_to_graphs dataframe
     remaining_columns = [
