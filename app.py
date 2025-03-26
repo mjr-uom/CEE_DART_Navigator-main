@@ -529,6 +529,19 @@ if __name__ == '__main__':
                 st.session_state['filtered_data'] = fg.prepare_lrp_to_graphs(filtered_df)
                 st.session_state['first_form_completed'] = True
                 #st.success("Keywords filtered successfully! Proceed to the next step.")
+        # Jeśli etap filtrowania zakończył się sukcesem, najpierw wyświetlamy etap wyboru typu analizy
+        if st.session_state.get('first_form_completed', False):
+            # Jeśli użytkownik nie wybrał jeszcze typu analizy, wyświetlamy ramkę z trzema przyciskami
+            if st.session_state.get("analysis_type") is None:
+                st.markdown("### Type of analysis")
+                col_a, col_b, col_c = st.columns(3)
+                if col_a.button("sample-sample"):
+                    st.session_state["analysis_type"] = "sample-sample"
+                if col_b.button("sample-group"):
+                    st.session_state["analysis_type"] = "sample-group"
+                if col_c.button("group-group"):
+                    st.session_state["analysis_type"] = "group-group"
+
 
     elif st.session_state.page == "Examples":
         st.title("Examples")
