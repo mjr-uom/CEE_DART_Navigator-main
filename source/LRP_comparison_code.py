@@ -11,12 +11,25 @@ import matplotlib.pyplot as plt
 # Base class with universal methods.
 # ----------------------------
 class LRPComparisonBase:
+    """
+    Base class containing universal methods used by all subclasses:
+    - Data rounding and exporting
+    - Selecting top N features
+    - Shared utilities for handling path creation, etc.
+    """
     def __init__(
         self, data_df, clinical_features_df, data_level="node", path_to_save=None
     ):
-        #
+        """
+        Initialize the base class with data, clinical features, data level, and save path.
+
+        Parameters:
+            data_df (pd.DataFrame): DataFrame containing LRP values.
+            clinical_features_df (pd.DataFrame): DataFrame containing clinical features.
+            data_level (str): Indicates the data level, either 'node' or 'edge'.
+            path_to_save (str, optional): Directory where results are saved.
+        """
         self.data_level = data_level.lower()
-        #
         self.lrp = data_df
         # Auto-detect data level based on column names
         if all(len(col.split(" - ")) == 2 for col in self.lrp.columns):
@@ -52,12 +65,25 @@ class LRPComparisonBase:
         print("clinical_features.head():\n", self.clinical_features.head())
 
     def round_boxplot_values(self):
-        # Round all columns except 'p-value' to 4 decimal places.
+        """
+        Round all numeric columns in self.boxplot_df (except 'p-value') to 4 decimal places.
+        """
         self.boxplot_df = self.boxplot_df.round(
             {col: 4 for col in self.boxplot_df.columns if col != "p-value"}
         )
 
     def select_top_n_by_column(self, column="p-value", n=5, ascending=True):
+        """
+        Select top N rows of self.boxplot_df grouped by 'type', ordered by the given column.
+
+        Parameters:
+            column (str): Column to sort by (e.g., 'p-value').
+            n (int): Number of top rows to select per group.
+            ascending (bool): Sort order.
+
+        Returns:
+            pd.DataFrame: The resulting top N subset.
+        """
         sort_by = ["type", column]
         df_sorted = self.boxplot_df.sort_values(by=sort_by, ascending=ascending)
         self.top_n_df = df_sorted.groupby("type").head(n)
@@ -65,18 +91,27 @@ class LRPComparisonBase:
         return self.top_n_df
 
     def save_boxplot_to_csv(self):
+        """
+        Save self.boxplot_df to a CSV file in path_to_save.
+        """
         filename = f"boxplot_df.csv"
         full_path = os.path.join(self.path_to_save, filename)
         self.boxplot_df.to_csv(full_path)
         print(f"Boxplot DataFrame saved to: {full_path}")
 
     def save_top_n_to_csv(self):
+        """
+        Save the top N subset DataFrame (self.top_n_df) to a CSV file in path_to_save.
+        """
         filename = f"top_n_df_top{self.n}.csv"
         full_path = os.path.join(self.path_to_save, filename)
         self.top_n_df.to_csv(full_path)
         print(f"Top N DataFrame saved to: {full_path}")
 
     def save_top_n_by_type(self):
+        """
+        For each unique 'type' in the top N subset, save a separate CSV.
+        """
         types = self.top_n_df["type"].unique()
         for t in types:
             t_df = self.top_n_df[self.top_n_df["type"] == t]
@@ -86,6 +121,15 @@ class LRPComparisonBase:
             print(f"Top N DataFrame for type '{t}' saved to: {full_path}")
 
     def format_median_diff(self, diff):
+        """
+        Format the median difference for display in the plot annotation.
+
+        Parameters:
+            diff (float): The median difference value.
+
+        Returns:
+            str: Formatted median difference as string.
+        """
         if abs(diff) < 0.001:
             return f"{diff:.2e}"
         elif abs(diff) < 0.01:
@@ -102,13 +146,29 @@ class LRPComparisonBase:
 # Subclass for group_vs_group comparisons.
 # ----------------------------
 class GroupVsGroupComparison(LRPComparisonBase):
+    """
+    Perform group-versus-group comparisons based on a clinical feature column.
+    """
     def __init__(self, column_name, group1_name, group2_name, **kwargs):
+        """
+        Initialize GroupVsGroupComparison with the target column and group labels.
+
+        Parameters:
+            column_name (str): Clinical feature column used to define the groups.
+            group1_name (str): Name of the first group.
+            group2_name (str): Name of the second group.
+        """
         super().__init__(**kwargs)
         self.column_name = column_name
         self.group1_name = group1_name
         self.group2_name = group2_name
 
     def compute_boxplot_values(self):
+        """
+        Compute boxplot statistics (min, q1, median, q3, max) and MWU test results
+        for each column in LRP data, grouping by column_name.
+        Returns a DataFrame stored in self.boxplot_df.
+        """
         merged_df = self.lrp.merge(
             self.clinical_features[[self.column_name]],
             left_index=True,
@@ -197,6 +257,10 @@ class GroupVsGroupComparison(LRPComparisonBase):
         return self.boxplot_df
 
     def filter_and_merge_data(self, selected_type):
+        """
+        Merge LRP data with clinical features, then filter rows by group labels
+        and columns by selected 'type'.
+        """
         merged = self.lrp.merge(
             self.clinical_features[[self.column_name]],
             left_index=True,
@@ -223,6 +287,16 @@ class GroupVsGroupComparison(LRPComparisonBase):
         plot_title=None,
         save_plot=False,
     ):
+        """
+        Plot a violin plot of the top N selected features for the specified 'type'.
+
+        Parameters:
+            merged (pd.DataFrame): Merged data to plot.
+            selected_type (str): Filter type used for top N selection.
+            sort_by (str): Sorting column name for display order.
+            plot_title (str, optional): Title of the plot.
+            save_plot (bool): Whether to save plots to files.
+        """
         melted = merged.melt(
             id_vars=[self.column_name], var_name="feature", value_name="LRP"
         )
@@ -293,12 +367,24 @@ class GroupVsGroupComparison(LRPComparisonBase):
 # Subclass for sample_vs_sample comparisons.
 # ----------------------------
 class SampleVsSampleComparison(LRPComparisonBase):
+    """
+    Compare LRP values for two individual samples.
+    """
     def __init__(self, sample1_name, sample2_name, **kwargs):
+        """
+        Parameters:
+            sample1_name (str): Name of the first sample.
+            sample2_name (str): Name of the second sample.
+        """
         super().__init__(**kwargs)
         self.sample1_name = sample1_name
         self.sample2_name = sample2_name
 
     def compute_boxplot_values(self):
+        """
+        Compute statistics for each column by retrieving LRP values for the
+        two specified samples. Stores the result in self.boxplot_df.
+        """
         boxplot_values = {}
         for col in self.lrp.columns:
             sample1_value = self.lrp.loc[self.sample1_name, col]
@@ -338,12 +424,25 @@ class SampleVsSampleComparison(LRPComparisonBase):
         return self.boxplot_df
 
     def filter_and_merge_data(self, selected_type):
+        """
+        Return the subset of self.lrp limited to the two samples and the
+        selected features, based on top_n_df.
+        """
         selected_df = self.top_n_df[self.top_n_df["type"].str.contains(selected_type)]
         return self.lrp.loc[[self.sample1_name, self.sample2_name]][selected_df.index]
 
     def plot_scatter(
         self, selected_type, sort_by="median_abs_diff", plot_title=None, save_plot=False
     ):
+        """
+        Plot a scatter-like comparison of LRP values between the two samples.
+
+        Parameters:
+            selected_type (str): Filter type used for top N selection.
+            sort_by (str): Sorting column name for display order.
+            plot_title (str, optional): Title of the plot.
+            save_plot (bool): Whether to save plots to files.
+        """
         selected_df = self.top_n_df[self.top_n_df["type"].str.contains(selected_type)]
         order = selected_df.sort_values(sort_by, ascending=True).index
         fig, ax = plt.subplots(figsize=(6, 2 + len(order) / 2))
@@ -439,13 +538,26 @@ class SampleVsSampleComparison(LRPComparisonBase):
 # Subclass for sample_vs_group comparisons.
 # ----------------------------
 class SampleVsGroupComparison(LRPComparisonBase):
+    """
+    Compare one sample's LRP values to those of a group defined by a clinical feature.
+    """
     def __init__(self, sample1_name, column_name, group1_name, **kwargs):
+        """
+        Parameters:
+            sample1_name (str): Name of the sample to compare.
+            column_name (str): Clinical feature column used to define the group.
+            group1_name (str): Name of the group in the clinical data.
+        """
         super().__init__(**kwargs)
         self.sample1_name = sample1_name
         self.column_name = column_name
         self.group1_name = group1_name
 
     def compute_boxplot_values(self):
+        """
+        Compute boxplot-like statistics for the chosen group, compare them to a
+        single sample's values, then store the result in self.boxplot_df.
+        """
         merged_df = self.lrp.merge(
             self.clinical_features[[self.column_name]],
             left_index=True,
@@ -503,6 +615,10 @@ class SampleVsGroupComparison(LRPComparisonBase):
         return self.boxplot_df
 
     def filter_and_merge_data(self, selected_type):
+        """
+        Filter and merge LRP data with clinical features. Return the subset that
+        contains only the specified group and the chosen sample.
+        """
         selected_df = self.top_n_df[self.top_n_df["type"].str.contains(selected_type)]
         lrp_selected = self.lrp[selected_df.index]
         merged = lrp_selected.merge(
@@ -530,6 +646,17 @@ class SampleVsGroupComparison(LRPComparisonBase):
         plot_title=None,
         save_plot=False,
     ):
+        """
+        Plot a violin plot to compare a single sample's distribution of LRP values
+        against a group's distribution for selected features.
+
+        Parameters:
+            merged (pd.DataFrame): Merged data to plot.
+            selected_type (str): Filter type used for top N selection.
+            sort_by (str): Sorting column name for display order.
+            plot_title (str, optional): Title of the plot.
+            save_plot (bool): Whether to save plots to files.
+        """
         melted_group = merged[merged[self.column_name] == self.group1_name].melt(
             id_vars=[self.column_name], var_name="feature", value_name="LRP"
         )
