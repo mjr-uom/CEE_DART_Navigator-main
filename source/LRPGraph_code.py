@@ -1,6 +1,7 @@
 import networkx as nx
 import numpy as np
 import pandas as pd
+import os
 def get_edges_subset(edges_sample_i, top_n_edges=None):
     """
     Get the top `n_` edges based on the LRP values, or all edges if `n_` is not specified.
@@ -78,7 +79,8 @@ class LRPGraph:
         self.all_nodes = None
 
         # get node names that do not include the node type
-        self.set_of_node_names_no_type = sorted(list(set(node.rsplit('_', 1)[0] for node in self.G.nodes)))
+        self.node_names_no_type = sorted(list(set(node.rsplit('_', 1)[0] for node in self.G.nodes)))
+        self.map_gene_aliases()        
 
         """
         This graph represents the structure of relationships between nodes as defined 
@@ -101,6 +103,61 @@ class LRPGraph:
 
         self.max_nodes = len(all_nodes)'''
      
+
+    def map_gene_aliases(self, alias_file_path = 'aliases.csv'):
+            """
+            Maps gene aliases from a CSV file to the genes in the current object.
+            This method reads a CSV file containing gene aliases and creates a mapping
+            between the genes in `self.node_names_no_type` and their corresponding aliases.
+            It also generates a sorted list of unique aliases.
+            Args:
+                alias_file_path (str, optional): The path to the CSV file containing gene aliases.
+                    Defaults to 'aliases.csv'. The file is expected to have a column named 'aliases',
+                    where each entry is a string representation of a list of aliases.
+            Attributes:
+                self.aliases (pd.DataFrame): The DataFrame containing the gene aliases read from the file.
+                self.node_names_aliase_dict (dict): A dictionary where keys are gene names from
+                    `self.node_names_no_type` and values are lists of their corresponding aliases.
+                self.node_names_aliases (list): A sorted list of unique aliases across all genes.
+            Raises:
+                FileNotFoundError: If the specified alias file does not exist.
+                ValueError: If the 'aliases' column in the CSV file contains invalid data.
+            Example:
+                Given a CSV file with the following content:
+                ```
+                aliases
+                "['geneA', 'geneA_alias1', 'geneA_alias2']"
+                "['geneB', 'geneB_alias1']"
+                ```
+                and `self.node_names_no_type = ['geneA', 'geneB', 'geneC']`,
+                the method will produce:
+                self.node_names_aliase_dict = {
+                    'geneA': ['geneA', 'geneA_alias1', 'geneA_alias2'],
+                    'geneB': ['geneB', 'geneB_alias1'],
+                    'geneC': ['geneC']
+                }
+                self.node_names_aliases = ['geneA', 'geneA_alias1', 'geneA_alias2', 'geneB', 'geneB_alias1', 'geneC']
+            """
+            
+            alias_file_path = os.path.join(os.path.dirname(__file__), 'aliases.csv')
+            gene_aliases = pd.read_csv(alias_file_path)
+            self.aliases = gene_aliases
+            print(gene_aliases)
+            gene_alias_dict = {}
+            # Iterate through each gene in the gene list
+            for gene in self.node_names_no_type:
+                
+                matching_rows = gene_aliases[gene_aliases['aliases'].apply(lambda aliases: gene in eval(aliases) if pd.notna(aliases) else False)]
+                
+                aliases = matching_rows['aliases'].apply(eval).explode().dropna().unique().tolist()
+                
+                if gene not in aliases:
+                    aliases.append(gene)
+                
+                gene_alias_dict[gene] = aliases
+            unique_aliases = sorted(list(set(alias for aliases in gene_alias_dict.values() for alias in aliases)))
+            self.node_names_aliase_dict = gene_alias_dict
+            self.node_names_aliases = unique_aliases
 
     def get_adjacency_and_laplacian(self):
         """

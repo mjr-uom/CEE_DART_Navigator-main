@@ -129,6 +129,31 @@ class CivicEvidenceAnalyzer:
                 self.feature_details_dict[fname]['Evidence'] = evidence_list
         return self.feature_details_dict
     
+    def verbalize_civicdb_knowledge(self):
+        civicdb_knowledge = ''
+
+        for feature, details in self.feature_details_dict.items():
+            
+            civicdb_knowledge += f"Feature: {feature}\n"
+            civicdb_knowledge += f"Description: {details['Description']}\n"
+            civicdb_knowledge += f"Summary: {details['Summary']}\n"
+            if 'Molecular_profiles' in details:
+                civicdb_knowledge += "Molecular Profiles:\n"
+                for profile in details['Molecular_profiles']:
+                    civicdb_knowledge += f"\t- {profile}\n"
+            if 'Evidence' in details:
+                civicdb_knowledge += "Evidence:\n"
+                for evidence in details['Evidence']:
+                    civicdb_knowledge += f"\t- {evidence}\n"
+            civicdb_knowledge += "_______________\n"
+
+        self.civicdb_knowledge = civicdb_knowledge
+        return civicdb_knowledge
+
+
+
+
+    
     def to_json(self):
         """
         Convert the feature details dictionary to a JSON formatted string.
