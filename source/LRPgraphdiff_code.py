@@ -4,10 +4,28 @@ import LRPGraph_code as lrpgraph
 import numpy as np
 import pandas as pd
 from gprofiler import GProfiler
-
+import os
 
 class LRPGraphDiff:
     def __init__(self, LRPGraph1, LRPGraph2, diff_thres=0.6):
+        '''
+        Initializes the comparison of two LRPGraph objects and computes their differences.
+
+        Args:
+            LRPGraph1 (LRPGraph): The first LRPGraph object to compare.
+            LRPGraph2 (LRPGraph): The second LRPGraph object to compare.
+            diff_thres (float, optional): The threshold for determining significant differences
+                in edge attributes. Defaults to 0.6.
+
+        Attributes:
+            LRPGraph1 (LRPGraph): The first LRPGraph object.
+            LRPGraph2 (LRPGraph): The second LRPGraph object.
+            diff_thres (float): The threshold for significant differences.
+            adj_diff (numpy.ndarray): The adjacency difference matrix calculated from the two graphs.
+            edge_df (pandas.DataFrame): A DataFrame containing edges with differences above the threshold.
+            diff_graph (LRPGraph): An LRPGraph object representing the difference graph,
+                including significant edges and their attributes.
+        '''
         self.LRPGraph1 = LRPGraph1
         self.LRPGraph2 = LRPGraph2
         self.diff_thres = diff_thres
@@ -28,11 +46,28 @@ class LRPGraphDiff:
         self.diff_graph.get_communitites()
 
     def get_edges_and_nodes_vs_threshold(self):
+        '''
+        Computes the number of edges and nodes in a graph for varying threshold values
+        and stores the results in a DataFrame.
+
+        This method iterates over a range of threshold values from 0.0 to 1.0 with a step
+        size of 0.02. For each threshold, it creates an edge DataFrame from the adjacency
+        difference matrix, calculates the number of edges, and determines the unique nodes
+        involved. The results are stored as a DataFrame with columns for the threshold,
+        number of edges, and number of nodes.
+
+        Attributes:
+            self.edge_node_df_sizes (pd.DataFrame): A DataFrame containing the threshold
+                values, number of edges, and number of nodes for each threshold.
+
+        Returns:
+            None
+        '''
         edge_node_df_sizes = []
         for diff_thres in np.arange(0.0, 1.0, 0.02):
             edge_df = fg.create_edge_dataframe_from_adj_diff(self.adj_diff, diff_thres)
             num_edges = len(edge_df)
-            nodes = set(edge_df['source_node']).union(set(edge_df['target_node']))
+            nodes = set(edge_df["source_node"]).union(set(edge_df["target_node"]))
             num_nodes = len(nodes)
             edge_node_df_sizes.append((diff_thres, num_edges, num_nodes))
         # convert to dataframe
@@ -40,48 +75,5 @@ class LRPGraphDiff:
             edge_node_df_sizes, columns=["threshold", "num_edges", "num_nodes"]
         )
 
-    def run_GE_on_nodes(self, user_threshold=1e-2, max_temp_size=50):
-        """
-        Run gene enrichment analysis on the nodes of the differential graph using g:Profiler.
-        Parameters:
-        user_threshold (float): The significance threshold for the enrichment analysis. Default is 1e-2.
-        max_temp_size (int): The maximum term size to filter out very general terms. Default is 50.
-        Returns:
-        pandas.DataFrame: A DataFrame containing the enrichment results, filtered and sorted by intersection size.
-                          Returns None if the gene list is empty or if an error occurs during the analysis.
-        Notes:
-        - The gene list is obtained from the set of node names in the differential graph.
-        - The analysis is performed for the organism 'hsapiens' (human).
-        - The significance threshold method used is 'g_SCS' to correct for multiple testing.
-        - If the gene list is empty, the function prints a message and returns None.
-        - If an error occurs during the analysis, the function prints the error message and returns None.
-        """
-        # Run gene enrichment analysis using gprofiler on gene names.
-        gene_list = list(self.diff_graph.set_of_node_names_no_type)  # ...existing value...
-        if not gene_list:
-            print("Gene list is empty; skipping GE analysis.")
-            return None
-        gp = GProfiler(return_dataframe=True)
-        try:
-            enrichment_results = gp.profile(organism='hsapiens',
-                                             query=gene_list, 
-                                            #sources =['GO:MF'], #only look into Gene Ontology terms.
-                                            user_threshold=user_threshold, #reduce the significance threshold,
-                                            significance_threshold_method='g_SCS') #use the g_SCS method to correct for multiple testing.
-                                            
-            # filter by 'term_size' to remove very general terms
-            enrichment_results = enrichment_results[enrichment_results['term_size'] < max_temp_size]
-            enrichment_results = enrichment_results.sort_values('intersection_size', ascending=False).reset_index(drop=True)
-
-        except Exception as e:
-            print("Error during GE analysis:", str(e))
-            return None
-        self.enrichment_results = enrichment_results
-        return enrichment_results
 
 
-# Example usage
-
-
-# lrp_graph_diff = LRPGraphDiff(LRPGraph1, LRPGraph2)
-# edges_vs_threshold = lrp_graph_diff.get_edges_vs_threshold()
