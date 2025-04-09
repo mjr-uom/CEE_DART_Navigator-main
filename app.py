@@ -38,6 +38,10 @@ import LRPGraph_code as lrpgraph
 
 importlib.reload(lrpgraph)
 
+import LRP_comparison_code as lrpcomp
+
+import pingouin as pg
+
 default_session_state = {
     'first_form_completed': False,
     'second_form_completed': False,
@@ -529,20 +533,237 @@ if __name__ == '__main__':
                 st.session_state['filtered_data'] = fg.prepare_lrp_to_graphs(filtered_df)
                 st.session_state['first_form_completed'] = True
                 #st.success("Keywords filtered successfully! Proceed to the next step.")
-        # Jeśli etap filtrowania zakończył się sukcesem, najpierw wyświetlamy etap wyboru typu analizy
+        # After the filtering stage has completed
         if st.session_state.get('first_form_completed', False):
-            # Jeśli użytkownik nie wybrał jeszcze typu analizy, wyświetlamy ramkę z trzema przyciskami
-            if st.session_state.get("analysis_type") is None:
-                st.markdown("### Type of analysis")
-                col_a, col_b, col_c = st.columns(3)
-                if col_a.button("sample-sample"):
-                    st.session_state["analysis_type"] = "sample-sample"
-                if col_b.button("sample-group"):
-                    st.session_state["analysis_type"] = "sample-group"
-                if col_c.button("group-group"):
-                    st.session_state["analysis_type"] = "group-group"
+            # In the "Analyse" branch, after filtering has completed and analysis type buttons are shown:
+            st.markdown("### Type of analysis")
+            col_a, col_b, col_c = st.columns(3)
+            if col_a.button("sample-sample"):
+                st.session_state["analysis_type"] = "sample-sample"
+            if col_b.button("sample-group"):
+                st.session_state["analysis_type"] = "sample-group"
+            if col_c.button("group-group"):
+                st.session_state["analysis_type"] = "group-group"
 
+            # If the selected analysis type is sample-sample, display the two sub-buttons always.
+            if st.session_state.get("analysis_type") == "sample-sample":
+                st.markdown("### Sample-vs-Sample Comparison")
+                # Display sub-buttons for comparison type:
+                col_uni, col_graph = st.columns(2)
+                if col_uni.button("Univariable Comparison"):
+                    st.session_state["sample_comparison_type"] = "univariable"
+                if col_graph.button("Graph Comparison"):
+                    st.session_state["sample_comparison_type"] = "graph"
 
+                if st.session_state.get("sample_comparison_type") == "univariable":
+                    with st.form("sample_vs_sample_form"):
+                        # Use filtered samples if available; otherwise fall back to full data.
+                        if not st.session_state["filtered_tts_lrp_df"].empty:
+                            sample_names = list(st.session_state["filtered_tts_lrp_df"].index)
+                        else:
+                            sample_names = list(st.session_state["lrp_df"].index)
+                        sample1 = st.selectbox("Select Sample 1", sample_names, key="sample1")
+                        # Exclude the selected sample1 for sample2 selection.
+                        available_sample2 = [s for s in sample_names if s != sample1]
+                        if not available_sample2:
+                            st.error("Not enough distinct samples available for comparison.")
+                        else:
+                            sample2 = st.selectbox("Select Sample 2", available_sample2, key="sample2")
+                        top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
+                        # Determine available node types (both single and paired).
+                        singles = sorted({col.split("_")[-1] for col in st.session_state["lrp_df"].columns if "_" in col})
+                        pairs = [f"{t1}-{t2}" for i, t1 in enumerate(singles) for t2 in singles[i:]]
+                        available_node_types = sorted(list(set(singles + pairs)))
+                        selected_node_types = st.multiselect("Select Edge Type(s)", available_node_types,
+                                                            default=[available_node_types[0]] if available_node_types else [])
+                        compare_submit = st.form_submit_button("Compare Samples")
+                    
+                    if compare_submit:
+                        if sample1 == sample2:
+                            st.error("Selected samples must be distinct. Please choose two different samples for comparison.")
+                        else:
+                            save_plot = False  # Adjust as needed
+                            comparison = lrpcomp.SampleVsSampleComparison(
+                                sample1_name=sample1,
+                                sample2_name=sample2,
+                                data_df=st.session_state["lrp_df"],
+                                clinical_features_df=st.session_state["metadata_df"].data
+                            )
+                            # Compute boxplot values and select top features.
+                            comparison.compute_boxplot_values()
+                            comparison.select_top_n_by_column(column='median_abs_diff', n=top_n_features, ascending=False)
+                            pattern = '|'.join(selected_node_types) if isinstance(selected_node_types, list) else selected_node_types
+                            _ = comparison.filter_and_merge_data(selected_type=pattern)
+                            fig = comparison.plot_scatter(selected_type=pattern, save_plot=save_plot)
+                            st.pyplot(fig)
+                elif st.session_state.get("sample_comparison_type") == "graph":
+                    # Placeholder for Graph Comparison analysis.
+                    st.markdown("### Graph Comparison not yet implemented.")
+            # If the selected analysis type is sample-group, display the two sub-buttons always.
+            if st.session_state.get("analysis_type") == "sample-group":
+                st.markdown("### Sample-vs-Group Comparison")
+                # Display sub-buttons for comparison type:
+                col_uni2, col_graph2 = st.columns(2)
+                if col_uni2.button("Univariable Comparison"):
+                    st.session_state["group_comparison_type"] = "univariable"
+                if col_graph2.button("Graph Comparison"):
+                    st.session_state["group_comparison_type"] = "graph"
+                
+                if st.session_state.get("group_comparison_type") == "univariable":
+                    # Use filtered metadata from the filtering stage
+                    filtered_metadata = st.session_state["metadata_df"].data.loc[
+                        st.session_state["filtered_tts_lrp_df"].index
+                    ]
+                    # ----
+                    # Place the grouping column widget outside the form so its callback works.
+                    metadata_cols = list(filtered_metadata.columns)
+                    if "sg_grouping_column" not in st.session_state:
+                        st.session_state["sg_grouping_column"] = metadata_cols[0]
+                        st.session_state["sg_group_options"] = sorted(
+                            filtered_metadata[metadata_cols[0]].dropna().unique().tolist()
+                        )
+                    # When the grouping column changes, update the group options.
+                    chosen_column = st.selectbox("Select Grouping Column", metadata_cols,
+                                                key="sg_grouping_column",
+                                                on_change=lambda: st.session_state.update({
+                                                    "sg_group_options": sorted(
+                                                        filtered_metadata[st.session_state["sg_grouping_column"]]
+                                                        .dropna().unique().tolist()
+                                                    )
+                                                }))
+                    # ----
+                    # Now inside the form, use the updated sg_group_options.
+                    with st.form("sample_vs_group_form"):
+                        # Create selection box for sample (from lrp_df index).
+                        sample_names = list(st.session_state["lrp_df"].index)
+                        sample1 = st.selectbox("Select Sample", sample_names, key="sample_vs_group_sample")
+                        # Use the updated group options from filtered metadata.
+                        chosen_group = st.selectbox("Select Group", st.session_state["sg_group_options"],
+                                                    key="group_selected")
+                        top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
+                        # Determine available node types (both single and paired).
+                        singles = sorted({col.split("_")[-1] for col in st.session_state["lrp_df"].columns if "_" in col})
+                        pairs = [f"{t1}-{t2}" for i, t1 in enumerate(singles) for t2 in singles[i:]]
+                        available_node_types = sorted(list(set(singles + pairs)))
+                        selected_node_types = st.multiselect("Select Edge Type(s)", available_node_types,
+                                                            default=[available_node_types[0]] if available_node_types else [])
+                        compare_submit = st.form_submit_button("Compare Sample vs Group")
+                    
+                    if compare_submit:
+                        save_plot = False  # Adjust as needed
+                        comparison = lrpcomp.SampleVsGroupComparison(
+                            sample1_name=sample1,
+                            column_name=chosen_column,
+                            group1_name=chosen_group,
+                            data_df=st.session_state["lrp_df"],
+                            clinical_features_df=st.session_state["metadata_df"].data
+                        )
+                        comparison.compute_boxplot_values()
+                        comparison.select_top_n_by_column(column='p-value', n=top_n_features, ascending=True)
+                        pattern = '|'.join(selected_node_types) if isinstance(selected_node_types, list) else selected_node_types
+                        merged_data = comparison.filter_and_merge_data(selected_type=pattern)
+                        fig = comparison.plot_violin_sample_vs_group(
+                            merged_data,
+                            selected_type=pattern,
+                            plot_title=f"Sample vs Group: {sample1} vs {chosen_group}",
+                            save_plot=save_plot
+                        )
+                        # Upewnij się, że do st.pyplot() przekazujemy obiekt fig.
+                        if fig is None:
+                            import matplotlib.pyplot as plt
+                            fig = plt.gcf()
+                        st.pyplot(fig)
+                
+                elif st.session_state.get("group_comparison_type") == "graph":
+                    st.markdown("### Graph Comparison not yet implemented for Sample vs Group")
+            # If the selected analysis type is group-group, display the two sub-buttons
+            if st.session_state.get("analysis_type") == "group-group":
+                st.markdown("### Group-vs-Group Comparison")
+                # Display sub-buttons for comparison type:
+                col_uni2, col_graph2 = st.columns(2)
+                if col_uni2.button("Univariable Comparison"):
+                    st.session_state["group_comparison_type"] = "univariable"
+                if col_graph2.button("Graph Comparison"):
+                    st.session_state["group_comparison_type"] = "graph"
+
+                if st.session_state.get("group_comparison_type") == "univariable":
+                    # Use filtered metadata from the filtering stage
+                    filtered_metadata = st.session_state["metadata_df"].data.loc[
+                        st.session_state["filtered_tts_lrp_df"].index
+                    ]
+                    # OUTSIDE the form: select grouping column from filtered metadata and update group options via a callback.
+                    metadata_cols = list(filtered_metadata.columns)
+                    def update_gg_groups():
+                        st.session_state["gg_group_options"] = sorted(
+                            filtered_metadata[st.session_state["gg_grouping_column"]]
+                            .dropna().unique().tolist()
+                        )
+                    if "gg_grouping_column" not in st.session_state:
+                        st.session_state["gg_grouping_column"] = metadata_cols[0]
+                    chosen_column = st.selectbox("Select Grouping Column", metadata_cols,
+                                                key="gg_grouping_column", on_change=update_gg_groups)
+                    if "gg_group_options" not in st.session_state:
+                        st.session_state["gg_group_options"] = sorted(
+                            filtered_metadata[chosen_column].dropna().unique().tolist()
+                        )
+
+                    # INSIDE the form: select the two groups and other parameters.
+                    with st.form("group_vs_group_form"):
+                        group1 = st.selectbox("Select Group 1", st.session_state["gg_group_options"],
+                                            key="gg_group1")
+                        group2 = st.selectbox("Select Group 2", st.session_state["gg_group_options"],
+                                            key="gg_group2")
+                        top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
+                        # Determine available node types (both single and paired)
+                        singles = sorted({col.split("_")[-1] for col in st.session_state["lrp_df"].columns if "_" in col})
+                        pairs = []
+                        for i, t1 in enumerate(singles):
+                            for t2 in singles[i:]:
+                                pairs.append(f"{t1}-{t2}")
+                        available_node_types = sorted(list(set(singles + pairs)))
+                        selected_node_types = st.multiselect("Select Edge Type(s)", available_node_types,
+                                                            default=[available_node_types[0]] if available_node_types else [])
+                        compare_submit = st.form_submit_button("Compare Group vs Group")
+
+                    # On form submission:
+                    if compare_submit:
+                        if group1 == group2:
+                            st.error("Selected groups must be distinct. Please choose two different groups for comparison.")
+                        else:
+                            save_plot = False  # Adjust as needed
+                            # Filter the filtered metadata to include only the selected groups.
+                            filtered_sel_metadata = filtered_metadata[
+                                filtered_metadata[chosen_column].isin([group1, group2])
+                            ]
+                            # Ensure that the filtered_sel_metadata and lrp_df share the same index.
+                            common_index = st.session_state["lrp_df"].index.intersection(filtered_sel_metadata.index)
+                            filtered_sel_metadata = filtered_sel_metadata.loc[common_index]
+                            data_df = st.session_state["lrp_df"].loc[common_index]
+                            
+                            # Create the comparison object using the index-matched data.
+                            comparison = lrpcomp.GroupVsGroupComparison(
+                                column_name=chosen_column,
+                                group1_name=group1,
+                                group2_name=group2,
+                                data_df=data_df,
+                                clinical_features_df=filtered_sel_metadata
+                            )
+                            comparison.compute_boxplot_values()
+                            comparison.select_top_n_by_column(column='p-value', n=top_n_features, ascending=True)
+                            pattern = '|'.join(selected_node_types) if isinstance(selected_node_types, list) else selected_node_types
+                            merged_data = comparison.filter_and_merge_data(selected_type=pattern)
+                            fig = comparison.plot_violin(merged_data, selected_type=pattern, save_plot=save_plot)
+                            # Poprawka: upewniamy się, że do st.pyplot() przekazujemy obiekt fig.
+                            if fig is None:
+                                fig = plt.gcf()
+                            st.pyplot(fig)
+
+                elif st.session_state.get("group_comparison_type") == "graph":
+                    with st.form("group_vs_group_form_graph"):
+                        st.markdown("### Graph Comparison for Group vs Group")
+                        st.info("Graph Comparison is not yet implemented for Group vs Group.")
+                        dummy_submit = st.form_submit_button("Submit (dummy)")
+                    
     elif st.session_state.page == "Examples":
         st.title("Examples")
         st.markdown("""
@@ -568,6 +789,38 @@ if __name__ == '__main__':
                 If you have any other questions, please contact us at support@misportal.org.
             </div>
         """, unsafe_allow_html=True)
+        # Add a line break between the frame and the first expandable topic
+        st.markdown("<br>", unsafe_allow_html=True)
+        # First expandable topic: "What is the MIS Portal?"
+        with st.expander("What is the MIS Portal?"):
+            st.markdown("""
+                **What is the public MISP website?**  
+                The public version of the portal provides an open lightweight version of the MISP analytical pipeline. Please note that the analyses provided in this public version are limited and do not incorporate certain explanatory layers that are relevant for clinical decision-making. This resource is intended for research purposes only.
+                
+                **Are there any technical requirements for the public MISP?**  
+                The public MISP should work well with the following web browsers: Chrome Version v71, Microsoft Edge, FireFox Quantum, Opera V57, Safari.  Please note that Internet Explorer is not supported, and you may experience visualization problems with it.
+            """, unsafe_allow_html=True)
+
+        # Second expandable topic: "What does the public MISP analyses provide?"
+        with st.expander("What does the public MISP analyses provide?"):
+            st.markdown("""
+                **What does the public MISP support as input?**
+                The public version of the MISP supports the analysis of multiomics data—including gene expression levels, mutations, copy number alterations (such as amplifications and deletions), gene fusions, and protein expression data. These data can be uploaded in CSV format. For additional details on input formats and requirements, please refer to the tooltips available in the ‘Analyse’ interface.
+                
+                **How are the public MISP reports structured?** 
+                The public MISP generates an HTML report that classifies the uploaded samples into three distinct tables based on the type of analysis and the relevance of evidence. Each table is accompanied by multiple sources of evidence that support the classification. The HTML report also features interactive elements that allow users to: 1) Open pop-up windows providing further information and detailed gene annotations. 2) Access external resources with the original evidence.
+            """, unsafe_allow_html=True)
+
+        # Third expandable topic: "Which resources are employed to interpret the results?"
+        with st.expander("Which resources are employed to interpret the results?"):
+            st.markdown("""
+                **Which resources are used for interpretation?**
+                The MISP harnesses a diverse array of resources to annotate the genes under analysis. These resources include sequencing data from previous cohorts, a variety of bioinformatics tools, and public databases. While some resources are developed internally, many are community-based—in these cases, the specific version used in an analysis is displayed in the upper right corner of the report. Notably, the public portal integrates several knowledge bases created by international initiatives, which are open for academic research. Data models and gene nomenclature are first harmonized to ensure accurate aggregation, and additional filtering can be applied (for instance, to differentiate weaker supporting evidence as indicated by proprietary knowledgebase metadata) as needed. Currently, the knowledge bases harmonized in the public portal include ClinVar, BRCA-Exchange, OncoKB, and CIViC.
+                
+                **Are the knowledgebase contents updated?** 
+                Because the harmonization of the knowledgebase data cannot be fully automated, the content is downloaded and then manually processed to reformat it. This updating process is performed periodically. For further details, please note that every MISP report lists the version, reference, and access information for all resources used to annotate the genes, along with the original evidence assertions. Additionally, the “News” section on the public MISP website provides updates and relevant information for users.
+            """, unsafe_allow_html=True)
+
 
     elif st.session_state.page == "About":
         st.title("About Us")

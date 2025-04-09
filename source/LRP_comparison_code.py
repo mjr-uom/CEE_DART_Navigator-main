@@ -401,7 +401,6 @@ class SampleVsSampleComparison(LRPComparisonBase):
         if self.data_level == "node":
             self.boxplot_df["type"] = self.boxplot_df.index.str.rsplit("_", n=1).str[1]
         elif self.data_level == "edge":
-            # Similar logic for edges as in group_vs_group.
             split_edges = self.boxplot_df.index.to_series().str.split(" - ")
             source_type = split_edges.apply(
                 lambda x: (
@@ -431,25 +430,31 @@ class SampleVsSampleComparison(LRPComparisonBase):
         selected_df = self.top_n_df[self.top_n_df["type"].str.contains(selected_type)]
         return self.lrp.loc[[self.sample1_name, self.sample2_name]][selected_df.index]
 
-    def plot_scatter(
-        self, selected_type, sort_by="median_abs_diff", plot_title=None, save_plot=False
-    ):
+    def plot_scatter(self, selected_type, sort_by="median_abs_diff", plot_title=None, save_plot=False):
         """
         Plot a scatter-like comparison of LRP values between the two samples.
-
+    
         Parameters:
             selected_type (str): Filter type used for top N selection.
             sort_by (str): Sorting column name for display order.
             plot_title (str, optional): Title of the plot.
             save_plot (bool): Whether to save plots to files.
+    
+        Returns:
+            fig: Matplotlib Figure object.
         """
+        # Filter features based on the selected type and sort them.
         selected_df = self.top_n_df[self.top_n_df["type"].str.contains(selected_type)]
         order = selected_df.sort_values(sort_by, ascending=True).index
+
+        # Create a new figure explicitly.
         fig, ax = plt.subplots(figsize=(6, 2 + len(order) / 2))
         sample1_vals = []
         sample2_vals = []
         ypos = []
         max_val = 0
+
+        # Loop through features and prepare data.
         for idx, feat in enumerate(order):
             val1 = self.lrp.loc[self.sample1_name, feat]
             val2 = self.lrp.loc[self.sample2_name, feat]
@@ -458,46 +463,17 @@ class SampleVsSampleComparison(LRPComparisonBase):
             ypos.append(idx)
             max_val = max(max_val, val1, val2)
 
-        # Plot horizontal lines connecting the points
+        # Draw connecting lines and display median difference for each feature.
         for i, (val1, val2, y) in enumerate(zip(sample1_vals, sample2_vals, ypos)):
-            ax.plot(
-                [val1, val2],
-                [y, y],
-                color="gray",
-                linestyle="-",
-                linewidth=0.5,
-                zorder=5,
-            )
-            # Add text above the line showing median_diff value
+            ax.plot([val1, val2], [y, y], color="gray", linestyle="-", linewidth=0.5, zorder=5)
             diff = self.boxplot_df.loc[order[i], "median_diff"]
             mid_x = (val1 + val2) / 2
-            ax.text(
-                mid_x,
-                y + 0.2,
-                f"{self.format_median_diff(diff)}",
-                ha="center",
-                va="bottom",
-                fontsize=8,
-            )
+            ax.text(mid_x, y + 0.2, f"{self.format_median_diff(diff)}", ha="center", va="bottom", fontsize=8)
 
-        ax.scatter(
-            sample1_vals,
-            ypos,
-            color="blue",
-            s=50,
-            label=self.sample1_name,
-            marker="o",
-            zorder=10,
-        )
-        ax.scatter(
-            sample2_vals,
-            ypos,
-            color="green",
-            s=50,
-            label=self.sample2_name,
-            marker="s",
-            zorder=10,
-        )
+        # Plot sample points.
+        ax.scatter(sample1_vals, ypos, color="blue", s=50, label=self.sample1_name, marker="o", zorder=10)
+        ax.scatter(sample2_vals, ypos, color="green", s=50, label=self.sample2_name, marker="s", zorder=10)
+
         ax.set_yticks(ypos)
         if self.data_level == "node":
             ax.set_yticklabels([label.rsplit("_", 1)[0] for label in order])
@@ -505,6 +481,7 @@ class SampleVsSampleComparison(LRPComparisonBase):
         else:
             ax.set_yticklabels(order)
             ax.set_xlabel("$LRP$")
+
         if plot_title is None:
             plot_title = f"Sample vs Sample: {selected_type}"
         ax.set_title(plot_title)
@@ -512,6 +489,7 @@ class SampleVsSampleComparison(LRPComparisonBase):
         ax.set_xlim([0, None])
         plt.legend(title=None, bbox_to_anchor=(0.5, -0.05), loc="upper center", ncols=2)
         plt.tight_layout()
+
         if save_plot:
             path_to_save_plots = os.path.join(self.path_to_save, "plots")
             if not os.path.exists(path_to_save_plots):
@@ -533,6 +511,7 @@ class SampleVsSampleComparison(LRPComparisonBase):
             )
             print(f"Scatter plot saved to: {path_to_save_plots}")
 
+        return fig
 
 # ----------------------------
 # Subclass for sample_vs_group comparisons.
