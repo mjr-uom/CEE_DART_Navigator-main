@@ -26,10 +26,10 @@ class CivicEvidenceAnalyzer:
         
         self.path = path
         self.gene_list = gene_list
-        self.features = pd.read_csv(path + r'\civic_all_features_simple.csv')
-        self.profiles = pd.read_csv(path + r'\civic_all_molecular_profiles_simple.csv')
-        self.gene_info = pd.read_csv(path + r'\civic_gene_info.csv')
-        self.civic_map = pd.read_csv(path + r'\civic_map.csv').fillna(-1).astype(int)
+        self.features = pd.read_csv(path + r'/civic_all_features_simple.csv')
+        self.profiles = pd.read_csv(path + r'/civic_all_molecular_profiles_simple.csv')
+        self.gene_info = pd.read_csv(path + r'/civic_gene_info.csv')
+        self.civic_map = pd.read_csv(path + r'/civic_map.csv').fillna(-1).astype(int)
         self.feature_details_dict = None
         self.matching_features = None
 
@@ -118,7 +118,7 @@ class CivicEvidenceAnalyzer:
             logging.warning('feature_details_dict is not defined. Call create_feature_details_dict first.')
             return None
         
-        evidence = pd.read_csv(self.path + r'\civic_all_evidence_simple.csv')
+        evidence = pd.read_csv(self.path + r'/civic_all_evidence_simple.csv')
         for _, row in self.matching_features.iterrows():
             fname = row['feature_name']
             gene_id = row['feature_id']

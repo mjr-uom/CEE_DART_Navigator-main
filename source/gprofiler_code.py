@@ -74,7 +74,7 @@ class GE_Analyser:
                 Each row should have at least the following columns:
                 - 'name': The name of the enriched process or pathway.
                 - 'description': A description of the enriched process or pathway.
-            diff_graph.set_of_node_names_no_type (iterable): A collection of entity names
+            diff_graph.node_names_no_type (iterable): A collection of entity names
                 involved in the analysis.
         Returns:
             str: A human-readable string summarizing the enrichment results, or a message

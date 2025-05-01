@@ -142,7 +142,7 @@ class CivicData:
         Filters and matches features based on nodes present in the given diff_graph.
 
         This method updates the `features_matching` attribute with a DataFrame containing
-        features whose 'names' contain any node from `diff_graph.set_of_node_names_no_type`.
+        features whose 'names' contain any node from `diff_graph.node_names_no_type`.
         It also adds a 'matched_node' column to the DataFrame, indicating the first matched
         node found in each feature's 'names'.
 
@@ -153,8 +153,8 @@ class CivicData:
         Returns:
             None
         """
-        self.features_matching = self.features[self.features['names'].apply(lambda x: contains_node(x.split(','), diff_graph.set_of_node_names_no_type))].reset_index(drop=True)
-        self.features_matching['matched_node'] = self.features_matching['names'].apply(lambda x: next((node for node in diff_graph.set_of_node_names_no_type if node in x), None))
+        self.features_matching = self.features[self.features['names'].apply(lambda x: contains_node(x.split(','), diff_graph.node_names_no_type))].reset_index(drop=True)
+        self.features_matching['matched_node'] = self.features_matching['names'].apply(lambda x: next((node for node in diff_graph.node_names_no_type if node in x), None))
 
     def get_molecular_profiles_matching_nodes(self, diff_graph):
         """
@@ -162,19 +162,19 @@ class CivicData:
 
         This method updates the `mps_matching` attribute with a DataFrame containing
         molecular profiles whose 'names' contain any of the node names from the 
-        `diff_graph`'s `set_of_node_names_no_type`. It also adds a 'matched_node' 
+        `diff_graph`'s `node_names_no_type`. It also adds a 'matched_node' 
         column to the DataFrame, indicating the first matching node found in each 
         profile's 'names'.
 
         Args:
             diff_graph (nx.Graph): A differential graph object that contains a set of 
-                                node names (`set_of_node_names_no_type`).
+                                node names (`node_names_no_type`).
 
         Returns:
             None
         """
-        self.mps_matching = self.mp[self.mp['names'].apply(lambda x: contains_node(x.split(','), diff_graph.set_of_node_names_no_type))].reset_index(drop=True)
-        self.mps_matching['matched_node'] = self.mps_matching['names'].apply(lambda x: next((node for node in diff_graph.set_of_node_names_no_type if node in x), None))
+        self.mps_matching = self.mp[self.mp['names'].apply(lambda x: contains_node(x.split(','), diff_graph.node_names_no_type))].reset_index(drop=True)
+        self.mps_matching['matched_node'] = self.mps_matching['names'].apply(lambda x: next((node for node in diff_graph.node_names_no_type if node in x), None))
 
     def get_mps_summaries(self):
         """
