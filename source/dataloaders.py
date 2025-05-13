@@ -31,21 +31,36 @@ class LRPData:
         """
         return isinstance(column_name, str) and len(column_name.split(" - ")) == 2
 
-    def validate_column_names(self, df: pd.DataFrame) -> None:
+    def validate_column_names(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Validate the column names format in the DataFrame.
+        Validate the column names format in the DataFrame. If validation fails, try transposing the DataFrame
+        and re-validating. If successful, return the transposed DataFrame.
 
         Args:
             df (pd.DataFrame): DataFrame to validate.
 
+        Returns:
+            pd.DataFrame: The original or transposed DataFrame with valid column names.
+
         Raises:
-            ValueError: If any column name is invalid.
+            ValueError: If column names are invalid even after transposing.
         """
-        for col in df.columns:
-            if not self.is_valid_column_name(col):
-                raise ValueError(
-                    f"Invalid column name: {col}. Expected format 'xxx - xxx', where 'xxx' represents one input parameter and 'yyy' represents the second input parameter."
-                )
+        try:
+            for col in df.columns:
+                if not self.is_valid_column_name(col):
+                    raise ValueError(
+                        f"Invalid column name: {col}. Expected format 'xxx - xxx', where 'xxx' represents one input parameter and 'yyy' represents the second input parameter."
+                    )
+            return df
+        except ValueError as e:
+            # Attempt to transpose and validate again
+            transposed_df = df.transpose()
+            for col in transposed_df.columns:
+                if not self.is_valid_column_name(col):
+                    raise ValueError(
+                        f"Invalid column name: {col}. Expected format 'xxx - xxx', where 'xxx' represents one input parameter and 'yyy' represents the second input parameter, even after transposing."
+                    )
+            return transposed_df
 
     @staticmethod
     def read_data(file_path: str, delimiter: str = ",") -> pd.DataFrame:
@@ -100,8 +115,8 @@ class LRPData:
         # Read the file into a DataFrame
         self.data = self.read_data(self.file_path, self.delimiter)
 
-        # Validate column names format
-        self.validate_column_names(self.data)
+        # Validate column names format (and use transposed DataFrame if necessary)
+        self.data = self.validate_column_names(self.data)
 
         # Validate cell values
         self.validate_cell_values(self.data)

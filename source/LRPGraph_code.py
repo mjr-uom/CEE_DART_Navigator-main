@@ -30,7 +30,9 @@ def normalize_lrp(edges_temp):
     Adds a new column 'LRP_norm' with normalized LRP values.
     """
     if "LRP" not in edges_temp.columns:
+        print('edges_temp head: \n', edges_temp.head())
         raise ValueError("The input DataFrame must contain a column named 'LRP'.")
+        
     edges_temp["LRP_norm"] = edges_temp["LRP"] / edges_temp["LRP"].max()
 
     return edges_temp
@@ -61,6 +63,7 @@ class LRPGraph:
         self.sample_ID = sample_ID
         self.top_n_edges = top_n_edges
         edges_temp = get_edges_subset(edges_sample_i, top_n_edges)
+        print('Edges temp shape: ', edges_temp.shape)
         edges_temp = normalize_lrp(edges_temp)
 
 
