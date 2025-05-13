@@ -42,6 +42,9 @@ import LRP_comparison_code as lrpcomp
 
 import pingouin as pg
 
+import pharmabk_code as pbk
+importlib.reload(pbk)
+
 default_session_state = {
     'first_form_completed': False,
     'second_form_completed': False,
@@ -51,32 +54,56 @@ default_session_state = {
     'tumor_tissue_site': list(),
     'ttss_selected': list(),
     'acronym': list(),
-    'lrp_df': pd.DataFrame([]),
+    'lrp_df': pd.DataFrame([]), # raw loaded data
     'filtered_tts_lrp_df': pd.DataFrame([]),
-    'metadata_df': pd.DataFrame([]),
+    'metadata_df': pd.DataFrame([]), # raw loaded data
     'civic_data': pd.DataFrame([]),
+    'filtered_df': pd.DataFrame([]),  # Initialize as an empty DataFrame
     'f_tumor_tissue_site': pd.DataFrame([]),
     'f_acronym': pd.DataFrame([]),
     'filters_form_completed': None,
     'tts_filter_button': None,
-    'frequent_kws': pd.DataFrame([]),
+    'frequent_kws': pd.DataFrame([]), # raw loaded data
     'LRP_to_graphs_stratified': pd.DataFrame([]),
     'calculate_button': False,
     'comparison_grp_button': False,
     'compare_form_complete': False,
-    'top_n': 0,
+    'top_n': 150,
     'top_diff_n': 0,
     'top_n_similar': None,
     'compare_grp_selected': list(),
-    'enable_chat_bot' : False,
-    'messages' : list(),
-    'context_input' : None,
-    'awaiting_context' : True,
-    'user_input' : "",
-    'disabled' : False,
-    'openai_model' : "gpt-3.5-turbo",
-    'edge_df' : pd.DataFrame([]),
-    'all_facts' : "" ,
+    'enable_chat_bot': False,
+    'messages': list(),
+    'context_input': None,
+    'awaiting_context': True,
+    'user_input': "",
+    'disabled': False,
+    'openai_model': "gpt-3.5-turbo",
+    'edge_df': pd.DataFrame([]),
+    'all_facts': "",
+    'page': "Home",
+    'analysis_type': None,
+    'ready_for_comparison': False,
+    'sample_comparison_type': None,
+    'group_comparison_type': None,
+    'filtered_data': pd.DataFrame([]),
+    'stratify_by': None,
+    'new_stratify_by': None,
+    'group_for_agg': None,
+    'sample1': None,
+    'sample2': None,
+    'group1': None,
+    'group2': None,
+    'sg_grouping_column': None,
+    'sg_group_options': list(),
+    'gg_grouping_column': None,
+    'gg_group_options': list(),
+    'LRP_to_graphs': pd.DataFrame([]),
+    'G_dict12': {},
+    'stratify_by_values': list(),
+    'diff_thres': 0.5,
+    'p_value': 0.05,
+    'pharmakb_details': {},
 }
 
 for key, default_value in default_session_state.items():
@@ -93,7 +120,31 @@ if "openai_model" not in st.session_state:
 
 st.set_page_config(page_title = "LRP Dashboard", page_icon = main_body_logo, layout = "wide")
 
+def print_session_state():
+    """
+    Prints the current state of the Streamlit session variables in a structured format.
+    This function is useful for debugging and tracking the state of the application.
+    """
+    session_state_keys = [
+        'first_form_completed', 'analysis_type', 'stratify_by', 'second_form_completed',
+        'enable_comparison', 'filters_form_completed', 'tts_filter_button', 'calculate_button',
+        'comparison_grp_button', 'compare_form_complete', 'top_n', 'top_diff_n',
+        'top_n_similar', 'compare_grp_selected','ready_for_comparison',
+        'sample_comparison_type', 'group_comparison_type', 'group_for_agg',
+    'sample1',
+    'sample2',
+    'group1',
+    'group2',
+    'sg_grouping_column',
+    'sg_group_options',
+    'gg_grouping_column',
+    'gg_group_options'
+    ]
     
+    session_state = {key: st.session_state.get(key, None) for key in session_state_keys}
+    print('\nSession state: \n', session_state)
+    
+
 def assign_colors(strings):
     color_names = sorted(list(mcolors.CSS4_COLORS.keys()))
 
@@ -122,12 +173,22 @@ def assign_colors_int(ids):
     return color_dict
 
 
+import tempfile
+
 def save_my_uploaded_file(path, uploaded_file):
-    repository_folder = path
+    # Użyj katalogu tymczasowego odpowiedniego dla systemu operacyjnego
+    repository_folder = tempfile.gettempdir() if path == '/tmp' else path
     save_path = os.path.join(repository_folder, uploaded_file.name)
     with open(save_path, mode='wb') as w:
         w.write(uploaded_file.getvalue())
     return save_path
+
+#def save_my_uploaded_file(path, uploaded_file):
+#    repository_folder = path
+#    save_path = os.path.join(repository_folder, uploaded_file.name)
+#    with open(save_path, mode='wb') as w:
+#        w.write(uploaded_file.getvalue())
+#    return save_path
 
 def find_my_keywords(lrp_df):
     option_tmp = []
@@ -308,12 +369,16 @@ if __name__ == '__main__':
         st.session_state.page = "Home"
     if st.sidebar.button('Analyse'):
         st.session_state.page = "Analyse"
+    if st.sidebar.button('AI Assistant'):  # New tab
+        st.session_state.page = "AI Assistant"
     if st.sidebar.button('FAQ'):
         st.session_state.page = "FAQ"
     if st.sidebar.button('About'):
         st.session_state.page = "About"
     if st.sidebar.button('News'):
         st.session_state.page = "News"
+    if st.sidebar.button('Related Papers'):  # New tab
+        st.session_state.page = "Related Papers"
 
 
     # Render content based on the current page state
@@ -423,7 +488,10 @@ if __name__ == '__main__':
             path_to_LRP_data = st.file_uploader("Provide LRP-based data")
 
             if path_to_LRP_data is not None:
-                st.session_state['lrp_df'] = dtl.LRPData(file_path=save_my_uploaded_file('/tmp', path_to_LRP_data),
+                #st.session_state['lrp_df'] = dtl.LRPData(file_path=save_my_uploaded_file('/tmp', path_to_LRP_data),
+                #                                        delimiter=",").read_and_validate()
+                temp_dir = tempfile.gettempdir()
+                st.session_state['lrp_df'] = dtl.LRPData(file_path=save_my_uploaded_file(temp_dir, path_to_LRP_data),
                                                         delimiter=",").read_and_validate()
                 st.markdown(f"""
                     <div style="background-color: #e6f7ff; color: black; padding: 4px 10px; border-radius: 4px; font-size: 14px;">
@@ -436,7 +504,8 @@ if __name__ == '__main__':
             path_to_metadata = st.file_uploader("Provide metadata")
 
             if path_to_metadata is not None:
-                st.session_state['metadata_df'] = dtl.MetaData(file_path=save_my_uploaded_file('/tmp', path_to_metadata),
+                temp_dir = tempfile.gettempdir()
+                st.session_state['metadata_df'] = dtl.MetaData(file_path=save_my_uploaded_file(temp_dir, path_to_metadata),
                                                             delimiter=",")
                 st.markdown(f"""
                     <div style="background-color: #e6f7ff; color: black; padding: 4px 10px; border-radius: 4px; font-size: 14px;">
@@ -469,8 +538,9 @@ if __name__ == '__main__':
                 # File uploader widget for frequent keywords
                 path_to_plkeywords = st.file_uploader("Upload frequent keywords")
                 if path_to_plkeywords is not None:
+                    temp_dir = tempfile.gettempdir()
                     st.session_state['frequent_kws'] = pd.read_csv(
-                        save_my_uploaded_file('/tmp', path_to_plkeywords), header=None
+                        save_my_uploaded_file(temp_dir, path_to_plkeywords), header=None
                     )
                     st.info('File {0} has been analysed.'.format(path_to_plkeywords.name))
 
@@ -500,20 +570,28 @@ if __name__ == '__main__':
                     default_keywords,
                     placeholder="Select one or more options (optional)"
                 )
-
+                st.session_state['keywords'] = keywords_selected
                 # A single "Run" button to execute both filtering steps
                 run_button = combined_form.form_submit_button(label='Run')
 
             # Execute filtering when the "Run" button is clicked
             if run_button:
                 # Filter data based on the selected metadata filters
-                desired_barcodes = st.session_state['metadata_df'].data
+                # Filter data based on the selected metadata filters
+                metadata = st.session_state['metadata_df'].data.copy()
+                filters_applied = False
+
                 for filter_name, values in filters.items():
-                    if len(values) > 0:
-                        filter_query = filter_name + ' == [ ' + ', '.join(f'"{i}"' for i in values) + ' ]'
-                        desired_barcodes = desired_barcodes.query(filter_query)
-                valid_bc = list(set(desired_barcodes.index.tolist()))
-                st.session_state['filtered_tts_lrp_df'] = st.session_state['lrp_df'].filter(items=valid_bc, axis=0)
+                    if values:  # if any filter is selected
+                        filters_applied = True
+                        metadata = metadata[metadata[filter_name].isin(values)]
+
+                if filters_applied:
+                    valid_bc = metadata.index.tolist()
+                    st.session_state['filtered_tts_lrp_df'] = st.session_state['lrp_df'].loc[valid_bc]
+                else:
+                    # No filters selected - use the entire dataset
+                    st.session_state['filtered_tts_lrp_df'] = st.session_state['lrp_df'].copy()
                 if st.session_state['filtered_tts_lrp_df'].empty:
                     st.warning("The selection criteria you have chosen are not yielding any results. Please select alternative values.")
                 else:
@@ -525,13 +603,30 @@ if __name__ == '__main__':
                     """
                     st.markdown(custom_success_html, unsafe_allow_html=True)
                     st.session_state['filters_form_completed'] = True
-
                 # Filter data based on the selected keywords
                 if not keywords_selected:
-                    keywords_selected = None
-                filtered_df = fg.filter_columns_by_keywords(st.session_state['filtered_tts_lrp_df'], keywords_selected)
-                st.session_state['filtered_data'] = fg.prepare_lrp_to_graphs(filtered_df)
-                st.session_state['first_form_completed'] = True
+                    st.warning("No keywords selected. Using the entire dataset for analysis.")
+                    st.session_state['filtered_df'] = st.session_state['filtered_tts_lrp_df']
+                else:
+                    st.session_state['filtered_df'] = fg.filter_columns_by_keywords(
+                        st.session_state['filtered_tts_lrp_df'], st.session_state['keywords']
+                    )
+
+                # Check if the filtered DataFrame is empty
+                if st.session_state['filtered_df'].empty:
+                    st.error("The filtered dataset is empty. Please select different keywords or filters.")
+                else:
+                    # Prepare the data for graph generation
+                    st.session_state['filtered_data'] = fg.prepare_lrp_to_graphs(st.session_state['filtered_df'])
+                    st.session_state['first_form_completed'] = True
+        
+                # Filter data based on the selected keywords
+                #if not keywords_selected:
+                #    keywords_selected = None
+                
+                #st.session_state['filtered_df'] = fg.filter_columns_by_keywords(st.session_state['filtered_tts_lrp_df'], st.session_state['keywords'])
+                #st.session_state['filtered_data'] = fg.prepare_lrp_to_graphs(st.session_state['filtered_df'])
+                #st.session_state['first_form_completed'] = True
                 #st.success("Keywords filtered successfully! Proceed to the next step.")
         # After the filtering stage has completed
         if st.session_state.get('first_form_completed', False):
@@ -540,11 +635,23 @@ if __name__ == '__main__':
             col_a, col_b, col_c = st.columns(3)
             if col_a.button("sample-sample"):
                 st.session_state["analysis_type"] = "sample-sample"
+                st.session_state["ready_for_comparison"] = False
             if col_b.button("sample-group"):
                 st.session_state["analysis_type"] = "sample-group"
+                st.session_state["ready_for_comparison"] = False
             if col_c.button("group-group"):
                 st.session_state["analysis_type"] = "group-group"
+                st.session_state["ready_for_comparison"] = False
+                # Add visual feedback
+            if "analysis_type" in st.session_state:
+                if st.session_state["analysis_type"] == "sample-sample":
+                    col_a.markdown("**Selected: sample-sample**")
+                elif st.session_state["analysis_type"] == "sample-group":
+                    col_b.markdown("**Selected: sample-group**")
+                elif st.session_state["analysis_type"] == "group-group":
+                    col_c.markdown("**Selected: group-group**")
 
+            
             # If the selected analysis type is sample-sample, display the two sub-buttons always.
             if st.session_state.get("analysis_type") == "sample-sample":
                 st.markdown("### Sample-vs-Sample Comparison")
@@ -557,48 +664,60 @@ if __name__ == '__main__':
 
                 if st.session_state.get("sample_comparison_type") == "univariable":
                     with st.form("sample_vs_sample_form"):
-                        # Use filtered samples if available; otherwise fall back to full data.
-                        if not st.session_state["filtered_tts_lrp_df"].empty:
-                            sample_names = list(st.session_state["filtered_tts_lrp_df"].index)
+                        if 'filtered_df' not in st.session_state:
+                            st.session_state['filtered_df'] = pd.DataFrame([])
+                        
+                        if st.session_state["filtered_df"].empty:
+                            st.error("Filtered dataset is empty. Please review your filtering criteria.")
+                            st.session_state.sample_names = []
                         else:
-                            sample_names = list(st.session_state["lrp_df"].index)
-                        sample1 = st.selectbox("Select Sample 1", sample_names, key="sample1")
-                        # Exclude the selected sample1 for sample2 selection.
-                        available_sample2 = [s for s in sample_names if s != sample1]
-                        if not available_sample2:
-                            st.error("Not enough distinct samples available for comparison.")
+                            st.session_state.sample_names = list(st.session_state["filtered_df"].index)
+                        
+                        if st.session_state.sample_names:
+                            # Remove the on_change callback from the selectbox: recalc options manually below.
+                            sample1 = st.selectbox("Select Sample 1", st.session_state.sample_names, key="sample1")
+                            # Recalculate sample2_options based on sample1
+                            st.session_state.sample2_options = [s for s in st.session_state.sample_names if s != sample1]
+                            if not st.session_state.sample2_options:
+                                st.error("Not enough distinct samples available for comparison.")
+                                sample2 = None
+                            else:
+                                sample2 = st.selectbox("Select Sample 2", st.session_state.sample2_options, key="sample2", index=0)
+                            top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
+                            singles = sorted({col.split("_")[-1] for col in st.session_state["filtered_df"].columns if "_" in col})
+                            pairs = [f"{t1}-{t2}" for i, t1 in enumerate(singles) for t2 in singles[i:]]
+                            available_node_types = sorted(list(set(singles + pairs)))
+                            selected_node_types = st.multiselect("Select Edge Type(s)", available_node_types,
+                                                                default=[available_node_types[0]] if available_node_types else [])
+                            compare_submit = st.form_submit_button("Compare Samples")
                         else:
-                            sample2 = st.selectbox("Select Sample 2", available_sample2, key="sample2")
-                        top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
-                        # Determine available node types (both single and paired).
-                        singles = sorted({col.split("_")[-1] for col in st.session_state["lrp_df"].columns if "_" in col})
-                        pairs = [f"{t1}-{t2}" for i, t1 in enumerate(singles) for t2 in singles[i:]]
-                        available_node_types = sorted(list(set(singles + pairs)))
-                        selected_node_types = st.multiselect("Select Edge Type(s)", available_node_types,
-                                                            default=[available_node_types[0]] if available_node_types else [])
-                        compare_submit = st.form_submit_button("Compare Samples")
-                    
+                            compare_submit = False
+
                     if compare_submit:
-                        if sample1 == sample2:
+                        if sample1 == sample2 or sample2 is None:
                             st.error("Selected samples must be distinct. Please choose two different samples for comparison.")
                         else:
-                            save_plot = False  # Adjust as needed
-                            comparison = lrpcomp.SampleVsSampleComparison(
-                                sample1_name=sample1,
-                                sample2_name=sample2,
-                                data_df=st.session_state["lrp_df"],
-                                clinical_features_df=st.session_state["metadata_df"].data
-                            )
-                            # Compute boxplot values and select top features.
-                            comparison.compute_boxplot_values()
-                            comparison.select_top_n_by_column(column='median_abs_diff', n=top_n_features, ascending=False)
-                            pattern = '|'.join(selected_node_types) if isinstance(selected_node_types, list) else selected_node_types
-                            _ = comparison.filter_and_merge_data(selected_type=pattern)
-                            fig = comparison.plot_scatter(selected_type=pattern, save_plot=save_plot)
-                            st.pyplot(fig)
+                            print("Filtered DataFrame Index:", st.session_state["filtered_df"].index)
+                            if sample1 not in st.session_state["filtered_df"].index or sample2 not in st.session_state["filtered_df"].index:
+                                st.error(f"One or both selected samples ({sample1}, {sample2}) are not present in the filtered dataset. Please select valid samples.")
+                            else:
+                                save_plot = False  # Adjust as needed
+                                comparison = lrpcomp.SampleVsSampleComparison(
+                                    sample1_name=sample1,
+                                    sample2_name=sample2,
+                                    data_df=st.session_state["filtered_df"],
+                                    clinical_features_df=st.session_state["metadata_df"].data
+                                )
+                                comparison.compute_boxplot_values()
+                                comparison.select_top_n_by_column(column='median_abs_diff', n=top_n_features, ascending=False)
+                                pattern = '|'.join(selected_node_types) if isinstance(selected_node_types, list) else selected_node_types
+                                _ = comparison.filter_and_merge_data(selected_type=pattern)
+                                fig = comparison.plot_scatter(selected_type=pattern, save_plot=save_plot)
+                                st.pyplot(fig)
+
                 elif st.session_state.get("sample_comparison_type") == "graph":
                     # Placeholder for Graph Comparison analysis.
-                    st.markdown("### Graph Comparison")
+                    st.markdown("### Graph Comparison for Sample vs Sample")
             # If the selected analysis type is sample-group, display the two sub-buttons always.
             if st.session_state.get("analysis_type") == "sample-group":
                 st.markdown("### Sample-vs-Group Comparison")
@@ -635,14 +754,14 @@ if __name__ == '__main__':
                     # Now inside the form, use the updated sg_group_options.
                     with st.form("sample_vs_group_form"):
                         # Create selection box for sample (from lrp_df index).
-                        sample_names = list(st.session_state["lrp_df"].index)
+                        sample_names = list(st.session_state["filtered_df"].index)
                         sample1 = st.selectbox("Select Sample", sample_names, key="sample_vs_group_sample")
                         # Use the updated group options from filtered metadata.
                         chosen_group = st.selectbox("Select Group", st.session_state["sg_group_options"],
                                                     key="group_selected")
                         top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
                         # Determine available node types (both single and paired).
-                        singles = sorted({col.split("_")[-1] for col in st.session_state["lrp_df"].columns if "_" in col})
+                        singles = sorted({col.split("_")[-1] for col in st.session_state["filtered_df"].columns if "_" in col})
                         pairs = [f"{t1}-{t2}" for i, t1 in enumerate(singles) for t2 in singles[i:]]
                         available_node_types = sorted(list(set(singles + pairs)))
                         selected_node_types = st.multiselect("Select Edge Type(s)", available_node_types,
@@ -655,7 +774,7 @@ if __name__ == '__main__':
                             sample1_name=sample1,
                             column_name=chosen_column,
                             group1_name=chosen_group,
-                            data_df=st.session_state["lrp_df"],
+                            data_df=st.session_state["filtered_df"],
                             clinical_features_df=st.session_state["metadata_df"].data
                         )
                         comparison.compute_boxplot_values()
@@ -715,7 +834,7 @@ if __name__ == '__main__':
                                             key="gg_group2")
                         top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
                         # Determine available node types (both single and paired)
-                        singles = sorted({col.split("_")[-1] for col in st.session_state["lrp_df"].columns if "_" in col})
+                        singles = sorted({col.split("_")[-1] for col in st.session_state["filtered_df"].columns if "_" in col})
                         pairs = []
                         for i, t1 in enumerate(singles):
                             for t2 in singles[i:]:
@@ -736,9 +855,9 @@ if __name__ == '__main__':
                                 filtered_metadata[chosen_column].isin([group1, group2])
                             ]
                             # Ensure that the filtered_sel_metadata and lrp_df share the same index.
-                            common_index = st.session_state["lrp_df"].index.intersection(filtered_sel_metadata.index)
+                            common_index = st.session_state["filtered_df"].index.intersection(filtered_sel_metadata.index)
                             filtered_sel_metadata = filtered_sel_metadata.loc[common_index]
-                            data_df = st.session_state["lrp_df"].loc[common_index]
+                            data_df = st.session_state["filtered_df"].loc[common_index]
                             
                             # Create the comparison object using the index-matched data.
                             comparison = lrpcomp.GroupVsGroupComparison(
@@ -759,8 +878,20 @@ if __name__ == '__main__':
                             st.pyplot(fig)
 
                 elif st.session_state.get("group_comparison_type") == "graph":
-                    st.markdown("### Graph Comparison for Sample vs Group")
-                    
+                    st.markdown("### Graph Comparison for Group vs Group")
+    
+    elif st.session_state.page == "AI Assistant":
+        st.title("AI Assistant")
+        st.markdown("""
+            <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
+                        margin-top:20px; text-align:justify; font-size:16px;">
+                <strong>AI Assistant</strong><br>
+                This section presents examples of interactions with an AI assistant used to support reasoning analysis, 
+                hypothesis generation, and interpretation of results. It showcases how AI tools can complement human 
+                expertise in scientific research.
+            </div>
+        """, unsafe_allow_html=True)
+                        
     elif st.session_state.page == "Examples":
         st.title("Examples")
         st.markdown("""
@@ -849,316 +980,127 @@ if __name__ == '__main__':
                 Check back regularly for new features, updates, and announcements.
             </div>
         """, unsafe_allow_html=True)
-
+        
+    elif st.session_state.page == "Related Papers":
+        st.title("Related Papers")
+        st.markdown("""
+            <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
+                        margin-top:20px; text-align:justify; font-size:16px;">
+                <strong>Related Papers</strong><br>
+                The following publications are closely related to the research presented in this work. 
+                They provide additional context, complementary methodologies, or foundational insights 
+                that support and extend the findings discussed here.
+            </div>
+            <br>
+            <ul>
+                <li><a href="https://aclanthology.org/2024.acl-demos.34/" target="_blank">Wysocki et al., ACL 2024</a></li>
+                <li><a href="https://aclanthology.org/2025.naacl-long.371/" target="_blank">Wysocka et al., NAACL 2025</a></li>
+            </ul>
+        """, unsafe_allow_html=True)
 ################
-if st.session_state.get('first_form_completed', False) and (
-    (st.session_state.get('analysis_type') == "sample-sample" and st.session_state.get("sample_comparison_type") == "graph")
-):
+#
+#  Second part - s-s
+#
+###############
+###############
+#
+# Second part - s-s (Sample-Sample Graph Comparison)
+#
+###############
 
-    st.session_state['enable_comparison'] = True
+if (st.session_state.get('first_form_completed', False) and 
+    st.session_state.get('analysis_type') == 'sample-sample' and 
+    st.session_state.get("sample_comparison_type") == "graph"):
 
-    # Common container for Top-N edge selection across all Graph Comparison tabs
-    with st.container():
-        # -----------------------------
-        # Top-N Selection Form (common for all types)
-        # -----------------------------
-        node_selection_form = st.form('TopNSelection')
-        with node_selection_form:
-            st.session_state['top_n'] = st.slider(
-                "Please select the number of top n edges",
-                min_value=1,
-                max_value=len(st.session_state['filtered_data'].index),
-                value=len(st.session_state['filtered_data'].index) // 2
-            )
-            submit_button = node_selection_form.form_submit_button(label='Submit')
-            if submit_button:
-                G_dict = fg.get_all_graphs_from_lrp(
-                    st.session_state['filtered_data'],
-                    st.session_state['top_n']
-                )
-                # Validation: confirm the graph generated has the expected number of edges.
-                assert len(G_dict[1].G.edges) == st.session_state['top_n'], "Edge count mismatch."
-                fg.get_all_fixed_size_adjacency_matrices(G_dict)
-                # Validation: confirm that the number of nodes in G_dict[2] matches the dimensions of the adjacency matrix.
-                assert len(G_dict[2].all_nodes) == np.shape(G_dict[1].fixed_size_adjacency_matrix)[1], "Node count mismatch."
-                fg.get_all_fixed_size_embeddings(G_dict)
+    sample_container = st.container()
 
-                st.session_state['second_form_completed'] = True
-                st.session_state['G_dict'] = G_dict
-                node_selection_form.success('{0} graphs have been generated.'.format(len(G_dict)))
+    # Get available sample IDs from the LRP data
+    sample_options = [col for col in st.session_state['filtered_data'].columns 
+                      if col not in ["index", "source_node", "target_node"]]
 
-        # -----------------------------
-        # Conditional Display Based on Analysis Type
-        # -----------------------------
-        if st.session_state.get('analysis_type') == 'sample-sample':
-            if st.session_state.get('second_form_completed'):
-                # Build the list of sample IDs from the generated graph dictionary.
-                sampleIDs = [st.session_state['G_dict'][i].sample_ID for i in range(len(st.session_state['G_dict']))]
-                disp_list = sorted(sampleIDs.copy())
-                if "selected_gId" not in st.session_state:
-                    st.session_state['selected_gId'] = sampleIDs[0]
+    # Select Sample 1
+    selected_sample1 = sample_container.selectbox(
+        "Please select Sample 1:",
+        sample_options,
+        key="sample1"
+    )
 
-                def new_gid_callback():
-                    st.session_state["selected_gId"] = st.session_state.new_gId
+    # Exclude Sample 1 from the options for Sample 2
+    sample2_options = [s for s in sample_options if s != selected_sample1]
 
-                st.session_state["selected_gId"] = st.selectbox(
-                    "Please select the sample you want to see:",
-                    disp_list,
-                    index=0,
-                    help="Choose from the available graphs listed below.",
-                    key="new_gId",
-                    placeholder="Select a graph...",
-                    on_change=new_gid_callback,
-                )
-
-                if st.session_state["selected_gId"]:
-                    st.write("You selected index: {0}".format(disp_list.index(st.session_state["selected_gId"])))
-                    # Map the sorted selection back to the unsorted index in G_dict
-                    G = st.session_state['G_dict'][map_index_to_unsorted(
-                        disp_list.index(st.session_state["selected_gId"]), disp_list, sampleIDs)]
-                    container_main = st.container()
-                    plot_my_graph(container_main, G)
-
-                # Optional: Compute and process similarity measures using embeddings.
-                G = st.session_state['G_dict'][map_index_to_unsorted(
-                    disp_list.index(st.session_state["selected_gId"]), disp_list, sampleIDs)]
-                embeddings_df = fg.extract_raveled_fixed_size_embedding_all_graphs(st.session_state['G_dict'])
-                sorted_distance_df = fg.compute_sorted_distances(embeddings_df, G.sample_ID)
-
-
-if st.session_state.get('analysis_type') == 'sample-sample' and st.session_state.get('second_form_completed'):
-    # Display the selected sample graph, etc.
-    ...
-    # Compute embeddings and sorted distances.
-    embeddings_df = fg.extract_raveled_fixed_size_embedding_all_graphs(st.session_state['G_dict'])
-    sorted_distance_df = fg.compute_sorted_distances(embeddings_df, G.sample_ID)
-    st.session_state["sorted_distance_df"] = sorted_distance_df
-
-    # Create two buttons for further analysis in a two-column layout.
-    btn_col1, btn_col2 = st.columns(2)
-    if btn_col1.button("Top n Similar", key="btn_top_similar"):
-        st.session_state.show_top_n_similar = True
-    if btn_col2.button("Compare 2 samples", key="btn_compare_2_samples"):
-        st.session_state.show_compare_2_samples = True
-
-    # Further analysis UI appears under these buttons (still within the same container)
-    if st.session_state.get("show_top_n_similar"):
-        def new_top_n_similar_callback():
-            st.session_state["top_n_similar"] = st.session_state.new_top_n_similar
-
-        st.session_state["top_n_similar"] = st.number_input(
-            "Please provide the number of similar graphs to display:",
+    # Select Sample 2
+    selected_sample2 = sample_container.selectbox(
+        "Please select Sample 2:",
+        sample2_options,
+        key="sample2"
+    )
+    
+    # Form to select the number of top edges to use for generating graphs
+    compare_form = sample_container.form('Compare_sample_vs_sample')
+    with compare_form:
+        st.session_state['top_diff_n'] = st.slider(
+            "Please select the number of top n edges",
             min_value=1,
-            max_value=6,
-            step=1,
-            key="new_top_n_similar",
-            placeholder="Select a value...",
-            on_change=new_top_n_similar_callback
+            max_value=len(st.session_state['filtered_data'].index),
+            value=len(st.session_state['filtered_data'].index) // 2
         )
-        if st.session_state["top_n_similar"] > 0:
-            # Get top similar samples from the sorted distances.
-            top_n_samples = st.session_state["sorted_distance_df"].head(st.session_state["top_n_similar"] + 1)
-            sim_col1, sim_col2 = st.columns(2)
-            for i in range(st.session_state["top_n_similar"] + 1):
-                sample_ID = top_n_samples.iloc[i, 0]
-                # Find the graph matching the sample_ID.
-                G_sim = next(G for G in st.session_state['G_dict'].values() if G.sample_ID == sample_ID)
-                if i % 2:
-                    container_topn = sim_col2.container()
-                else:
-                    container_topn = sim_col1.container()
-                plot_my_graph(container_topn, G_sim)
+        submit_button = st.form_submit_button(label='Submit')
 
-    # --- Second sample selection for comparison ---
-    # --- Second sample selection for comparison ---
-    # -----------------------------
-    # Compare 2 Samples – Sample-sample Graph Comparison Analysis
-    # -----------------------------
-    if st.session_state.get("show_compare_2_samples"):
-        compare_container = st.container()
-        
-        # Get available sample columns (excluding reserved ones)
-        sample_options = [col for col in st.session_state["filtered_data"].columns 
-                        if col not in ["index", "source_node", "target_node"]]
-        # Exclude the primary sample (st.session_state["selected_gId"])
-        sample2_options = [s for s in sample_options if s != st.session_state.get("selected_gId")]
-        
-        if not sample2_options:
-            st.error("No other samples available for comparison.")
+    if submit_button:
+        if selected_sample1 == selected_sample2:
+            st.error("Selected samples must be distinct. Please choose two different samples.")
         else:
-            sample2 = compare_container.selectbox(
-                "Please select the second sample to compare:",
-                sample2_options,
-                key="sample2_vs_sample"
+            # Ensure the filtered metadata index is of type string
+            st.session_state["metadata_df"].data.index = st.session_state["metadata_df"].data.index.astype(str)
+
+            # Use the already filtered & prepared LRP data
+            st.session_state["LRP_to_graphs"] = st.session_state["filtered_data"]
+            st.session_state["LRP_to_graphs"].columns = st.session_state["LRP_to_graphs"].columns.astype(str)
+
+            # Call split_and_aggregate_lrp for sample_vs_sample comparison
+            st.session_state["LRP_to_graphs_stratified"] = fg.split_and_aggregate_lrp(
+                st.session_state["LRP_to_graphs"],
+                st.session_state["metadata_df"].data,  # Pass metadata
+                comparison_type="sample_vs_sample",
+                agg_func="median",
+                sample1_name=selected_sample1,
+                sample2_name=selected_sample2
             )
-            
-            # Determine maximum number of edges
-            max_edges = len(st.session_state["filtered_data"].index) if not st.session_state["filtered_data"].empty else 1
-            
-            # Form to choose top-n edges for generating graphs
-            compare_form = compare_container.form("Compare_2_samples_form")
-            with compare_form:
-                st.session_state["top_diff_n"] = st.slider(
-                    "Please select the number of top n edges",
-                    min_value=1,
-                    max_value=max_edges,
-                    value=max_edges // 2 if max_edges > 1 else 1
-                )
-                submit_button = st.form_submit_button("Submit")
-            
-            if submit_button:
-                if sample2 == st.session_state.get("selected_gId"):
-                    st.error("Please select two distinct samples.")
-                else:
-                    # Use the filtered & prepared LRP data (ensure columns are strings)
-                    st.session_state["LRP_to_graphs"] = st.session_state["filtered_data"]
-                    st.session_state["LRP_to_graphs"].columns = st.session_state["LRP_to_graphs"].columns.astype(str)
-                    # Create a dummy metadata DataFrame with sample column names as its index.
-                    dummy_metadata = pd.DataFrame(
-                        index=[col for col in st.session_state["LRP_to_graphs"].columns if col not in ["index", "source_node", "target_node"]]
-                    )
 
-                    # Call the aggregation function for sample_vs_sample comparison.
-                    st.session_state["LRP_to_graphs_stratified"] = fg.split_and_aggregate_lrp(
-                        st.session_state["LRP_to_graphs"],
-                        pd.DataFrame(),  # No metadata for sample-sample
-                        comparison_type="sample_vs_sample",
-                        agg_func="mean",
-                        sample1_name=st.session_state["selected_gId"],
-                        sample2_name=sample2
-                    )
-                    
-                    # Subset the aggregated DataFrame to include 'index', 'source_node', 'target_node' plus the two sample columns.
-                    result_df = st.session_state["LRP_to_graphs_stratified"][
-                        ['index', 'source_node', 'target_node'] + [st.session_state["selected_gId"], sample2]
-                    ]
-                    
-                    # Generate graphs from the aggregated data.
-                    G_dict_ss = fg.get_all_graphs_from_lrp(
-                        result_df,
-                        st.session_state["top_diff_n"]
-                    )
-                    
-                    # Save these graphs for further analysis.
-                    st.session_state["G_dict12"] = G_dict_ss
-                    graphs = list(G_dict_ss.values())
-                    if len([st.session_state["selected_gId"], sample2]) > 1:
-                        col1, col2 = compare_container.columns(2)
-                        for i, G in enumerate(graphs):
-                            container_graph = col1.container(border=False) if i % 2 == 0 else col2.container(border=False)
-                            plot_my_graph(container_graph, G)
-                    else:
-                        for G in graphs:
-                            container_graph = compare_container.container(border=False)
-                            plot_my_graph(container_graph, G)
-                    st.session_state["compare_form_complete"] = True
+            # Subset the stratified DataFrame to retain the edge columns plus the two comparison columns
+            LRP_to_graphs_stratified_sel_samples = st.session_state["LRP_to_graphs_stratified"][
+                ['index', 'source_node', 'target_node'] + [selected_sample1, selected_sample2]
+            ]
 
-                    # -----------------------------
-                    # Graph Difference Analysis for Sample-Sample Comparison
-                    # -----------------------------
-                    st.markdown("### Graph Difference Analysis")
-                    
-                    # Ensure the aggregated graphs (G_dict_ss) are available.
-                    if not G_dict_ss:
-                        st.error("No graphs available for difference analysis. Please run the graph generation step first.")
+            # Generate graphs from the stratified data using the given top_diff_n value
+            G_dict12 = fg.get_all_graphs_from_lrp(
+                LRP_to_graphs_stratified_sel_samples,
+                st.session_state['top_diff_n']
+            )
+
+            
+            # Display the generated graphs
+            graphs = list(G_dict12.values())
+            if len([selected_sample1, selected_sample2]) > 1:
+                col1, col2 = sample_container.columns(2)
+                for i, G in enumerate(graphs):
+                    if i % 2 == 0:
+                        container_topn = col1.container(border=False)
                     else:
-                        # Calculate fixed-size adjacency matrices and embeddings if not already computed.
-                        fg.get_all_fixed_size_adjacency_matrices(G_dict_ss)
-                        fg.get_all_fixed_size_embeddings(G_dict_ss)
-                        
-                        # Calculate differences for each pair of graphs.
-                        pairs = list(itertools.combinations(range(len(G_dict_ss)), 2))
-                        adj_diff_list = []
-                        for i, j in pairs:
-                            diff = fg.calculate_adjacency_difference(G_dict_ss[i], G_dict_ss[j])
-                            adj_diff_list.append(diff)
-                        
-                        # Create a form for threshold selection (with LRP and p-value sliders).
-                        threshold_selection_form = st.form("ThresSelection_sample_sample")
-                        with threshold_selection_form:
-                            col_slider, col_slider2, col_button = st.columns([3, 3, 1])
-                            with col_slider:
-                                diff_thres = st.slider(
-                                    "LRP difference threshold value:",
-                                    min_value=0.0,
-                                    max_value=1.0,
-                                    value=0.5,
-                                    help="Select a threshold for significant differences."
-                                )
-                            with col_slider2:
-                                p_value = st.slider(
-                                    "p-value threshold:",
-                                    min_value=0.0,
-                                    max_value=1.0,
-                                    value=0.05,
-                                    step=0.01,
-                                    help="Select a p-value threshold for significance."
-                                )
-                            with col_button:
-                                diff_calc_button = st.form_submit_button(label="Calculate")
-                        
-                        if diff_calc_button:
-                            pair_counter = 0
-                            for diff in adj_diff_list:
-                                edge_df = fg.create_edge_dataframe_from_adj_diff(diff, diff_thres)
-                                if edge_df.empty:
-                                    st.subheader("The edges representing graph differences are not above the threshold to plot.")
-                                else:
-                                    # In sample-sample, use the selected primary and second sample as labels.
-                                    label1 = st.session_state["selected_gId"]
-                                    label2 = sample2
-                                    diff_graph = lrpgraph.LRPGraph(
-                                        edges_sample_i=edge_df,
-                                        source_column="source_node",
-                                        target_column="target_node",
-                                        edge_attrs=["LRP", "LRP_norm"],
-                                        top_n_edges=st.session_state.get("top_diff_n", 10),
-                                        sample_ID="DIFFERENCE " + label1 + " vs " + label2
-                                    )
-                                    st.session_state['civic_data'].get_molecular_profiles_matching_nodes(diff_graph)
-                                    
-                                    # Display the difference graph in two columns.
-                                    col_diff1, col_diff2 = st.columns(2)
-                                    with col_diff1:
-                                        plot_my_graph(col_diff1, diff_graph)
-                                    with col_diff2:
-                                        diff_graph.get_communitites()
-                                        plot_my_graph(col_diff2, diff_graph, diff_graph.communitites)
-                                pair_counter += 1
-                            
-                            # -----------------------------
-                            # Gene Enrichment Analysis (using first pair)
-                            # -----------------------------
-                            if pairs:
-                                diff_graph_obj = LRPgraphdiff.LRPGraphDiff(
-                                    G_dict_ss[pairs[0][0]],
-                                    G_dict_ss[pairs[0][1]],
-                                    diff_thres=0.5
-                                )
-                                gene_list = diff_graph_obj.diff_graph.node_names_no_type
-                                ge_analyser = ge.GE_Analyser(gene_list)
-                                ge_results = ge_analyser.run_GE_on_nodes(user_threshold=0.01)
-                                
-                                if ge_results is not None and not ge_results.empty:
-                                    st.subheader("Gene Enrichment Results:")
-                                    with st.expander("See Gene Enrichment Results"):
-                                        for idx, row in ge_results.iterrows():
-                                            st.markdown(f"### Enriched Term: {row['name']}")
-                                            tab_term, tab_desc, tab_inter, tab_pval = st.tabs([
-                                                "Term", "Description", "Intersection Size", "p-value"
-                                            ])
-                                            with tab_term:
-                                                st.write(row["name"])
-                                            with tab_desc:
-                                                st.write(row["description"])
-                                            with tab_inter:
-                                                st.write(row.get("intersection_size", "N/A"))
-                                            with tab_pval:
-                                                st.write(row.get("p_value", "N/A"))
-                                else:
-                                    st.write("No Gene Enrichment Results available.")
-                                
-                                # (Optionally: You can follow this with CIVIC and PharmaKB analysis if desired.)
+                        container_topn = col2.container(border=False)
+                    plot_my_graph(container_topn, G)
+            else:
+                for G in graphs:
+                    container_topn = sample_container.container(border=False)
+                    plot_my_graph(container_topn, G)
+
+            # Mark the comparison as complete
+            st.session_state["compare_form_complete"] = True
+            st.session_state["G_dict12"] = G_dict12
+            st.session_state["ready_for_comparison"] = True
+            print_session_state()
+
+   
 ###############
 #
 #  Second part - s-g
@@ -1263,14 +1205,14 @@ if (st.session_state.get('first_form_completed', False) and
                 ]
 
                 # Generate graphs from the stratified data using the given top_diff_n value.
-                G_dict_sg = fg.get_all_graphs_from_lrp(
+                G_dict12 = fg.get_all_graphs_from_lrp(
                     LRP_to_graphs_stratified_sel_grps,
                     st.session_state['top_diff_n']
                 )
                 # Key modification: Save these graphs to st.session_state["G_dict12"]
-                st.session_state["G_dict12"] = G_dict_sg
+                
                 # Display the generated graphs.
-                graphs = list(G_dict_sg.values())
+                graphs = list(G_dict12.values())
                 if len([selected_sample, aggregated_col]) > 1:
                     col1, col2 = group_container.columns(2)
                     for i, G in enumerate(graphs):
@@ -1283,8 +1225,11 @@ if (st.session_state.get('first_form_completed', False) and
                     for G in graphs:
                         container_topn = group_container.container(border=False)
                         plot_my_graph(container_topn, G)
+                
                 st.session_state["compare_form_complete"] = True
-
+                st.session_state["G_dict12"] = G_dict12
+                st.session_state["ready_for_comparison"] = True
+                print_session_state()
 
 ###############
 #
@@ -1400,7 +1345,8 @@ if (st.session_state.get('first_form_completed', False) and
                         plot_my_graph(container_topn, G)
                 st.session_state["compare_form_complete"] = True
                 st.session_state["G_dict12"] = G_dict12
-
+                st.session_state["ready_for_comparison"] = True
+                print_session_state()
 
 ###############
 #
@@ -1412,37 +1358,43 @@ if (st.session_state.get('first_form_completed', False) and
 import LRPgraphdiff_code as LRPgraphdiff  # moduł do obliczania różnic między grafami
 import gprofiler_code as ge  # moduł realizujący analizę gene enrichment
 import civic_evidence_code  
-# (opcjonalnie możesz dodać inne importy, np. civic_data_code itp.)
 
-# Gwarantujemy, że w session state mamy G_dict12 (wygenerowane grafy)
-if "G_dict12" not in st.session_state:
-    st.session_state["G_dict12"] = {}
-G_dict12 = st.session_state["G_dict12"]
 
-# Blok aktywowany, jeśli typ analizy to 'group-group' lub 'sample-group' oraz comparison subtype to "graph"
-if st.session_state.get('analysis_type') in ['group-group', 'sample-group'] and \
-   st.session_state.get("group_comparison_type") == "graph":
-    
+###############
+#
+#  Graph Difference Analysis
+#
+###############
+
+# Ensure G_dict12 is available in session state
+#if "G_dict12" not in st.session_state:
+#    st.session_state["G_dict12"] = {}
+#G_dict12 = st.session_state["G_dict12"]
+
+# Activate the block if analysis type is 'group-group', 'sample-group', or 'sample-sample' and comparison subtype is "graph"
+if st.session_state.get('ready_for_comparison'):
+    #and st.session_state.get('analysis_type') in ['sample-sample', 'group-group', 'sample-group'] and \
+   #st.session_state.get("group_comparison_type") == "graph":
+    print_session_state()
     st.markdown("### Graph Difference Analysis")
-    
-    # Pobierz wygenerowane grafy zapisane wcześniej w session_state
+
+    # Retrieve generated graphs from session state
     G_dict12 = st.session_state.get("G_dict12")
     if not G_dict12:
         st.error("No graphs available for difference analysis. Please run the graph generation step first.")
     else:
-        # Obliczanie macierzy i embeddingów, jeżeli jeszcze nie zostały wykonane
+        # Perform graph difference analysis
         fg.get_all_fixed_size_adjacency_matrices(G_dict12)
         fg.get_all_fixed_size_embeddings(G_dict12)
-        
-        # Wyznacz różnicę macierzy dla każdej pary grafów
+
+        # Calculate adjacency differences for each pair of graphs
         pairs = list(itertools.combinations(range(len(G_dict12)), 2))
         adj_diff_list = []
         for i, j in pairs:
             diff = fg.calculate_adjacency_difference(G_dict12[i], G_dict12[j])
             adj_diff_list.append(diff)
-        
-        # Formularz wyboru wartości progu
-        # Formularz wyboru wartości progu (threshold) z przyciskiem Calculate obok suwaka
+
+        # Threshold selection form
         threshold_selection_form = st.form('ThresSelection')
         with threshold_selection_form:
             col_slider, col_slider2, col_button = st.columns([3, 3, 1])
@@ -1454,6 +1406,7 @@ if st.session_state.get('analysis_type') in ['group-group', 'sample-group'] and 
                     value=0.5,
                     help="Select a threshold for significant differences."
                 )
+                                
             with col_slider2:
                 p_value = st.slider(
                     "p-value threshold:",
@@ -1463,22 +1416,30 @@ if st.session_state.get('analysis_type') in ['group-group', 'sample-group'] and 
                     step=0.01,
                     help="Select a p-value threshold for significance."
                 )
+                                
             with col_button:
                 calculate_button = st.form_submit_button(label='Calculate')
-        
+                
         if calculate_button:
-            pair_counter = 0
-            # Przetwarzanie każdej pary różnic
-            for diff in adj_diff_list:
+            print("Calculate button pressed.")
+            print_session_state()
+
+            # Perform graph difference analysis for the selected pair
+            if len(G_dict12) == 2:  # Ensure exactly two graphs are selected
+                fg.get_all_fixed_size_adjacency_matrices(G_dict12)
+                fg.get_all_fixed_size_embeddings(G_dict12)
+
+                # Calculate adjacency difference for the selected pair
+                diff = fg.calculate_adjacency_difference(G_dict12[0], G_dict12[1])
+
                 edge_df = fg.create_edge_dataframe_from_adj_diff(diff, diff_thres)
+                print("Edge DataFrame Columns:", edge_df.columns)
                 if edge_df.empty:
                     st.subheader("The edges representing graph differences are not above the threshold to plot.")
+                    print("No edges above the threshold to plot.")
                 else:
-                    i = pairs[pair_counter][0]
-                    j = pairs[pair_counter][1]
-                    compare_grp_selected = st.session_state.get("compare_grp_selected", [])
-                    label1 = compare_grp_selected[i] if len(compare_grp_selected) > i else "Group1"
-                    label2 = compare_grp_selected[j] if len(compare_grp_selected) > j else "Group2"
+                    label1 = "Graph 1"
+                    label2 = "Graph 2"
 
                     diff_graph = lrpgraph.LRPGraph(
                         edges_sample_i=edge_df,
@@ -1486,15 +1447,16 @@ if st.session_state.get('analysis_type') in ['group-group', 'sample-group'] and 
                         target_column="target_node",
                         edge_attrs=["LRP", "LRP_norm"],
                         top_n_edges=st.session_state.get('top_diff_n', 10),
-                        sample_ID="DIFFERENCE " + label1 + " vs " + label2
+                        sample_ID=f"DIFFERENCE {label1} vs {label2}"
                     )
-                    st.session_state['civic_data'].get_molecular_profiles_matching_nodes(diff_graph)
-                    
-                    # Utwórz dwie kolumny, w których umieścimy wykresy obok siebie
+
+                    # Display the difference graph
                     col_diff1, col_diff2 = st.columns(2)
                     with col_diff1:
+                        print(f"Displaying difference graph for {label1} vs {label2} in the first column.")
                         plot_my_graph(col_diff1, diff_graph)
                     with col_diff2:
+                        print(f"Displaying communities for {label1} vs {label2} in the second column.")
                         diff_graph.get_communitites()
                         plot_my_graph(col_diff2, diff_graph, diff_graph.communitites)
 
@@ -1505,6 +1467,7 @@ if st.session_state.get('analysis_type') in ['group-group', 'sample-group'] and 
 
                     col_chart1, col_chart2 = st.columns(2)
                     with col_chart1:
+                        print(f"Plotting 'Number of Edges vs Difference Threshold' for {label1} vs {label2}.")
                         st.subheader("Number of Edges vs Difference Threshold")
                         tmp_df = pd.DataFrame(edge_df_sizes, columns=["x", "y"])
                         st.vega_lite_chart(
@@ -1520,52 +1483,25 @@ if st.session_state.get('analysis_type') in ['group-group', 'sample-group'] and 
                             use_container_width=True
                         )
                     with col_chart2:
+                        print(f"Plotting 'LRP Values for Edges Sorted by LRP' for {label1} vs {label2}.")
                         st.subheader("LRP Values for Edges Sorted by LRP")
                         if 'LRP' not in edge_df.columns and 'LRP_norm' in edge_df.columns:
                             edge_df = edge_df.rename(columns={'LRP_norm': 'LRP'})
                         st.line_chart(edge_df['LRP'], x_label='Edge #', y_label='LRP')
-        
-                    #st.session_state['civic_data'].get_mps_summaries()
-                    #st.subheader("Molecular Profiles Summaries")
-                    #mps_summaries = st.expander("See Molecular Profiles Summaries")
-                    #mps_summaries.write(st.session_state['civic_data'].mps_summaries)
-        
-                    #st.session_state['civic_data'].get_features_matching_nodes(diff_graph)
-                    #st.session_state['civic_data'].get_features_descriptions()
-                    #st.subheader("Genes Descriptions")
-                    #gene_desc_expander = st.expander("See Genes Descriptions")
-                    #gene_desc_expander.write(st.session_state['civic_data'].features_descriptions)
-        
-                    #st.session_state['civic_data'].get_evidence_ids_df()
-                    #st.session_state['civic_data'].get_evidence_desctiptions()
-                    #st.session_state['civic_data'].agragate_all_facts()
-                    #st.subheader("All Facts")
-                    #all_facts_expander = st.expander("See All Facts")
-                    #st.session_state["edge_df"] = edge_df
-                    #st.session_state["all_facts"] = st.session_state['civic_data'].all_facts
-                    #all_facts_expander.write(st.session_state['civic_data'].all_facts)
-        
-                    st.session_state["enable_chat_bot"] = True
-                    st.divider()
-                pair_counter += 1
+            else:
+                st.error("Graph difference analysis requires exactly two graphs. Please select a valid pair.")        
+            st.session_state["enable_chat_bot"] = True
+            st.divider()
 
-            # Po wyświetleniu wszystkich grafów różnic i wykresów, wykonaj analizę gene enrichment dla pierwszej pary:
-            if pairs:
-                diff_graph_obj = LRPgraphdiff.LRPGraphDiff(
-                    G_dict12[pairs[0][0]],
-                    G_dict12[pairs[0][1]],
-                    diff_thres=0.5
-                )
-                # Używamy właściwego atrybutu node_names_no_type
-                gene_list = diff_graph_obj.diff_graph.node_names_no_type
+            # Po wyświetleniu wszystkich grafów różnic i wykresów, wykonaj analizę gene enrichment dla wybranej pary:
+            if G_dict12 and len(G_dict12) == 2:  # Upewnij się, że mamy dokładnie dwa grafy
+                # Używamy właściwego atrybutu node_names_no_type dla wybranej pary
+                diff_graph = LRPgraphdiff.LRPGraphDiff(G_dict12[0], G_dict12[1], diff_thres=st.session_state['diff_thres'])
+                gene_list = diff_graph.diff_graph.node_names_no_type
+
+                # Analiza gene enrichment
                 ge_analyser = ge.GE_Analyser(gene_list)
-                #ge_results = ge_analyser.run_GE_on_nodes(user_threshold=0.01)  # dostosuj próg, jeśli potrzeba
-                #ge_verbalised = ge_analyser.verbalize_enrichment_results()
-                #if ge_verbalised:
-                #    st.subheader("Gene Enrichment Results:")
-                #    st.write(ge_verbalised)
-                # Zamiast używać ge_verbalised, przetwarzamy bezpośrednio DataFrame ge_results
-                ge_results = ge_analyser.run_GE_on_nodes(user_threshold=0.01)  # dostosuj próg, jeśli potrzeba
+                ge_results = ge_analyser.run_GE_on_nodes(user_threshold=st.session_state['p_value'])  # dostosuj próg, jeśli potrzeba
 
                 if ge_results is not None and not ge_results.empty:
                     st.subheader("Gene Enrichment Results:")
@@ -1587,107 +1523,109 @@ if st.session_state.get('analysis_type') in ['group-group', 'sample-group'] and 
                                 st.write(row.get("p_value", "N/A"))
                 else:
                     st.write("No Gene Enrichment Results available.")
-                # Now run CIVIC evidence analysis using functions from civic_evidence_code
+            else:
+                st.error("Gene enrichment analysis requires exactly two graphs. Please ensure a valid pair is selected.")
+                            # Now run CIVIC evidence analysis using functions from civic_evidence_code
                                 # CIVIC evidence analysis using functions from civic_evidence_code
                 # Now run CIVIC evidence analysis using functions from civic_evidence_code
                 # Now run CIVIC evidence analysis using functions from civic_evidence_code
-                civicdb_path = '/Users/mwysocka/Documents/GitHub/CEE_DART_Navigator-main/resources/civicdb'
-                analyzer = civic_evidence_code.CivicEvidenceAnalyzer(civicdb_path, gene_list)
-                analyzer.create_feature_details_dict()
-                details_dict = analyzer.add_evidence_to_dict()
+                import os
+            # CIVIC Evidence Analysis
+            try:
+                base_path = os.path.dirname(os.path.abspath(__file__))
+                civicdb_path = os.path.join(base_path, 'resources', 'civicdb')
 
-                st.subheader("CIVIC Evidence Knowledge:")
-                with st.expander("See CIVIC Evidence Knowledge"):
-                    if details_dict:
-                        for feature, feature_dict in details_dict.items():
-                            st.markdown(f"### {feature}")
-                            # Używamy zakładek (tabs) - klucze odpowiadają tym z civic_evidence_code.py
-                            tab_desc, tab_sum, tab_mp, tab_ev = st.tabs([
-                                "See Description", 
-                                "See Summary", 
-                                "See Molecular Profiles", 
-                                "See Evidences"
-                            ])
-                            with tab_desc:
-                                st.write(feature_dict.get("Description", "No Description available."))
-                            with tab_sum:
-                                st.write(feature_dict.get("Summary", "No Summary available."))
-                            with tab_mp:
-                                st.write(feature_dict.get("Molecular_profiles", "No Molecular Profiles available."))
-                            with tab_ev:
-                                st.write(feature_dict.get("Evidence", "No Evidences available."))
-                    else:
-                        st.write("No CIVIC evidence details available.")
+                if not os.path.exists(civicdb_path):
+                    st.error(f"CIVIC database path does not exist: {civicdb_path}")
+                else:
+                    analyzer = civic_evidence_code.CivicEvidenceAnalyzer(civicdb_path, gene_list)
+                    analyzer.create_feature_details_dict()
+                    details_dict = analyzer.add_evidence_to_dict()
 
+                    st.subheader("CIVIC Evidence Knowledge:")
+                    with st.expander("See CIVIC Evidence Knowledge"):
+                        if details_dict:
+                            for feature, feature_dict in details_dict.items():
+                                st.markdown(f"### {feature}")
+                                # Use tabs for displaying details
+                                tab_desc, tab_sum, tab_mp, tab_ev = st.tabs([
+                                    "See Description",
+                                    "See Summary",
+                                    "See Molecular Profiles",
+                                    "See Evidences"
+                                ])
+                                with tab_desc:
+                                    st.write(feature_dict.get("Description", "No Description available."))
+                                with tab_sum:
+                                    st.write(feature_dict.get("Summary", "No Summary available."))
+                                with tab_mp:
+                                    st.write(feature_dict.get("Molecular_profiles", "No Molecular Profiles available."))
+                                with tab_ev:
+                                    st.write(feature_dict.get("Evidence", "No Evidences available."))
+                        else:
+                            st.write("No CIVIC evidence details available.")
+            except Exception as e:
+                st.error(f"An error occurred during CIVIC Evidence Analysis: {e}")
 
-                # -----------------------------
-                # PharmaKB Analysis Section
-                # -----------------------------
-                # Here we use the gene list (or optionally a different alias list if desired) 
-                # from the same differential analysis.
-                # -----------------------------
-                # PharmaKB Analysis Section – wyświetlanie w podobny sposób jak CIVIC evidence
-                # -----------------------------
-                import pharmabk_code as pbk
+            # PharmaKB Analysis
+            try:
+                pharmagkb_files_path = os.path.join(base_path, 'resources', 'pharmgkb')
 
-                # Inicjujemy analizator Pharmakb. UWAGA: konstruktor przyjmuje listę genów.
-                pharmakb_analyzer = pbk.Pharmakb_Analyzer(gene_list)
-                # Upewnij się, że pliki PharmGKB znajdują się w podanej ścieżce.
-                pharmagkb_files_path = '/Users/mwysocka/Documents/GitHub/CEE_DART_Navigator-main/resources/pharmgkb'
-                pharmakb_analyzer.get_pharmakb_knowledge(files_path=pharmagkb_files_path)
+                if not os.path.exists(pharmagkb_files_path):
+                    st.error(f"PharmaGKB files path does not exist: {pharmagkb_files_path}")
+                else:
+                    pharmakb_analyzer = pbk.Pharmakb_Analyzer(gene_list)
+                    pharmakb_analyzer.get_pharmakb_knowledge(files_path=pharmagkb_files_path)
 
-                # Zamiast korzystać z pojedynczego tekstu, grupujemy wyniki wg. genu.
-                import pandas as pd
+                    # Combine all filtered data into one DataFrame
+                    pharmakb_df = pd.concat([
+                        pharmakb_analyzer.pharmakb_var_pheno_ann_filtered,
+                        pharmakb_analyzer.pharmakb_var_drug_ann_filtered,
+                        pharmakb_analyzer.pharmakb_var_fa_ann_filtered
+                    ], ignore_index=True)
 
-                # Połączmy wszystkie wyfiltrowane dane w jeden dataframe:
-                pharmakb_df = pd.concat([
-                    pharmakb_analyzer.pharmakb_var_pheno_ann_filtered,
-                    pharmakb_analyzer.pharmakb_var_drug_ann_filtered,
-                    pharmakb_analyzer.pharmakb_var_fa_ann_filtered
-                ], ignore_index=True)
-
-                # Grupujemy wyniki wg. genu, przyjmując następujące klucze:
-                pharmakb_details = {}
-                if not pharmakb_df.empty:
-                    # Upewnij się, że wymagane kolumny istnieją
-                    required_columns = ['Gene', 'Drug(s)', 'Sentence', 'Notes', 'PMID']
-                    for col in required_columns:
-                        if col not in pharmakb_df.columns:
-                            raise ValueError(f"Kolumna '{col}' jest wymagana w danych PharmGKB.")
-                    
-                    grouped = pharmakb_df.groupby('Gene')
-                    for gene, group in grouped:
-                        drugs = list(group['Drug(s)'].unique())
-                        # Jeśli jest więcej niż jedna wartość – połącz tekstowo, w innym przypadku wyświetl pojedynczą wartość.
-                        statement = "; ".join(group['Sentence'].astype(str).unique())
-                        notes = "; ".join(group['Notes'].astype(str).unique())
-                        pmids = list(group['PMID'].unique())
-                        pharmakb_details[gene] = {
-                            "Drug(s)": drugs if drugs else "No Drugs available.",
-                            "Statement": statement if statement else "No Statement available.",
-                            "Notes": notes if notes else "No Notes available.",
-                            "PMID": pmids if pmids else "No PMID available."
-                        }
-                        
-                st.subheader("PharmaKB Knowledge:")
-                with st.expander("See PharmaKB Knowledge"):
-                    if pharmakb_details:
-                        for gene, details in pharmakb_details.items():
-                            st.markdown(f"### {gene}")
-                            # Tworzymy zakładki podobnie jak w wynikach CIVIC evidence
-                            tab_drug, tab_statement, tab_notes, tab_pmids = st.tabs([
-                                "Drug(s)",
-                                "Statement",
-                                "Notes",
-                                "PMID"
-                            ])
-                            with tab_drug:
-                                st.write(details["Drug(s)"])
-                            with tab_statement:
-                                st.write(details["Statement"])
-                            with tab_notes:
-                                st.write(details["Notes"])
-                            with tab_pmids:
-                                st.write(details["PMID"])
-                    else:
+                    if pharmakb_df.empty:
                         st.write("No PharmaKB evidence details available.")
+                    else:
+                        # Ensure required columns exist
+                        required_columns = ['Gene', 'Drug(s)', 'Sentence', 'Notes', 'PMID']
+                        missing_columns = [col for col in required_columns if col not in pharmakb_df.columns]
+                        if missing_columns:
+                            st.error(f"Missing required columns in PharmaKB data: {', '.join(missing_columns)}")
+                        else:
+                            # Group results by gene
+                            pharmakb_details = {}
+                            grouped = pharmakb_df.groupby('Gene')
+                            for gene, group in grouped:
+                                drugs = list(group['Drug(s)'].unique())
+                                statement = "; ".join(group['Sentence'].astype(str).unique())
+                                notes = "; ".join(group['Notes'].astype(str).unique())
+                                pmids = list(group['PMID'].unique())
+                                pharmakb_details[gene] = {
+                                    "Drug(s)": drugs if drugs else "No Drugs available.",
+                                    "Statement": statement if statement else "No Statement available.",
+                                    "Notes": notes if notes else "No Notes available.",
+                                    "PMID": pmids if pmids else "No PMID available."
+                                }
+
+                            st.subheader("PharmaKB Knowledge:")
+                            with st.expander("See PharmaKB Knowledge"):
+                                for gene, details in pharmakb_details.items():
+                                    st.markdown(f"### {gene}")
+                                    # Use tabs for displaying details
+                                    tab_drug, tab_statement, tab_notes, tab_pmids = st.tabs([
+                                        "Drug(s)",
+                                        "Statement",
+                                        "Notes",
+                                        "PMID"
+                                    ])
+                                    with tab_drug:
+                                        st.write(details["Drug(s)"])
+                                    with tab_statement:
+                                        st.write(details["Statement"])
+                                    with tab_notes:
+                                        st.write(details["Notes"])
+                                    with tab_pmids:
+                                        st.write(details["PMID"])
+            except Exception as e:
+                st.error(f"An error occurred during PharmaKB Analysis: {e}")

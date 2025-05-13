@@ -142,7 +142,7 @@ class LRPGraph:
             alias_file_path = os.path.join(os.path.dirname(__file__), 'aliases.csv')
             gene_aliases = pd.read_csv(alias_file_path)
             self.aliases = gene_aliases
-            print(gene_aliases)
+            #print(gene_aliases)
             gene_alias_dict = {}
             # Iterate through each gene in the gene list
             for gene in self.node_names_no_type:
