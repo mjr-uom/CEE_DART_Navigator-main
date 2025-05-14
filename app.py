@@ -345,6 +345,11 @@ def map_index_to_unsorted(index_in_ordered: int, ordered_list: list, unordered_l
     unordered_index = unordered_index_map[value_in_ordered]
     return unordered_index
 
+# A helper function to force a page reload using JS
+def rerun():
+    st.markdown("<script>window.location.reload();</script>", unsafe_allow_html=True)
+
+
 if __name__ == '__main__':
     # Logo in sidebar
     st.sidebar.image("./images/MIS_Portal_logo.png", width=250)
@@ -383,95 +388,108 @@ if __name__ == '__main__':
         st.session_state.page = "About"
     if st.sidebar.button('News'):
         st.session_state.page = "News"
-    if st.sidebar.button('Related Papers'):  # New tab
-        st.session_state.page = "Related Papers"
+    if st.sidebar.button('Results'):  # New tab
+        st.session_state.page = "Results"
 
 
     # Render content based on the current page state
+
+    # Render Home Page
     if st.session_state.page == "Home":
-        #st.title("Home")
-        # Logo in the top left corner (on the home page)
-        st.image("./images/MIS_Portal_logo.png", width=300)  # Logo w lewym górnym rogu
-        # Main frame with text + buttons inside
+        # Logo in the top left corner
+        st.image("./images/MIS_Portal_logo.png", width=300)
+
+        # Top frame with description
         st.markdown("""
-    <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
-                margin-top:20px; text-align:center; font-size:18px;">
-        <strong>The Portal Analyzes Molecular Interaction Signatures</strong><br>
-        <br>
-        The <strong>public version</strong> of the MIS portal provides a <strong>framework</strong> for comparing biological samples based on molecular interaction signatures. 
-        Using deep learning metrics, statistical tests, and graph-based methods, it identifies key interaction patterns and assesses their biological relevance for <strong>biomarker discovery and hypothesis generation.</strong>
-        <br><br>
-        <button onclick="window.location.href = window.location.href.split('?')[0] + '?page=Analyse'; window.location.reload();" style="display:inline-block; background:white; color:#0078D4; 
-            border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px; margin-right:10px;">Analyse Your Samples</button>
-        <button onclick="window.location.href='?page=Examples'" style="display:inline-block; background:white; color:#0078D4; 
-            border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">See Examples</button>
-    </div>
-""", unsafe_allow_html=True)
-        # Break before next frames
-        st.markdown("<br>", unsafe_allow_html=True)
-        # Two columns next to each other
-        col1, col2 = st.columns([1, 1])
-        # First column (left)
-        with col1:
-            st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)  # Center the logo
-            st.image("./images/evidence.png", width=50)  # Logo above the frame
-            st.markdown("</div>", unsafe_allow_html=True)
-            # Frame with text and button
-            st.markdown(
-                """
-                <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
-                            text-align:center; font-size:16px; padding:20px;">
-                    <strong>The Portal uses distinct levels of supporting evidence</strong><br>
-                    Molecular Interaction Signatures (MIS) are derived from the analysis of molecular profiles and are annotated by a comprehensive set of knowledgebases and computational estimations.
-                    <br><br>
-                    <button onclick="window.location.href='?page=FAQ'" style="display:inline-block; background:white; color:#0078D4; 
-                        border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">Read more</button>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        # Second column (right)
-        with col2:
-            st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)  # Center the logo
-            st.image("./images/expert.png", width=50)  # Logo above the frame
-            st.markdown("</div>", unsafe_allow_html=True)
-            # Frame with text and button
-            st.markdown(
-                """
-                <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
-                            text-align:center; font-size:16px; padding:20px;">
-                    <strong>The Portal follows clinical expert consensus</strong><br>
-                    The MIS portal is designed to support the interpretation of molecular interaction signatures in the context of clinical expert consensus developed under the Cancer Core Europe umbrella and the latest scientific evidence.
-                    <br><br>
-                    <button onclick="window.location.href='?page=About'" style="display:inline-block; background:white; color:#0078D4; 
-                        border: 2px solid #0078D4; padding:10px 20px; text-decoration:none; border-radius:5px;">About us</button>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        # Text below the columns
-        st.markdown("""
-            <div style="margin-top:30px; text-align:justify; font-size:16px;">
-                <p><strong>This is an open-access version of the Molecular Interaction Signatures Portal, designed for the comparative study of biological samples based on molecular interaction signatures.</strong></p>
-                <p>The portal utilizes computational methods, including deep learning-derived relevance metrics and statistical analyses, with references to the applied algorithms and data sources provided in the results. 
-                Some resources integrated within the portal may require a license for commercial applications or clinical use; therefore, this version is strictly limited to academic research. 
-                Users must accept these terms upon first login, which requires a valid email address. When using this portal, please cite:</p>
-            </div>
+        <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
+                    margin-top:20px; text-align:center; font-size:18px;">
+            <strong>The Portal Analyzes Molecular Interaction Signatures</strong><br><br>
+            The <strong>public version</strong> of the MIS portal provides a <strong>framework</strong> for comparing biological samples based on molecular interaction signatures. 
+            Using deep learning metrics, statistical tests, and graph-based methods, it identifies key interaction patterns and assesses their biological relevance for <strong>biomarker discovery and hypothesis generation.</strong>
+        </div>
         """, unsafe_allow_html=True)
-        # Four logos in one row
-        col1, col2, col3, col4 = st.columns(4)
 
+        # Navigation buttons: Analyse + Examples
+        st.markdown("<br>", unsafe_allow_html=True)
+        col1, col2 = st.columns([1, 1])
         with col1:
-            st.image("./images/CRUK_NBC.png", width=220)  
-
+            if st.button("Analyse Your Samples"):
+                st.session_state.page = "Analyse"
+                rerun()
         with col2:
-            st.image("./images/CRUK_NBC_DCR.png", width=220)  
+            if st.button("See Examples"):
+                st.session_state.page = "Examples"
+                rerun()
 
+        # Spacer
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Two content columns
+        col1, col2 = st.columns([1, 1])
+
+        # Left column: supporting evidence
+        with col1:
+            st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+            st.image("./images/evidence.png", width=50)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            st.markdown("""
+            <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
+                        text-align:center; font-size:16px;">
+                <strong>The Portal uses distinct levels of supporting evidence</strong><br>
+                Molecular Interaction Signatures (MIS) are derived from the analysis of molecular profiles and are annotated by a comprehensive set of knowledgebases and computational estimations.
+                <br><br>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Button inside the frame
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("Read more"):
+                st.session_state.page = "FAQ"
+                rerun()
+
+        # Right column: expert consensus
+        with col2:
+            st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+            st.image("./images/expert.png", width=50)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            st.markdown("""
+            <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
+                        text-align:center; font-size:16px;">
+                <strong>The Portal follows clinical expert consensus</strong><br>
+                The MIS portal is designed to support the interpretation of molecular interaction signatures in the context of clinical expert consensus developed under the Cancer Core Europe umbrella and the latest scientific evidence.
+                <br><br>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Button inside the frame
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("About us"):
+                st.session_state.page = "About"
+                rerun()
+
+        # Informative text at the bottom
+        st.markdown("""
+        <div style="margin-top:30px; text-align:justify; font-size:16px;">
+            <p><strong>This is an open-access version of the Molecular Interaction Signatures Portal, designed for the comparative study of biological samples based on molecular interaction signatures.</strong></p>
+            <p>The portal utilizes computational methods, including deep learning-derived relevance metrics and statistical analyses, with references to the applied algorithms and data sources provided in the results. 
+            Some resources integrated within the portal may require a license for commercial applications or clinical use; therefore, this version is strictly limited to academic research. 
+            Users must accept these terms upon first login, which requires a valid email address. When using this portal, please cite:</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Logos at the bottom
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.image("./images/CRUK_NBC.png", width=220)
+        with col2:
+            st.image("./images/CRUK_NBC_DCR.png", width=220)
         with col3:
-            st.image("./images/CCE.png", width=150)  
-
+            st.image("./images/CCE.png", width=150)
         with col4:
-            st.image("./images/CCE_DART.png", width=170)   
+            st.image("./images/CCE_DART.png", width=170)
+
 
     elif st.session_state.page == "Analyse":
         st.title("Analyse Molecular Interaction Signatures")
@@ -910,6 +928,18 @@ if __name__ == '__main__':
                 Explore the examples to understand how to use the portal for your own analyses.
             </div>
         """, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Logos at the bottom
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.image("./images/CRUK_NBC.png", width=220)
+        with col2:
+            st.image("./images/CRUK_NBC_DCR.png", width=220)
+        with col3:
+            st.image("./images/CCE.png", width=150)
+        with col4:
+            st.image("./images/CCE_DART.png", width=170)
 
     elif st.session_state.page == "FAQ":
         st.title("Frequently Asked Questions")
@@ -954,6 +984,18 @@ if __name__ == '__main__':
                 **Are the knowledgebase contents updated?** 
                 Because the harmonization of the knowledgebase data cannot be fully automated, the content is downloaded and then manually processed to reformat it. This updating process is performed periodically. For further details, please note that every MISP report lists the version, reference, and access information for all resources used to annotate the genes, along with the original evidence assertions. Additionally, the “News” section on the public MISP website provides updates and relevant information for users.
             """, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Logos at the bottom
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.image("./images/CRUK_NBC.png", width=220)
+        with col2:
+            st.image("./images/CRUK_NBC_DCR.png", width=220)
+        with col3:
+            st.image("./images/CCE.png", width=150)
+        with col4:
+            st.image("./images/CCE_DART.png", width=170)
 
 
     elif st.session_state.page == "About":
@@ -973,6 +1015,17 @@ if __name__ == '__main__':
                 For more information, please visit our website or contact us at info@misportal.org.
             </div>
         """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Logos at the bottom
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.image("./images/CRUK_NBC.png", width=220)
+        with col2:
+            st.image("./images/CRUK_NBC_DCR.png", width=220)
+        with col3:
+            st.image("./images/CCE.png", width=150)
+        with col4:
+            st.image("./images/CCE_DART.png", width=170)
 
     elif st.session_state.page == "News":
         st.title("News")
@@ -986,23 +1039,62 @@ if __name__ == '__main__':
                 Check back regularly for new features, updates, and announcements.
             </div>
         """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Logos at the bottom
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.image("./images/CRUK_NBC.png", width=220)
+        with col2:
+            st.image("./images/CRUK_NBC_DCR.png", width=220)
+        with col3:
+            st.image("./images/CCE.png", width=150)
+        with col4:
+            st.image("./images/CCE_DART.png", width=170)
         
-    elif st.session_state.page == "Related Papers":
-        st.title("Related Papers")
+    elif st.session_state.page == "Results":
+        st.title("Results")
         st.markdown("""
-            <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
-                        margin-top:20px; text-align:justify; font-size:16px;">
-                <strong>Related Papers</strong><br>
-                The following publications are closely related to the research presented in this work. 
+        <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
+                    margin-top:20px; text-align:justify; font-size:16px;">
+            <strong>Related Papers</strong><br>
+            <br>
+            The following publications are closely related to the research presented in this work. 
                 They provide additional context, complementary methodologies, or foundational insights 
                 that support and extend the findings discussed here.
-            </div>
-            <br>
-            <ul>
-                <li><a href="https://aclanthology.org/2024.acl-demos.34/" target="_blank">Wysocki et al., ACL 2024</a></li>
-                <li><a href="https://aclanthology.org/2025.naacl-long.371/" target="_blank">Wysocka et al., NAACL 2025</a></li>
-            </ul>
+            <br><br>
+            <strong>Magdalena Wysocka, Danilo Carvalho, Oskar Wysocki, Marco Valentino, Andre Freitas. SylloBio-NLI: Evaluating Large Language Models on Biomedical Syllogistic Reasoning. NAACL 2025</strong> –  
+            <a href="https://aclanthology.org/2025.naacl-long.371/" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
+            <br><br>
+            <strong>Oskar Wysocki, Magdalena Wysocka, Danilo Carvalho, Alex Bogatu, Danilo Miranda, Maxime Delmas, Harriet Unsworth, Andre Freitas. An LLM-based Knowledge Synthesis and Scientific Reasoning Framework for Biomedical Discovery. ACL 2024</strong> – 
+            <a href="https://aclanthology.org/2024.acl-demos.34/" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
+            <br><br>
+            <strong>Maxime Delmas, Magdalena Wysocka, André Freitas. Relation Extraction in underexplored biomedical domains: A diversity-optimised sampling and synthetic data generation approach. ACL Anthology, 2024</strong> –  
+            <a href="https://aclanthology.org/2024.cl-3.4/" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
+            <br><br>
+            <strong>Magdalena Wysocka, Oskar Wysocki, Maxime Delmas, Vincent Mutel, Andre Freitas. Large Language Models, scientific knowledge and factuality: A systematic analysis in antibiotic discovery. Journal of Biomedical Informatics, 2024</strong> –  
+            <a href="https://www.sciencedirect.com/science/article/pii/S1532046424001424?via%3Dihub" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
+            <br><br>
+            <strong>Wysocka M, Wysocki O, Zufferey M, Landers D, Freitas A. A systematic review of biologically-informed deep learning models for cancer: fundamental trends for encoding and interpreting oncology data. BMC Bioinformatics, 2023</strong> –  
+            <a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-023-05262-8" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
+            <br><br>
+            <strong>Wysocki O, Zhou Z, O’Regan P, Ferreira D, Wysocka M, Landers D, Freitas A. Transformers and the Representation of Biomedical Background Knowledge. Computational Linguistics 2022</strong> –  
+            <a href="https://direct.mit.edu/coli/article/49/1/73/113017/Transformers-and-the-Representation-of-Biomedical" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
+            <br><br>
+            <strong>Wysocki O, Davies JK, Vigo M, Armstrong AC, Landers D, Lee R, Freitas A. Assessing the communication gap between AI models and healthcare professionals: Explainability, utility and trust in AI-driven clinical decision-making, Artificial Intelligence, 2022</strong> –   
+            <a href="https://www.sciencedirect.com/science/article/pii/S0004370222001795" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
+        </div>
         """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Logos at the bottom
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.image("./images/CRUK_NBC.png", width=220)
+        with col2:
+            st.image("./images/CRUK_NBC_DCR.png", width=220)
+        with col3:
+            st.image("./images/CCE.png", width=150)
+        with col4:
+            st.image("./images/CCE_DART.png", width=170)
 ################
 #
 #  Second part - s-s
