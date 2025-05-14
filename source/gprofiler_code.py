@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
-from gprofiler import GProfiler
+import json
 import os
+import scanpy as sc
+
 class GE_Analyser:
     def __init__(self, gene_list):
         """
@@ -19,9 +21,10 @@ class GE_Analyser:
         self.ge_results = None
         self.ge_verbalized = None
 
+    
     def run_GE_on_nodes(self, user_threshold=1e-2, max_temp_size=50, on_aliases=False):
         """
-        Run gene enrichment analysis on the provided gene list using g:Profiler.
+        Run gene enrichment analysis on the provided gene list using Scanpy's sc.queries.enrich.
 
         Args:
             user_threshold (float, optional): The significance threshold for the enrichment analysis. Default is 1e-2.
@@ -30,7 +33,7 @@ class GE_Analyser:
 
         Returns:
             pandas.DataFrame or None: A DataFrame containing the enrichment results, filtered and sorted by intersection size.
-                                      Returns None if the gene list is empty or if an error occurs during the analysis.
+                                    Returns None if the gene list is empty or if an error occurs during the analysis.
 
         Notes:
             - The analysis is performed for the organism 'hsapiens' (human).
@@ -44,30 +47,43 @@ class GE_Analyser:
             print("Gene list is empty; skipping GE analysis.")
             return None
 
-        gp = GProfiler(return_dataframe=True)
         try:
-            enrichment_results = gp.profile(
-                organism="hsapiens",
-                query=gene_list,
-                user_threshold=user_threshold,
-                no_evidences=True,
-                significance_threshold_method="g_SCS",
+            # Perform enrichment analysis using Scanpy's sc.queries.enrich
+            enrichment_results = sc.queries.enrich(
+                gene_list,
+                org="hsapiens",
+                gprofiler_kwargs={
+                    "user_threshold": user_threshold,
+                    "significance_threshold_method": "g_SCS",
+                    "no_evidences": False  # Include intersecting genes
+                }
             )
 
             # Filter by 'term_size' to remove very general terms
             enrichment_results = enrichment_results[
                 enrichment_results["term_size"] < max_temp_size
             ]
+
+            # Sort by 'intersection_size' in descending order
             enrichment_results = enrichment_results.sort_values(
                 "intersection_size", ascending=False
             ).reset_index(drop=True)
+            enrichment_results['description'] = enrichment_results['description'].str.replace('"', '')
+            enrichment_results['intersections'] = enrichment_results['intersections'].astype(str).str.replace('[', '').str.replace(']', '').str.replace("'","")
+            self.ge_results = enrichment_results
+            
+            # Create a dictionary from ge_results using 'name' as the key and store it in self
+            self.ge_results_dict = enrichment_results.set_index('name')[
+                ['description', 'intersections', 'native', 'source']
+            ].to_dict(orient='index')
 
         except Exception as e:
             print("Error during GE analysis:", str(e))
             return None
 
-        self.ge_results = enrichment_results
         return enrichment_results
+    
+    
 
     def verbalize_enrichment_results(self):
         """
@@ -100,3 +116,30 @@ class GE_Analyser:
 
         self.ge_verbalized = ge_text
         return ge_text
+
+    def save_ge_results_to_json(self, output_dir):
+        """
+        Save the gene enrichment results dictionary to a JSON file.
+
+        Args:
+            output_dir (str): The directory where the JSON file will be saved.
+
+        Returns:
+            str: The path to the saved JSON file.
+
+        Raises:
+            ValueError: If `self.ge_results_dict` is not available.
+        """
+        if not hasattr(self, "ge_results_dict") or self.ge_results_dict is None:
+            raise ValueError("No enrichment results dictionary available to save.")
+        
+        # Ensure the output directory exists
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+            print(f"Directory '{output_dir}' did not exist and was created.")
+
+        output_path = os.path.join(output_dir, "ge_results.json")
+        with open(output_path, "w") as json_file:
+            json.dump(self.ge_results_dict, json_file, indent=4)
+
+        return output_path
