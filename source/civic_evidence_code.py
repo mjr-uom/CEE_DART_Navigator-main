@@ -27,11 +27,11 @@ class CivicEvidenceAnalyzer:
 
         self.path = path
         self.gene_list = gene_list
-        self.features = pd.read_csv(path + r"\civic_all_features_simple.csv")
-        self.profiles = pd.read_csv(path + r"\civic_all_molecular_profiles_simple.csv")
-        self.gene_info = pd.read_csv(path + r"\civic_gene_info.csv")
+        self.features = pd.read_csv(path + r'/civic_all_features_simple.csv')
+        self.profiles = pd.read_csv(path + r'/civic_all_molecular_profiles_simple.csv')
+        self.gene_info = pd.read_csv(path + r'/civic_gene_info.csv')
         # self.evidence = pd.read_csv(path + r'\civic_all_evidence_simple.csv')
-        self.civic_map = pd.read_csv(path + r"\civic_map.csv").fillna(-1).astype(int)
+        self.civic_map = pd.read_csv(path + r'/civic_map.csv').fillna(-1).astype(int)
         self.feature_details_dict = None
         self.matching_features = None
 
@@ -133,7 +133,7 @@ class CivicEvidenceAnalyzer:
             )
             return None
 
-        evidence = pd.read_csv(self.path + r"\civic_all_evidence_simple.csv")
+        evidence = pd.read_csv(self.path + r'/civic_all_evidence_simple.csv')
         evidence["pmid"] = pd.to_numeric(evidence["pmid"], errors="coerce").fillna(-1).astype(int)
         evidence["rating"] = pd.to_numeric(evidence["rating"], errors="coerce").fillna(-1).astype(int)
 

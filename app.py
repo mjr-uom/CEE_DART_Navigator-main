@@ -45,6 +45,9 @@ import pingouin as pg
 import pharmabk_code as pbk
 importlib.reload(pbk)
 
+import scanpy as sc
+
+
 default_session_state = {
     'first_form_completed': False,
     'second_form_completed': False,
@@ -1566,7 +1569,11 @@ if st.session_state.get('ready_for_comparison'):
                                 with tab_mp:
                                     st.write(feature_dict.get("Molecular_profiles", "No Molecular Profiles available."))
                                 with tab_ev:
-                                    st.write(feature_dict.get("Evidence", "No Evidences available."))
+                                    # Try "Evidence", if missing then try lower-case "pmid"
+                                    evidence = feature_dict.get("Evidence")
+                                    if evidence is None:
+                                        evidence = feature_dict.get("pmid", "No Evidences available.")
+                                    st.write(evidence)
                         else:
                             st.write("No CIVIC evidence details available.")
             except Exception as e:
@@ -1680,11 +1687,37 @@ if st.session_state.get("ai_assistant_shown", False):
         # Provide a button to generate the JSON once context and prompt are provided.
         if st.button("Generate AI JSON", key="generate_ai_json"):
             print("Generate AI JSON button clicked.")
-            import json
+            import json, tempfile
+            # --- Process gene enrichment results using GE_Analyser method ---
+            gene_enrichment_json = {}
+            ge_results = st.session_state.get('gene_enrichment')
+            if ge_results is not None and not ge_results.empty:
+                try:
+                    # Create a temporary GE_Analyser instance using the gene list extracted from the GE results.
+                    gene_list = ge_results["name"].tolist()  # assumes that 'name' column exists
+                    import gprofiler_code as ge  # ensure you import your module
+                    ge_instance = ge.GE_Analyser(gene_list)
+                    # Manually assign the GE results dictionary from the DataFrame.
+                    ge_instance.ge_results_dict = ge_results.set_index('name')[['description', 'intersections', 'native', 'source']].to_dict(orient='index')
+                    
+                    # Use a temporary directory to save the JSON.
+                    tmp_dir = tempfile.gettempdir()
+                    gene_json_path = ge_instance.save_ge_results_to_json(tmp_dir)
+                    print(f"Gene enrichment results saved to: {gene_json_path}")
+                    with open(gene_json_path, "r") as f:
+                        gene_enrichment_json = json.load(f)
+                    print("Loaded gene enrichment JSON from file.")
+                except Exception as e:
+                    print("Error processing gene enrichment to JSON:", str(e))
+                    gene_enrichment_json = {"error": str(e)}
+            else:
+                print("No valid Gene Enrichment results available for JSON conversion.")
+            
+            # Create the common AI result dictionary.
             ai_result = {
                 "context": st.session_state.get("ai_context", ""),
                 "prompt": st.session_state.get("ai_prompt", ""),
-                "gene_enrichment": st.session_state.get('gene_enrichment'),
+                "gene_enrichment": gene_enrichment_json,
                 "civic_evidence": st.session_state.get('civic_evidence'),
                 "pharmakb_analysis": st.session_state.get('pharmakb_analysis')
             }
@@ -1695,7 +1728,10 @@ if st.session_state.get("ai_assistant_shown", False):
             st.info("AI Assistant result has been automatically saved to JSON.")
             st.code(ai_result_json, language="json")
             print("Displayed AI Assistant result JSON.")
-                
+ 
+##########################################
+#### AI Assistant Sidebar 
+##########################################               
 # At the very end of the script, render the AI Assistant functionality if the current page is "AI Assistant"
 if st.session_state.page == "AI Assistant":
                         
