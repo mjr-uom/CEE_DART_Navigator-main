@@ -104,6 +104,9 @@ default_session_state = {
     'diff_thres': 0.5,
     'p_value': 0.05,
     'pharmakb_details': {},
+    'gene_enrichment': None,     
+    'civic_evidence': None,      
+    'pharmakb_analysis': None,
 }
 
 for key, default_value in default_session_state.items():
@@ -1343,6 +1346,7 @@ if (st.session_state.get('first_form_completed', False) and
                     for G in graphs:
                         container_topn = group_container.container(border=False)
                         plot_my_graph(container_topn, G)
+                
                 st.session_state["compare_form_complete"] = True
                 st.session_state["G_dict12"] = G_dict12
                 st.session_state["ready_for_comparison"] = True
@@ -1355,8 +1359,8 @@ if (st.session_state.get('first_form_completed', False) and
 ###############
 
 
-import LRPgraphdiff_code as LRPgraphdiff  # moduł do obliczania różnic między grafami
-import gprofiler_code as ge  # moduł realizujący analizę gene enrichment
+import LRPgraphdiff_code as LRPgraphdiff  # module for calculating differences between graphs
+import gprofiler_code as ge  # module performing gene enrichment analysis
 import civic_evidence_code  
 
 
@@ -1502,7 +1506,7 @@ if st.session_state.get('ready_for_comparison'):
                 # Analiza gene enrichment
                 ge_analyser = ge.GE_Analyser(gene_list)
                 ge_results = ge_analyser.run_GE_on_nodes(user_threshold=st.session_state['p_value'])  # dostosuj próg, jeśli potrzeba
-
+                st.session_state['gene_enrichment'] = ge_results
                 if ge_results is not None and not ge_results.empty:
                     st.subheader("Gene Enrichment Results:")
                     with st.expander("See Gene Enrichment Results"):
@@ -1525,9 +1529,8 @@ if st.session_state.get('ready_for_comparison'):
                     st.write("No Gene Enrichment Results available.")
             else:
                 st.error("Gene enrichment analysis requires exactly two graphs. Please ensure a valid pair is selected.")
-                            # Now run CIVIC evidence analysis using functions from civic_evidence_code
-                                # CIVIC evidence analysis using functions from civic_evidence_code
-                # Now run CIVIC evidence analysis using functions from civic_evidence_code
+                st.session_state['gene_enrichment'] = None
+
                 # Now run CIVIC evidence analysis using functions from civic_evidence_code
                 import os
             # CIVIC Evidence Analysis
@@ -1537,10 +1540,12 @@ if st.session_state.get('ready_for_comparison'):
 
                 if not os.path.exists(civicdb_path):
                     st.error(f"CIVIC database path does not exist: {civicdb_path}")
+                    st.session_state['civic_evidence'] = None
                 else:
                     analyzer = civic_evidence_code.CivicEvidenceAnalyzer(civicdb_path, gene_list)
                     analyzer.create_feature_details_dict()
                     details_dict = analyzer.add_evidence_to_dict()
+                    st.session_state['civic_evidence'] = details_dict
 
                     st.subheader("CIVIC Evidence Knowledge:")
                     with st.expander("See CIVIC Evidence Knowledge"):
@@ -1566,6 +1571,7 @@ if st.session_state.get('ready_for_comparison'):
                             st.write("No CIVIC evidence details available.")
             except Exception as e:
                 st.error(f"An error occurred during CIVIC Evidence Analysis: {e}")
+                st.session_state['civic_evidence'] = None
 
             # PharmaKB Analysis
             try:
@@ -1573,6 +1579,7 @@ if st.session_state.get('ready_for_comparison'):
 
                 if not os.path.exists(pharmagkb_files_path):
                     st.error(f"PharmaGKB files path does not exist: {pharmagkb_files_path}")
+                    st.session_state['pharmakb_analysis'] = None
                 else:
                     pharmakb_analyzer = pbk.Pharmakb_Analyzer(gene_list)
                     pharmakb_analyzer.get_pharmakb_knowledge(files_path=pharmagkb_files_path)
@@ -1627,5 +1634,127 @@ if st.session_state.get('ready_for_comparison'):
                                         st.write(details["Notes"])
                                     with tab_pmids:
                                         st.write(details["PMID"])
+                            st.session_state['pharmakb_analysis'] = pharmakb_details
             except Exception as e:
                 st.error(f"An error occurred during PharmaKB Analysis: {e}")
+                st.session_state['pharmakb_analysis'] = None
+                
+
+# Check if at least one of the analyses has produced results, then display the AI Assistant button.
+if (st.session_state.get('gene_enrichment') is not None or 
+    st.session_state.get('civic_evidence') is not None or 
+    st.session_state.get('pharmakb_analysis') is not None):
+
+    # If the button is clicked, set a persistent flag in session state.
+    if st.button("AI Assistant", key="ai_assistant_button_graphdiff"):
+        print("AI Assistant button clicked.")
+        st.session_state["ai_assistant_shown"] = True
+
+# If the flag is set (or already set), always display the AI Assistant UI.
+if st.session_state.get("ai_assistant_shown", False):
+    with st.container():
+        st.markdown("### AI Assistant")
+        # Two text areas for Context and Question/Prompt with unique keys.
+        # Their values are automatically stored in st.session_state under the specified keys.
+        context_input = st.text_area("Context", 
+                                     placeholder="Enter context here...", 
+                                     key="ai_context",
+                                     value=st.session_state.get("ai_context", ""))
+        prompt_input = st.text_area("Question/Prompt", 
+                                    placeholder="Enter your question or prompt here...", 
+                                    key="ai_prompt",
+                                    value=st.session_state.get("ai_prompt", ""))
+        print("Retrieved text areas; Context:", st.session_state.get("ai_context"), 
+              "Question/Prompt:", st.session_state.get("ai_prompt"))
+
+        st.markdown("### Pre-loaded Analysis Results:")
+        st.subheader("Gene Enrichment")
+        st.write(st.session_state.get('gene_enrichment'))
+        
+        st.subheader("CIVIC Evidence")
+        st.write(st.session_state.get('civic_evidence'))
+        
+        st.subheader("PharmaKB Analysis")
+        st.write(st.session_state.get('pharmakb_analysis'))
+        
+        # Provide a button to generate the JSON once context and prompt are provided.
+        if st.button("Generate AI JSON", key="generate_ai_json"):
+            print("Generate AI JSON button clicked.")
+            import json
+            ai_result = {
+                "context": st.session_state.get("ai_context", ""),
+                "prompt": st.session_state.get("ai_prompt", ""),
+                "gene_enrichment": st.session_state.get('gene_enrichment'),
+                "civic_evidence": st.session_state.get('civic_evidence'),
+                "pharmakb_analysis": st.session_state.get('pharmakb_analysis')
+            }
+            print("Created AI Assistant result dictionary:", ai_result)
+            ai_result_json = json.dumps(ai_result, indent=4, default=str)
+            st.session_state["ai_assistant_json"] = ai_result_json  # Save the JSON in the session state.
+            print("AI Assistant result has been saved as JSON.")
+            st.info("AI Assistant result has been automatically saved to JSON.")
+            st.code(ai_result_json, language="json")
+            print("Displayed AI Assistant result JSON.")
+                
+# At the very end of the script, render the AI Assistant functionality if the current page is "AI Assistant"
+if st.session_state.page == "AI Assistant":
+                        
+    # Text area for additional context
+    context_input = st.text_area("Context", 
+                                 placeholder="Enter context here...", 
+                                 key="ai_context",
+                                 value="")
+    
+    # Text area for Question/Prompt
+    prompt_input = st.text_area("Question/Prompt", 
+                                placeholder="Enter your question or prompt here...", 
+                                key="ai_prompt",
+                                value="")
+    
+    # Print current inputs for debugging
+    print("Displayed AI Assistant page with context:", st.session_state.get("ai_context"),
+          "and prompt:", st.session_state.get("ai_prompt"))
+    
+    # Gene selection: choose between file upload or selecting from built-in list (from Keyword Selection)
+    st.markdown("### Gene Selection Options:")
+    gene_choice = st.radio("Choose gene selection method:", 
+                           ("Upload gene list", "Select from built-in list"),
+                           key="gene_selection_method")
+    print("Gene selection method chosen:", st.session_state.get("gene_selection_method"))
+    
+    if gene_choice == "Upload gene list":
+        # File uploader for gene list (CSV or TXT)
+        gene_list_file = st.file_uploader("Upload Gene List", type=["csv", "txt"], key="gene_list_file")
+        if gene_list_file:
+            try:
+                # Attempt to read gene list as CSV (assuming one gene per row)
+                gene_list_df = pd.read_csv(gene_list_file, header=None)
+                gene_list = gene_list_df[0].tolist()
+                st.session_state["uploaded_gene_list"] = gene_list
+                st.success("Gene list uploaded successfully (CSV)!")
+                st.write("Uploaded genes:", gene_list)
+                print("Gene list loaded from CSV:", gene_list)
+            except Exception as csv_e:
+                # If CSV fails, try reading as plain text
+                gene_list_str = gene_list_file.getvalue().decode("utf-8")
+                gene_list = [line.strip() for line in gene_list_str.splitlines() if line.strip()]
+                st.session_state["uploaded_gene_list"] = gene_list
+                st.success("Gene list uploaded successfully (TEXT)!")
+                st.write("Uploaded genes:", gene_list)
+                print("Gene list loaded from text:", gene_list)
+        else:
+            print("No gene list file uploaded.")
+    else:  # Select from built-in list
+        # Assume that the built-in gene list is the one used in the Keyword Selection section.
+        # For example, we can use st.session_state['keywords'] (populated earlier).
+        built_in_gene_list = st.session_state.get("keywords", [])
+        if not built_in_gene_list:
+            st.warning("No built-in gene list available from Keyword Selection.")
+            print("No built-in gene list available.")
+        else:
+            selected_genes = st.multiselect("Select Genes from built-in list:", 
+                                            built_in_gene_list, 
+                                            key="selected_gene_list")
+            st.session_state["selected_gene_list"] = selected_genes
+            st.write("Selected genes:", selected_genes)
+            print("Selected genes from built-in list:", selected_genes)
