@@ -1645,8 +1645,11 @@ if st.session_state.get('ready_for_comparison'):
             except Exception as e:
                 st.error(f"An error occurred during PharmaKB Analysis: {e}")
                 st.session_state['pharmakb_analysis'] = None
-                
 
+                
+###################################
+#### AI Assistant button
+################################### 
 # Check if at least one of the analyses has produced results, then display the AI Assistant button.
 if (st.session_state.get('gene_enrichment') is not None or 
     st.session_state.get('civic_evidence') is not None or 
