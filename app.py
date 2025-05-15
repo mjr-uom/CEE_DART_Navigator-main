@@ -452,15 +452,27 @@ if __name__ == '__main__':
 
         # Spacer
         st.markdown("<br>", unsafe_allow_html=True)
+        import base64
+
+        def get_base64_image(image_path):
+            with open(image_path, "rb") as f:
+                data = f.read()
+            return base64.b64encode(data).decode()
+
+        # Base64-encoded image
+        encoded_evidence = get_base64_image("./images/evidence.png")
+        encoded_expert = get_base64_image("./images/expert.png")
 
         # Two content columns
         col1, col2 = st.columns([1, 1])
 
         # Left column: supporting evidence
         with col1:
-            st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
-            st.image("./images/evidence.png", width=50)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style='text-align: center;'>
+                    <img src='data:image/png;base64,{encoded_evidence}' width='50'/>
+                </div>
+            """, unsafe_allow_html=True)
 
             st.markdown("""
             <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
@@ -471,7 +483,6 @@ if __name__ == '__main__':
             </div>
             """, unsafe_allow_html=True)
 
-            # Button inside the frame
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Read more"):
                 st.session_state.page = "FAQ"
@@ -479,18 +490,21 @@ if __name__ == '__main__':
 
         # Right column: expert consensus
         with col2:
-            st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
-            st.image("./images/expert.png", width=50)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style='text-align: center;'>
+                    <img src='data:image/png;base64,{encoded_expert}' width='50'/>
+                </div>
+            """, unsafe_allow_html=True)
 
             st.markdown("""
             <div style="background-color:#e0e0e0; padding:20px; border-radius:10px; 
                         text-align:center; font-size:16px;">
                 <strong>The Portal follows clinical expert consensus</strong><br>
-                The MIS portal is designed to support the interpretation of molecular interaction signatures in the context of clinical expert consensus developed under the Cancer Core Europe umbrella and the latest scientific evidence.
+                The MIS portal supports the interpretation of molecular interaction signatures in the context of clinical expert consensus under the Cancer Core Europe umbrella and latest scientific evidence.
                 <br><br>
             </div>
             """, unsafe_allow_html=True)
+
 
             # Button inside the frame
             st.markdown("<br>", unsafe_allow_html=True)
@@ -509,14 +523,16 @@ if __name__ == '__main__':
         """, unsafe_allow_html=True)
 
         # Logos at the bottom
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             st.image("./images/CRUK_NBC.png", width=220)
         with col2:
             st.image("./images/CRUK_NBC_DCR.png", width=220)
         with col3:
-            st.image("./images/CCE.png", width=150)
+            st.image("./images/idiap_logo.png", width=170)
         with col4:
+            st.image("./images/CCE.png", width=150)
+        with col5:
             st.image("./images/CCE_DART.png", width=170)
 
 
@@ -937,7 +953,7 @@ if __name__ == '__main__':
         st.title("AI Assistant")
         st.markdown("""
             <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
-                        margin-top:20px; text-align:justify; font-size:16px;">
+                        margin-top:20px; text-align:center; font-size:18px;">
                 <strong>AI Assistant</strong><br>
                 This section presents examples of interactions with an AI assistant used to support reasoning analysis, 
                 hypothesis generation, and interpretation of results. It showcases how AI tools can complement human 
@@ -960,14 +976,16 @@ if __name__ == '__main__':
         
         st.markdown("<br>", unsafe_allow_html=True)
         # Logos at the bottom
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             st.image("./images/CRUK_NBC.png", width=220)
         with col2:
             st.image("./images/CRUK_NBC_DCR.png", width=220)
         with col3:
-            st.image("./images/CCE.png", width=150)
+            st.image("./images/idiap_logo.png", width=170)
         with col4:
+            st.image("./images/CCE.png", width=150)
+        with col5:
             st.image("./images/CCE_DART.png", width=170)
 
     elif st.session_state.page == "FAQ":
@@ -1016,14 +1034,16 @@ if __name__ == '__main__':
         
         st.markdown("<br>", unsafe_allow_html=True)
         # Logos at the bottom
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             st.image("./images/CRUK_NBC.png", width=220)
         with col2:
             st.image("./images/CRUK_NBC_DCR.png", width=220)
         with col3:
-            st.image("./images/CCE.png", width=150)
+            st.image("./images/idiap_logo.png", width=170)
         with col4:
+            st.image("./images/CCE.png", width=150)
+        with col5:
             st.image("./images/CCE_DART.png", width=170)
 
 
@@ -1034,95 +1054,153 @@ if __name__ == '__main__':
                         margin-top:20px; text-align:center; font-size:18px;">
                 <strong>About the Molecular Interaction Signatures Portal</strong><br>
                 <br>
-                The Molecular Interaction Signatures (MIS) Portal is a comprehensive platform designed to analyze and compare biological samples based on molecular interaction signatures. 
-                Our portal leverages advanced computational methods, including deep learning metrics, statistical tests, and graph-based techniques, to identify key interaction patterns and assess their biological relevance.
+                <strong>The Molecular Interaction Signatures (MIS) Portal </strong>is a comprehensive platform designed to analyze and compare biological samples based on their molecular interaction signatures. It leverages advanced computational methods—including deep learning metrics, statistical testing, and graph-based approaches—to uncover key interaction patterns and assess their biological relevance.
                 <br><br>
-                Our mission is to facilitate biomarker discovery and hypothesis generation by providing researchers with a robust framework for analyzing molecular profiles. 
-                The portal integrates data from various knowledgebases and computational estimations to offer a detailed and insightful analysis of molecular interactions.
+                <strong>Our mission is to accelerate biomarker discovery and hypothesis generation</strong> by providing researchers with a robust, flexible framework for analyzing molecular profiles. The portal integrates curated knowledgebase data with computational estimations to deliver a detailed and insightful exploration of molecular interactions.
+                <br><br>
+                The MIS Portal is developed by members of <strong>the Digital Cancer Research AI Team</strong> at the CRUK National Biomarker Centre and members of <strong>the Neuro-symbolic AI Group</strong> at the Idiap Research Institute. Our group conducts research at the interface of neural and symbolic methods, aiming to build the next generation of explainable, data-efficient, and safe AI systems. We focus on integrating latent and explicit data representations to enhance learning and reasoning capabilities in complex domains.
+                <br>
+                The development of the MIS Portal reflects our group’s broader mission: enabling transparent and robust AI applications in critical domains such as healthcare and life sciences.
                 <br><br>
                 <strong>Contact Us:</strong><br>
                 For more information, please visit our website or contact us at info@misportal.org.
+                <br><br>
+                <strong>Project Coordinators:</strong><br>
+                Andre Freitas, PhD <br>
+                Oskar Wysocki, PhD <br>
+                Magdalena Wysocka, PhD
+                <br><br>
+                <strong>Design & Development:</strong><br>
+                Oskar Wysocki, PhD <br>
+                Magdalena Wysocka, PhD <br>
+                Mauricio Jacobo-Romero, PhD
+                <br><br>
+                <strong>Collaborators:</strong><br>
+                <a href="https://www.cancercoreeurope.eu/" target="_blank" style="color: black; text-decoration: underline;">Cancer Core Europe</a>
             </div>
         """, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         # Logos at the bottom
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             st.image("./images/CRUK_NBC.png", width=220)
         with col2:
             st.image("./images/CRUK_NBC_DCR.png", width=220)
         with col3:
-            st.image("./images/CCE.png", width=150)
+            st.image("./images/idiap_logo.png", width=170)
         with col4:
+            st.image("./images/CCE.png", width=150)
+        with col5:
             st.image("./images/CCE_DART.png", width=170)
 
     elif st.session_state.page == "News":
         st.title("News")
+        
         st.markdown("""
             <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
                         margin-top:20px; text-align:center; font-size:18px;">
-                <strong>Latest News</strong><br>
-                <br>
-                Stay updated with the latest news and updates about the Molecular Interaction Signatures Portal.
-                <br><br>
+                <strong>Latest News</strong><br><br>
+                Stay updated with the latest news and updates about the Molecular Interaction Signatures Portal.<br>
                 Check back regularly for new features, updates, and announcements.
             </div>
         """, unsafe_allow_html=True)
+        
         st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Example LinkedIn posts section
+        posts = [
+            {
+                "image_url": "https://imgur.com/9xdhThG.jpg",
+                "post_url": "https://www.linkedin.com/posts/andrefreitas_can-llms-perform-logical-inference-in-highly-activity-7323468431167479809-Pg0r?utm_source=share&utm_medium=member_desktop&rcm=ACoAACJ73f4Bel0LYwdOIia675_aXTbVbFr6hBo",
+                "caption": "How to evaluate highly specialized reasoning in LLMs without expensive manual annotations?"
+            },
+            {
+                "image_url": "https://imgur.com/MwGZIim.jpg",
+                "post_url": "https://www.linkedin.com/posts/andrefreitas_acl-2024-is-happening-this-week-in-bangkok-activity-7229406012217139201-WHSh?utm_source=share&utm_medium=member_desktop&rcm=ACoAACJ73f4Bel0LYwdOIia675_aXTbVbFr6hBo",
+                "caption": "An LLM-based Knowledge Synthesis and Scientific Reasoning Framework for Biomedical Discovery"
+            },
+            {
+                "image_url": "https://imgur.com/HqhZ680.jpg",
+                "post_url": "https://www.linkedin.com/feed/update/urn:li:activity:7076861591119360000?utm_source=share&utm_medium=member_desktop&rcm=ACoAACJ73f4Bel0LYwdOIia675_aXTbVbFr6hBo",
+                "caption": "Do you ask ChatGPT or GTP-4 scientific questions? Be aware of hallucinations and low factuality!"
+            }
+        ]
+        
+        # Display posts
+        for post in posts:
+            st.markdown(f"""
+                <div style="display: flex; align-items: center; margin-bottom: 30px;">
+                    <div style="flex: 0 0 150px; margin-right: 20px;">
+                        <a href="{post['post_url']}" target="_blank">
+                            <img src="{post['image_url']}" alt="Post thumbnail" style="width: 100%; border-radius: 10px;">
+                        </a>
+                    </div>
+                    <div style="flex: 1; font-size: 16px;">
+                        <a href="{post['post_url']}" target="_blank" style="text-decoration: none; color: black;">
+                            <strong>{post['caption']}</strong>
+                        </a>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
         # Logos at the bottom
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             st.image("./images/CRUK_NBC.png", width=220)
         with col2:
             st.image("./images/CRUK_NBC_DCR.png", width=220)
         with col3:
-            st.image("./images/CCE.png", width=150)
+            st.image("./images/idiap_logo.png", width=170)
         with col4:
+            st.image("./images/CCE.png", width=150)
+        with col5:
             st.image("./images/CCE_DART.png", width=170)
         
     elif st.session_state.page == "Results":
         st.title("Results")
         st.markdown("""
         <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
-                    margin-top:20px; text-align:justify; font-size:16px;">
+                    margin-top:20px; text-align:justify; font-size:18px;">
             <strong>Related Papers</strong><br>
             <br>
             The following publications are closely related to the research presented in this work. 
                 They provide additional context, complementary methodologies, or foundational insights 
                 that support and extend the findings discussed here.
             <br><br>
-            <strong>Magdalena Wysocka, Danilo Carvalho, Oskar Wysocki, Marco Valentino, Andre Freitas. SylloBio-NLI: Evaluating Large Language Models on Biomedical Syllogistic Reasoning. NAACL 2025</strong> –  
+            <strong>SylloBio-NLI: Evaluating Large Language Models on Biomedical Syllogistic Reasoning.</strong> Wysocka M, Carvalho D, Wysocki O, Valentino M, Freitas A. NAACL, 2025 –  
             <a href="https://aclanthology.org/2025.naacl-long.371/" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
             <br><br>
-            <strong>Oskar Wysocki, Magdalena Wysocka, Danilo Carvalho, Alex Bogatu, Danilo Miranda, Maxime Delmas, Harriet Unsworth, Andre Freitas. An LLM-based Knowledge Synthesis and Scientific Reasoning Framework for Biomedical Discovery. ACL 2024</strong> – 
+            <strong>An LLM-based Knowledge Synthesis and Scientific Reasoning Framework for Biomedical Discovery.</strong> Wysocki O, Wysocka M, Carvalho D, Bogatu A, Miranda D, Delmas M, Unsworth H, Freitas A. ACL Anthology, 2024 – 
             <a href="https://aclanthology.org/2024.acl-demos.34/" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
             <br><br>
-            <strong>Maxime Delmas, Magdalena Wysocka, André Freitas. Relation Extraction in underexplored biomedical domains: A diversity-optimised sampling and synthetic data generation approach. ACL Anthology, 2024</strong> –  
+            <strong>Relation Extraction in underexplored biomedical domains: A diversity-optimised sampling and synthetic data generation approach.</strong> Delmas M, Wysocka M, Freitas A. ACL Anthology, 2024 –  
             <a href="https://aclanthology.org/2024.cl-3.4/" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
             <br><br>
-            <strong>Magdalena Wysocka, Oskar Wysocki, Maxime Delmas, Vincent Mutel, Andre Freitas. Large Language Models, scientific knowledge and factuality: A systematic analysis in antibiotic discovery. Journal of Biomedical Informatics, 2024</strong> –  
+            <strong>Large Language Models, scientific knowledge and factuality: A systematic analysis in antibiotic discovery.</strong> Wysocka M, Wysocki O, Delmas M, Mutel V, Freitas A. Journal of Biomedical Informatics, 2024 –  
             <a href="https://www.sciencedirect.com/science/article/pii/S1532046424001424?via%3Dihub" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
             <br><br>
-            <strong>Wysocka M, Wysocki O, Zufferey M, Landers D, Freitas A. A systematic review of biologically-informed deep learning models for cancer: fundamental trends for encoding and interpreting oncology data. BMC Bioinformatics, 2023</strong> –  
+            <strong>A systematic review of biologically-informed deep learning models for cancer: fundamental trends for encoding and interpreting oncology data.</strong> Wysocka M, Wysocki O, Zufferey M, Landers D, Freitas A. BMC Bioinformatics, 2023 –  
             <a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-023-05262-8" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
             <br><br>
-            <strong>Wysocki O, Zhou Z, O’Regan P, Ferreira D, Wysocka M, Landers D, Freitas A. Transformers and the Representation of Biomedical Background Knowledge. Computational Linguistics 2022</strong> –  
+            <strong>Transformers and the Representation of Biomedical Background Knowledge.</strong> Wysocki O, Zhou Z, O’Regan P, Ferreira D, Wysocka M, Landers D, Freitas A. Computational Linguistics, 2022 –  
             <a href="https://direct.mit.edu/coli/article/49/1/73/113017/Transformers-and-the-Representation-of-Biomedical" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
             <br><br>
-            <strong>Wysocki O, Davies JK, Vigo M, Armstrong AC, Landers D, Lee R, Freitas A. Assessing the communication gap between AI models and healthcare professionals: Explainability, utility and trust in AI-driven clinical decision-making, Artificial Intelligence, 2022</strong> –   
+            <strong>Assessing the communication gap between AI models and healthcare professionals: Explainability, utility and trust in AI-driven clinical decision-making.</strong> Wysocki O, Davies JK, Vigo M, Armstrong AC, Landers D, Lee R, Freitas A. Artificial Intelligence, 2022 –   
             <a href="https://www.sciencedirect.com/science/article/pii/S0004370222001795" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
         </div>
         """, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         # Logos at the bottom
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             st.image("./images/CRUK_NBC.png", width=220)
         with col2:
             st.image("./images/CRUK_NBC_DCR.png", width=220)
         with col3:
-            st.image("./images/CCE.png", width=150)
+            st.image("./images/idiap_logo.png", width=170)
         with col4:
+            st.image("./images/CCE.png", width=150)
+        with col5:
             st.image("./images/CCE_DART.png", width=170)
 ################
 #
@@ -1907,65 +1985,72 @@ if st.session_state.get("ai_assistant_shown", False):
 ##########################################
 #### AI Assistant Sidebar 
 ##########################################               
-# At the very end of the script, render the AI Assistant functionality if the current page is "AI Assistant"
 if st.session_state.page == "AI Assistant":
-                        
+    
     # Text area for additional context
     context_input = st.text_area("Context", 
                                  placeholder="Enter context here...", 
                                  key="ai_context",
-                                 value="")
+                                 value=st.session_state.get("ai_context", ""))
     
     # Text area for Question/Prompt
     prompt_input = st.text_area("Question/Prompt", 
                                 placeholder="Enter your question or prompt here...", 
                                 key="ai_prompt",
-                                value="")
+                                value=st.session_state.get("ai_prompt", ""))
     
-    # Print current inputs for debugging
     print("Displayed AI Assistant page with context:", st.session_state.get("ai_context"),
           "and prompt:", st.session_state.get("ai_prompt"))
     
-    # Gene selection: choose between file upload or selecting from built-in list (from Keyword Selection)
-    st.markdown("### Gene Selection Options:")
-    gene_choice = st.radio("Choose gene selection method:", 
-                           ("Upload gene list", "Select from built-in list"),
-                           key="gene_selection_method")
-    print("Gene selection method chosen:", st.session_state.get("gene_selection_method"))
+    ##########################################################
+    # Keyword Options: Either upload frequent keywords or select keywords
+    ##########################################################
+    st.markdown("### Keyword Options:")
+    keyword_option = st.radio("Choose keyword option:",
+                              ("Upload Frequent Keywords", "Keyword Selection"),
+                              key="keyword_option")
+    print("Keyword option chosen:", st.session_state.get("keyword_option"))
     
-    if gene_choice == "Upload gene list":
-        # File uploader for gene list (CSV or TXT)
-        gene_list_file = st.file_uploader("Upload Gene List", type=["csv", "txt"], key="gene_list_file")
-        if gene_list_file:
+    if keyword_option == "Upload Frequent Keywords":
+        # File uploader for frequent keywords (CSV or TXT)
+        keyword_file = st.file_uploader("Upload Frequent Keywords", type=["csv", "txt"], key="keyword_file")
+        if keyword_file:
             try:
-                # Attempt to read gene list as CSV (assuming one gene per row)
-                gene_list_df = pd.read_csv(gene_list_file, header=None)
-                gene_list = gene_list_df[0].tolist()
-                st.session_state["uploaded_gene_list"] = gene_list
-                st.success("Gene list uploaded successfully (CSV)!")
-                st.write("Uploaded genes:", gene_list)
-                print("Gene list loaded from CSV:", gene_list)
-            except Exception as csv_e:
-                # If CSV fails, try reading as plain text
-                gene_list_str = gene_list_file.getvalue().decode("utf-8")
-                gene_list = [line.strip() for line in gene_list_str.splitlines() if line.strip()]
-                st.session_state["uploaded_gene_list"] = gene_list
-                st.success("Gene list uploaded successfully (TEXT)!")
-                st.write("Uploaded genes:", gene_list)
-                print("Gene list loaded from text:", gene_list)
+                # Read keywords as CSV (assuming one keyword per row)
+                keywords_df = pd.read_csv(keyword_file, header=None)
+                uploaded_keywords = keywords_df[0].tolist()
+                st.session_state["uploaded_keywords"] = uploaded_keywords
+                st.success("Frequent keywords uploaded successfully (CSV)!")
+                st.write("Uploaded frequent keywords:", uploaded_keywords)
+                print("Frequent keywords loaded from CSV:", uploaded_keywords)
+            except Exception as e_csv:
+                # If CSV reading fails, try reading as plain text
+                keyword_file_str = keyword_file.getvalue().decode("utf-8")
+                uploaded_keywords = [line.strip() for line in keyword_file_str.splitlines() if line.strip()]
+                st.session_state["uploaded_keywords"] = uploaded_keywords
+                st.success("Frequent keywords uploaded successfully (TEXT)!")
+                st.write("Uploaded frequent keywords:", uploaded_keywords)
+                print("Frequent keywords loaded from text:", uploaded_keywords)
         else:
-            print("No gene list file uploaded.")
-    else:  # Select from built-in list
-        # Assume that the built-in gene list is the one used in the Keyword Selection section.
-        # For example, we can use st.session_state['keywords'] (populated earlier).
-        built_in_gene_list = st.session_state.get("keywords", [])
-        if not built_in_gene_list:
-            st.warning("No built-in gene list available from Keyword Selection.")
-            print("No built-in gene list available.")
+            print("No frequent keywords file uploaded.")
+    else:  # Keyword Selection branch using the frequent keywords list from Analyse page
+        if st.session_state.get("frequent_kws") is not None and not st.session_state["frequent_kws"].empty:
+            # Use the first column of the uploaded frequent keywords CSV
+            uploaded_list = st.session_state["frequent_kws"][0].tolist()
+            selected_keywords = st.multiselect("Please select your keyword:", 
+                                                 uploaded_list, 
+                                                 key="selected_keywords")
+            st.session_state["selected_keywords"] = selected_keywords
+            st.write("Selected keywords:", selected_keywords)
+            print("Selected keywords from uploaded list:", selected_keywords)
         else:
-            selected_genes = st.multiselect("Select Genes from built-in list:", 
-                                            built_in_gene_list, 
-                                            key="selected_gene_list")
-            st.session_state["selected_gene_list"] = selected_genes
-            st.write("Selected genes:", selected_genes)
-            print("Selected genes from built-in list:", selected_genes)
+            st.warning("No frequent keywords available. Please upload frequent keywords in the Analyse page.")
+            print("No frequent keywords available.")
+    
+    # Ensure that one of the options is provided before proceeding.
+    provided_keywords = (st.session_state.get("uploaded_keywords")
+                           if st.session_state.get("keyword_option") == "Upload Frequent Keywords"
+                           else st.session_state.get("selected_keywords"))
+    
+    if not provided_keywords:
+        st.warning("Please provide frequent keywords either by uploading a file or by selecting from the uploaded list to proceed.")
