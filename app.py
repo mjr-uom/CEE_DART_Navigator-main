@@ -16,7 +16,7 @@ import itertools
 import importlib, sys
 import matplotlib.pyplot as plt
 from gptAgent import OpenAIAgent
-
+import os
 from len_gen import generate_legend_table, generate_legend_table_community
 path_to_functions_directory = r'./source'
 if path_to_functions_directory not in sys.path:
@@ -44,6 +44,7 @@ import pingouin as pg
 
 import pharmabk_code as pbk
 importlib.reload(pbk)
+import collections
 
 import scanpy as sc
 import altair as alt
@@ -51,6 +52,7 @@ import altair as alt
 default_session_state = {
     'first_form_completed': False,
     'second_form_completed': False,
+    'Generate_graphs_button': False,
     'enable_comparison': False,
     'G_dict': {},
     'keywords': list(),
@@ -782,7 +784,10 @@ if __name__ == '__main__':
                                 pattern = '|'.join(selected_node_types) if isinstance(selected_node_types, list) else selected_node_types
                                 _ = comparison.filter_and_merge_data(selected_type=pattern)
                                 fig = comparison.plot_scatter(selected_type=pattern, save_plot=save_plot)
-                                st.pyplot(fig)
+                                # Center the figure in a column and set a defined width
+                                centered_col = st.columns([1, 1, 1])[1]  # Middle column is wider
+                                with centered_col:
+                                    st.pyplot(fig, use_container_width=False)  # Removed width and height arguments
 
                 elif st.session_state.get("sample_comparison_type") == "graph":
                     # Placeholder for Graph Comparison analysis.
@@ -860,7 +865,9 @@ if __name__ == '__main__':
                         if fig is None:
                             import matplotlib.pyplot as plt
                             fig = plt.gcf()
-                        st.pyplot(fig)
+                        centered_col = st.columns([1, 1, 1])[1]  # Middle column is wider
+                        with centered_col:
+                            st.pyplot(fig, use_container_width=False)  # Removed width and height arguments
                 
                 elif st.session_state.get("group_comparison_type") == "graph":
                     st.markdown("### Graph Comparison for Sample vs Group")
@@ -944,7 +951,9 @@ if __name__ == '__main__':
                             # Poprawka: upewniamy się, że do st.pyplot() przekazujemy obiekt fig.
                             if fig is None:
                                 fig = plt.gcf()
-                            st.pyplot(fig)
+                            centered_col = st.columns([1, 1, 1])[1]  # Middle column is wider
+                            with centered_col:
+                                st.pyplot(fig, use_container_width=False)  # Removed width and height arguments
 
                 elif st.session_state.get("group_comparison_type") == "graph":
                     st.markdown("### Graph Comparison for Group vs Group")
@@ -1247,11 +1256,15 @@ if (st.session_state.get('first_form_completed', False) and
             "Please select the number of top n edges",
             min_value=1,
             max_value=len(st.session_state['filtered_data'].index),
-            value=len(st.session_state['filtered_data'].index) // 2
+            value=150 if len(st.session_state['filtered_data'].index) >= 150 else len(st.session_state['filtered_data'].index)
         )
-        submit_button = st.form_submit_button(label='Submit')
+        submit_button = st.form_submit_button(label='Generate graphs')
+        if submit_button:
+            st.session_state["Generate_graphs_button"] = True
+            st.session_state['Calcualte_button'] = False
 
-    if submit_button:
+    
+    if st.session_state.get("Generate_graphs_button"):
         if selected_sample1 == selected_sample2:
             st.error("Selected samples must be distinct. Please choose two different samples.")
         else:
@@ -1371,11 +1384,14 @@ if (st.session_state.get('first_form_completed', False) and
                 "Please select the number of top n edges",
                 min_value=1,
                 max_value=len(st.session_state['filtered_data'].index),
-                value=len(st.session_state['filtered_data'].index) // 2
+                value=150 if len(st.session_state['filtered_data'].index) >= 150 else len(st.session_state['filtered_data'].index)
             )
-            submit_button = st.form_submit_button(label='Submit')
-
-        if submit_button:
+            submit_button = st.form_submit_button(label='Generate graphs')
+            if submit_button:
+                st.session_state["Generate_graphs_button"] = True
+                st.session_state['Calcualte_button'] = False
+        
+        if st.session_state.get("Generate_graphs_button"):
             if not selected_sample:
                 st.error("Please select a sample for comparison.")
             else:
@@ -1475,30 +1491,43 @@ if (st.session_state.get('first_form_completed', False) and
         unique_groups = sorted(list(filtered_metadata[st.session_state["stratify_by"]].unique()))
 
         # ---- Group Selection for Group-Group Comparison ----
+
+        def on_group_selection_change():
+            st.session_state["Generate_graphs_button"] = False
+            st.session_state['Calcualte_button'] = False
+
+        
         group1 = group_container.selectbox(
             "Please select Group 1:",
             unique_groups,
-            key="group1"
+            key="group1",
+            on_change=on_group_selection_change
         )
         group2 = group_container.selectbox(
             "Please select Group 2:",
             unique_groups,
-            key="group2"
+            key="group2",
+            on_change=on_group_selection_change
         )
 
         # Form to select the number of top edges to use for generating graphs.
         compare_form = group_container.form('Compare')
         with compare_form:
             st.session_state['top_diff_n'] = st.slider(
-                "Please select the number of top n edges",
-                min_value=1,
-                max_value=len(st.session_state['filtered_data'].index),
-                value=len(st.session_state['filtered_data'].index) // 2
+            "Please select the number of top n edges",
+            min_value=1,
+            max_value=len(st.session_state['filtered_data'].index),
+            value=150 if len(st.session_state['filtered_data'].index) >= 150 else len(st.session_state['filtered_data'].index)
             )
-            submit_button = st.form_submit_button(label='Submit')
+            st.session_state["ready_for_comparison"] = True
+            submit_button = st.form_submit_button(label='Generate graphs')
+            if submit_button:
+                st.session_state["Generate_graphs_button"] = True
+                st.session_state['Calcualte_button'] = False
 
         # Inside the submit block
-        if submit_button:
+        #if submit_button:
+        if st.session_state.get("Generate_graphs_button"):
             if group1 == group2:
                 st.error("Selected groups must be distinct. Please choose two different groups.")
             else:
@@ -1578,212 +1607,231 @@ import civic_evidence_code
 #G_dict12 = st.session_state["G_dict12"]
 
 # Activate the block if analysis type is 'group-group', 'sample-group', or 'sample-sample' and comparison subtype is "graph"
-if st.session_state.get('ready_for_comparison'):
+if st.session_state.get('ready_for_comparison') and st.session_state.get('sample_comparison_type') == "graph":
     #and st.session_state.get('analysis_type') in ['sample-sample', 'group-group', 'sample-group'] and \
    #st.session_state.get("group_comparison_type") == "graph":
     print_session_state()
     st.markdown("### Graph Difference Analysis")
     st.markdown("Display a graph which edges represent the differences between two graphs. The higher the difference, the more significant (thicker) the edge.")
     # Retrieve generated graphs from session state
-    G_dict12 = st.session_state.get("G_dict12")
-    if not G_dict12:
-        st.error("No graphs available for difference analysis. Please run the graph generation step first.")
-    else:
+    #G_dict12 = st.session_state.get("G_dict12")
+    #if not G_dict12:
+    #    st.error("No graphs available for difference analysis. Please run the graph generation step first.")
+    #else:
         # Perform graph difference analysis
-        fg.get_all_fixed_size_adjacency_matrices(G_dict12)
-        fg.get_all_fixed_size_embeddings(G_dict12)
+        #fg.get_all_fixed_size_adjacency_matrices(G_dict12)
+        #fg.get_all_fixed_size_embeddings(G_dict12)
 
         # Calculate adjacency differences for each pair of graphs
-        pairs = list(itertools.combinations(range(len(G_dict12)), 2))
-        adj_diff_list = []
-        for i, j in pairs:
-            diff = fg.calculate_adjacency_difference(G_dict12[i], G_dict12[j])
-            adj_diff_list.append(diff)
+    #    pairs = list(itertools.combinations(range(len(G_dict12)), 2))
+    #    adj_diff_list = []
+    #    for i, j in pairs:
+    #        diff = fg.calculate_adjacency_difference(G_dict12[i], G_dict12[j])
+    #        adj_diff_list.append(diff)
 
-        # Threshold selection form
-        threshold_selection_form = st.form('ThresSelection')
-        with threshold_selection_form:
-            col_slider, col_slider2, col_button = st.columns([3, 3, 1])
-            with col_slider:
-                diff_thres = st.slider(
-                    "Minimum difference in LRP interactions between two graphs:",
-                    min_value=0.0,
-                    max_value=1.0,
-                    value=0.5,
-                    help="Select a threshold for significant differences."
-                )
-                st.session_state['diff_thres'] = diff_thres
-                                
-            with col_slider2:
-                p_value = st.slider(
-                    "Gene Enrichment p-value threshold:",
-                    min_value=0.0,
-                    max_value=0.2,
-                    value=0.05,
-                    step=0.001,
-                    help="Select a p-value threshold for significance for Gene Enrichment analysis."
-                )
-                st.session_state['p_value'] = p_value
-                                
-            with col_button:
-                calculate_button = st.form_submit_button(label='Calculate')
+    # Threshold selection form
+    threshold_selection_form = st.form('ThresSelection')
+    with threshold_selection_form:
+        col_slider, col_slider2, col_button = st.columns([3, 3, 1])
+        with col_slider:
+            diff_thres = st.slider(
+                "Minimum difference in LRP interactions between two graphs:",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.5,
+                help="Select a threshold for significant differences."
+            )
+            st.session_state['diff_thres'] = diff_thres
+                            
+        with col_slider2:
+            p_value = st.slider(
+                "Gene Enrichment p-value threshold:",
+                min_value=0.0,
+                max_value=0.2,
+                value=0.05,
+                step=0.001,
+                help="Select a p-value threshold for significance for Gene Enrichment analysis."
+            )
+            st.session_state['p_value'] = p_value
+                            
+        with col_button:
+            calculate_button = st.form_submit_button(label='Calculate')
                 
         if calculate_button:
             print("Calculate button pressed.")
             print_session_state()
+            st.session_state['Calcualte_button'] = True
 
+        if st.session_state.get('Calcualte_button'):
             # Perform graph difference analysis for the selected pair
-            if len(G_dict12) == 2:  # Ensure exactly two graphs are selected
+            #if len(G_dict12) == 2:  # Ensure exactly two graphs are selected
+            G_dict12 = st.session_state.get("G_dict12")
+            fg.get_all_fixed_size_adjacency_matrices(G_dict12)
+            fg.get_all_fixed_size_embeddings(G_dict12)
+            diff_graph_obj = LRPgraphdiff.LRPGraphDiff(G_dict12[0], G_dict12[1], diff_thres=st.session_state['diff_thres'])
 
-                diff_graph_obj = LRPgraphdiff.LRPGraphDiff(G_dict12[0], G_dict12[1], diff_thres=st.session_state['diff_thres'])
+            #fg.get_all_fixed_size_adjacency_matrices(G_dict12)
+            #fg.get_all_fixed_size_embeddings(G_dict12)
 
-                #fg.get_all_fixed_size_adjacency_matrices(G_dict12)
-                #fg.get_all_fixed_size_embeddings(G_dict12)
+            # Calculate adjacency difference for the selected pair
+            #diff = fg.calculate_adjacency_difference(G_dict12[0], G_dict12[1])
 
-                # Calculate adjacency difference for the selected pair
-                #diff = fg.calculate_adjacency_difference(G_dict12[0], G_dict12[1])
+            #edge_df = fg.create_edge_dataframe_from_adj_diff(diff, diff_thres)
+            #print("Edge DataFrame Columns:", edge_df.columns)
+            #if edge_df.empty:
+            #    st.subheader("The edges representing graph differences are not above the threshold to plot.")
+            #    print("No edges above the threshold to plot.")
+            #else:
+            label1 = "Graph 1"
+            label2 = "Graph 2"
 
-                #edge_df = fg.create_edge_dataframe_from_adj_diff(diff, diff_thres)
-                #print("Edge DataFrame Columns:", edge_df.columns)
-                #if edge_df.empty:
-                #    st.subheader("The edges representing graph differences are not above the threshold to plot.")
-                #    print("No edges above the threshold to plot.")
-                #else:
-                label1 = "Graph 1"
-                label2 = "Graph 2"
+            #diff_graph = lrpgraph.LRPGraph(
+            #    edges_sample_i=edge_df,
+            #    source_column="source_node",
+            #    target_column="target_node",
+            #    edge_attrs=["LRP", "LRP_norm"],
+            #    top_n_edges=st.session_state.get('top_diff_n', 10),
+            #    sample_ID=f"DIFFERENCE {label1} vs {label2}"
+            #)
 
-                #diff_graph = lrpgraph.LRPGraph(
-                #    edges_sample_i=edge_df,
-                #    source_column="source_node",
-                #    target_column="target_node",
-                #    edge_attrs=["LRP", "LRP_norm"],
-                #    top_n_edges=st.session_state.get('top_diff_n', 10),
-                #    sample_ID=f"DIFFERENCE {label1} vs {label2}"
-                #)
+            # Display the difference graph
+            col_diff1, col_diff2 = st.columns(2)
+            with col_diff1:
+                print(f"Displaying difference graph for {label1} vs {label2} in the first column.")
+                plot_my_graph(col_diff1, diff_graph_obj.diff_graph)
+            with col_diff2:
+                print(f"Displaying communities for {label1} vs {label2} in the second column.")
+                #diff_graph.get_communitites()
+                if diff_graph_obj.diff_graph.communitites is not None and not diff_graph_obj.diff_graph.communitites.empty and "node" in diff_graph_obj.diff_graph.communitites.columns and "community" in diff_graph_obj.diff_graph.communitites.columns:
+                    #st.session_state['community_analysis'] = dict(zip(diff_graph_obj.diff_graph.communitites["node"], diff_graph_obj.diff_graph.communitites["community"]))
+                    # Invert the mapping: community number -> list of gene names
+                    comm_df = diff_graph_obj.diff_graph.communitites
+                    community_to_genes = collections.defaultdict(list)
+                    for node, comm in zip(comm_df["node"], comm_df["community"]):
+                        community_to_genes[comm].append(node)
+                    st.session_state['community_analysis'] = dict(community_to_genes)
+                else:
+                    st.session_state['community_analysis'] = {} # Ensure it's an empty dict if no communities
+                plot_my_graph(col_diff2, diff_graph_obj.diff_graph, diff_graph_obj.diff_graph.communitites)
+                print("Node communities:", diff_graph_obj.diff_graph.communitites)
+                print("Communities: ", st.session_state['community_analysis'])
 
-                # Display the difference graph
-                col_diff1, col_diff2 = st.columns(2)
-                with col_diff1:
-                    print(f"Displaying difference graph for {label1} vs {label2} in the first column.")
-                    plot_my_graph(col_diff1, diff_graph_obj.diff_graph)
-                with col_diff2:
-                    print(f"Displaying communities for {label1} vs {label2} in the second column.")
-                    #diff_graph.get_communitites()
-                    if diff_graph_obj.diff_graph.communitites is not None and not diff_graph_obj.diff_graph.communitites.empty and "node" in diff_graph_obj.diff_graph.communitites.columns and "community" in diff_graph_obj.diff_graph.communitites.columns:
-                        st.session_state['community_analysis'] = dict(zip(diff_graph_obj.diff_graph.communitites["node"], diff_graph_obj.diff_graph.communitites["community"]))
-                    else:
-                        st.session_state['community_analysis'] = {} # Ensure it's an empty dict if no communities
-                    plot_my_graph(col_diff2, diff_graph_obj.diff_graph, diff_graph_obj.diff_graph.communitites)
-                    print("Node communities:", diff_graph_obj.diff_graph.communitites)
+            diff_graph_obj.get_edges_and_nodes_vs_threshold()
+            
+            #edge_df_sizes = []
+            #for th_val in np.arange(0.0, 1.0, 0.02):
+            #    tmp_edge_df = fg.create_edge_dataframe_from_adj_diff(diff, th_val)
+            #    edge_df_sizes.append((th_val, len(tmp_edge_df)))
 
-                diff_graph_obj.get_edges_and_nodes_vs_threshold()
-                
-                #edge_df_sizes = []
-                #for th_val in np.arange(0.0, 1.0, 0.02):
-                #    tmp_edge_df = fg.create_edge_dataframe_from_adj_diff(diff, th_val)
-                #    edge_df_sizes.append((th_val, len(tmp_edge_df)))
-
-                col_chart1, col_chart2 = st.columns(2)
-                with col_chart1:
-                    print(f"Plotting 'Number of Edges vs Difference Threshold' for {label1} vs {label2}.")
-                    st.subheader("Number of Edges vs Difference Threshold")
-                    st.markdown("This plot shows the number of edges and nodes in the graph as a function of the difference threshold. The higher the threshold, the fewer edges and nodes are included.")
-                    # Use Altair for multi-line plot
-                    df = diff_graph_obj.edge_node_df_sizes
-                    threshold = st.session_state['diff_thres']
-
-                    # Main line chart with custom legend labels
-                    chart = alt.Chart(df).transform_fold(
-                        ['num_edges', 'num_nodes'],
-                        as_=['Metric', 'Count']
-                    ).mark_line(point=True).encode(
-                        x=alt.X('threshold:Q', title='Difference Threshold'),
-                        y=alt.Y('Count:Q', title='Count'),
-                        color=alt.Color(
-                            'Metric:N',
-                            title='Metric',
-                            scale=alt.Scale(
-                                domain=['num_edges', 'num_nodes'],
-                                range=['#1f77b4', '#ff7f0e']
-                            ),
-                            legend=alt.Legend(
-                                title="Metric",
-                                labelExpr="{'num_edges': 'Number of Edges', 'num_nodes': 'Number of Nodes'}[datum.label]"
-                            )
+            col_chart1, col_chart2 = st.columns(2)
+            with col_chart1:
+                print(f"Plotting 'Number of Edges vs Difference Threshold' for {label1} vs {label2}.")
+                st.subheader("Number of Edges vs Difference Threshold")
+                st.markdown("This plot shows the number of edges and nodes in the graph as a function of the difference threshold. The higher the threshold, the fewer edges and nodes are included.")
+                # Use Altair for multi-line plot
+                df = diff_graph_obj.edge_node_df_sizes
+                threshold = st.session_state['diff_thres']
+                # Main line chart with custom legend labels
+                chart = alt.Chart(df).transform_fold(
+                    ['num_edges', 'num_nodes'],
+                    as_=['Metric', 'Count']
+                ).mark_line(point=True).encode(
+                    x=alt.X('threshold:Q', title='Difference Threshold'),
+                    y=alt.Y('Count:Q', title='Count'),
+                    color=alt.Color(
+                        'Metric:N',
+                        title='Metric',
+                        scale=alt.Scale(
+                            domain=['num_edges', 'num_nodes'],
+                            range=['#1f77b4', '#ff7f0e']
+                        ),
+                        legend=alt.Legend(
+                            title="Metric",
+                            labelExpr="{'num_edges': 'Number of Edges', 'num_nodes': 'Number of Nodes'}[datum.label]"
                         )
                     )
+                )
 
-                    # Vertical dashed line for threshold
-                    vline = alt.Chart(pd.DataFrame({'threshold': [threshold], 'legend': ['Selected Threshold']})).mark_rule(
-                        color='black', strokeDash=[4,4]
-                    ).encode(
-                        x='threshold:Q',
-                        detail='legend:N',
-                        color=alt.value('black')
-                    )
+                # Vertical dashed line for threshold
+                vline = alt.Chart(pd.DataFrame({'threshold': [threshold], 'legend': ['Selected Threshold']})).mark_rule(
+                    color='black', strokeDash=[4,4]
+                ).encode(
+                    x='threshold:Q',
+                    detail='legend:N',
+                    color=alt.value('black')
+                )
 
-                    # Combine the main chart and the vertical line
-                    final_chart = chart + vline
+                # Combine the main chart and the vertical line
+                final_chart = chart + vline
 
-                    # Add a manual legend for the dashed line
-                    st.altair_chart(final_chart, use_container_width=True)
-                    
-                with col_chart2:
-                    print(f"Plotting 'LRP Values for Edges Sorted by LRP' for {label1} vs {label2}.")
-                    st.subheader("LRP Values for Edges in the difference graph")
-                    st.markdown(" \n \n")
+                # Add a manual legend for the dashed line
+                st.altair_chart(final_chart, use_container_width=True)
+                
+                #'''with col_chart2:
+                #print(f"Plotting 'LRP Values for Edges Sorted by LRP' for {label1} vs {label2}.")
+                #st.subheader("LRP Values for Edges in the difference graph")
+                #st.markdown(" \n \n")
 
-                    edge_df = diff_graph_obj.edge_df
-                    if 'LRP' not in edge_df.columns and 'LRP_norm' in edge_df.columns:
-                        edge_df = edge_df.rename(columns={'LRP_norm': 'LRP'})
-                    st.line_chart(edge_df['LRP'], x_label='Edge #', y_label='LRP')
-            else:
-                st.error("Graph difference analysis requires exactly two graphs. Please select a valid pair.")        
+                #edge_df = diff_graph_obj.edge_df
+                #if 'LRP' not in edge_df.columns and 'LRP_norm' in edge_df.columns:
+                #    edge_df = edge_df.rename(columns={'LRP_norm': 'LRP'})
+                #st.line_chart(edge_df['LRP'], x_label='Edge #', y_label='LRP')'''
+            #else:
+            #    st.error("Graph difference analysis requires exactly two graphs. Please select a valid pair.")     
+
             st.session_state["enable_chat_bot"] = True
             st.divider()
 
-            # Po wyświetleniu wszystkich grafów różnic i wykresów, wykonaj analizę gene enrichment dla wybranej pary:
-            if G_dict12 and len(G_dict12) == 2:  # Upewnij się, że mamy dokładnie dwa grafy
-                # Używamy właściwego atrybutu node_names_no_type dla wybranej pary
-                #diff_graph = LRPgraphdiff.LRPGraphDiff(G_dict12[0], G_dict12[1], diff_thres=st.session_state['diff_thres'])
-                gene_list = diff_graph_obj.diff_graph.node_names_no_type
-                st.session_state['gene_list'] = gene_list
-                print("Gene List:", st.session_state['gene_list'])
-                # show the gene list
-                st.subheader("Gene List:")
-                with st.expander("See Gene List"):
-                    st.write(st.session_state['gene_list'] )
-   
-                   # Analiza gene enrichment
-                ge_analyser = ge.GE_Analyser(st.session_state['gene_list'])
-                ge_results = ge_analyser.run_GE_on_nodes(user_threshold=st.session_state['p_value'])  # dostosuj próg, jeśli potrzeba
-                st.session_state['gene_enrichment'] = ge_results
-                if ge_results is not None and not ge_results.empty:
-                    st.subheader("Gene Enrichment Results:")
-                    with st.expander("See Gene Enrichment Results"):
-                        # Dla każdego wyniku z analizy gene enrichment
-                        for idx, row in ge_results.iterrows():
-                            st.markdown(f"### Enriched Term: {row['name']}")
-                            # Tworzymy zakładki odpowiadające informacjom ze słownika wyniku
-                            tab_term, tab_desc, tab_inter, tab_pval = st.tabs([
-                                "Term", "Description", "Intersection Size", "p-value"
-                            ])
-                            with tab_term:
-                                st.write(row["name"])
-                            with tab_desc:
-                                st.write(row["description"])
-                            with tab_inter:
-                                st.write(row.get("intersection_size", "N/A"))
-                            with tab_pval:
-                                st.write(row.get("p_value", "N/A"))
-                else:
-                    st.write("No Gene Enrichment Results available.")
+            st.subheader("Evidence Analysis:")
+            st.markdown("This section provides information about the evidence related to the genes in the difference graph.")
+            
+            # Używamy właściwego atrybutu node_names_no_type dla wybranej pary
+            #diff_graph = LRPgraphdiff.LRPGraphDiff(G_dict12[0], G_dict12[1], diff_thres=st.session_state['diff_thres'])
+            ###############################################################################################################################################
+            # Gene list 
+            gene_list = diff_graph_obj.diff_graph.node_names_no_type
+            st.session_state['gene_list'] = gene_list
+            print("Gene List:", st.session_state['gene_list'])
+            # show the gene list
+            st.subheader("Gene List:")
+            with st.expander("See Gene List"):
+                st.write(st.session_state['gene_list'] )
+
+            ###############################################################################################################################################
+            # Communities
+            
+            st.subheader("Groups of nodes interacting (communities):")
+            with st.expander("See groups (communities)"):
+                st.write(st.session_state['community_analysis'] )
+            ###############################################################################################################################################
+            # Analiza gene enrichment
+            ge_analyser = ge.GE_Analyser(st.session_state['gene_list'])
+            ge_results = ge_analyser.run_GE_on_nodes(user_threshold=st.session_state['p_value'])  # dostosuj próg, jeśli potrzeba
+            st.session_state['gene_enrichment'] = ge_results
+            if ge_results is not None and not ge_results.empty:
+                st.subheader("Gene Enrichment Results:")
+                with st.expander("See Gene Enrichment Results"):
+                    # Dla każdego wyniku z analizy gene enrichment
+                    for idx, row in ge_results.iterrows():
+                        st.markdown(f"### Enriched Term: {row['name']}")
+                        # Tworzymy zakładki odpowiadające informacjom ze słownika wyniku
+                        tab_term, tab_desc, tab_inter, tab_pval = st.tabs([
+                            "Term", "Description", "Intersection Size", "p-value"
+                        ])
+                        with tab_term:
+                            st.write(row["name"])
+                        with tab_desc:
+                            st.write(row["description"])
+                        with tab_inter:
+                            st.write(row.get("intersection_size", "N/A"))
+                        with tab_pval:
+                            st.write(row.get("p_value", "N/A"))
             else:
-                st.error("Gene enrichment analysis requires exactly two graphs. Please ensure a valid pair is selected.")
+                st.write("No Gene Enrichment Results available.")
                 st.session_state['gene_enrichment'] = None
 
-                # Now run CIVIC evidence analysis using functions from civic_evidence_code
-                import os
+                
+            #############################################################################################################################################  
             # CIVIC Evidence Analysis
             try:
                 base_path = os.path.dirname(os.path.abspath(__file__))
@@ -1796,7 +1844,7 @@ if st.session_state.get('ready_for_comparison'):
                     analyzer = civic_evidence_code.CivicEvidenceAnalyzer(civicdb_path, st.session_state['gene_list'])
                     analyzer.create_feature_details_dict()
                     details_dict = analyzer.add_evidence_to_dict()
-                    #st.session_state['civic_evidence'] = details_dict
+                    st.session_state['civic_evidence'] = details_dict
 
                     st.subheader("CIVIC Evidence Knowledge:")
                     with st.expander("See CIVIC Evidence Knowledge"):
@@ -1829,6 +1877,7 @@ if st.session_state.get('ready_for_comparison'):
                 st.error(f"An error occurred during CIVIC Evidence Analysis: {e}")
                 st.session_state['civic_evidence'] = None
 
+            #############################################################################################################################################
             # PharmaKB Analysis
             try:
                 pharmagkb_files_path = os.path.join(base_path, 'resources', 'pharmgkb')
@@ -1849,6 +1898,7 @@ if st.session_state.get('ready_for_comparison'):
 
                     if pharmakb_df.empty:
                         st.write("No PharmaKB evidence details available.")
+                        st.session_state['pharmakb_analysis'] = None
                     else:
                         # Ensure required columns exist
                         required_columns = ['Gene', 'Drug(s)', 'Sentence', 'Notes', 'PMID']
@@ -1870,7 +1920,7 @@ if st.session_state.get('ready_for_comparison'):
                                     "Notes": notes if notes else "No Notes available.",
                                     "PMID": pmids if pmids else "No PMID available."
                                 }
-
+                            st.session_state['pharmakb_analysis'] = pharmakb_details
                             st.subheader("PharmaKB Knowledge:")
                             with st.expander("See PharmaKB Knowledge"):
                                 for gene, details in pharmakb_details.items():
@@ -1890,7 +1940,7 @@ if st.session_state.get('ready_for_comparison'):
                                         st.write(details["Notes"])
                                     with tab_pmids:
                                         st.write(details["PMID"])
-                            st.session_state['pharmakb_analysis'] = pharmakb_details
+                            
             except Exception as e:
                 st.error(f"An error occurred during PharmaKB Analysis: {e}")
                 st.session_state['pharmakb_analysis'] = None
@@ -1900,6 +1950,8 @@ if st.session_state.get('ready_for_comparison'):
 #### AI Assistant button
 ################################### 
 # Check if at least one of the analyses has produced results, then display the AI Assistant button.
+st.session_state["ai_assistant_shown"] = False
+
 if (st.session_state.get('gene_enrichment') is not None or 
     st.session_state.get('civic_evidence') is not None or 
     st.session_state.get('pharmakb_analysis') is not None):

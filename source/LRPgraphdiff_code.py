@@ -65,10 +65,16 @@ class LRPGraphDiff:
         '''
         edge_node_df_sizes = []
         for diff_thres in np.linspace(0.0, 1.0, 25):
-            edge_df = fg.create_edge_dataframe_from_adj_diff(self.adj_diff, diff_thres)
-            num_edges = len(edge_df)
-            nodes = set(edge_df["source_node"]).union(set(edge_df["target_node"]))
-            num_nodes = len(nodes)
+            diff_thres = round(diff_thres, 2)
+            edge_df = fg.create_edge_dataframe_from_adj_diff(self.adj_diff, diff_thres)            
+            if edge_df.empty:
+                num_edges = 0
+                num_nodes = 0
+            else:
+                num_edges = len(edge_df)
+                nodes = set(edge_df["source_node"]).union(set(edge_df["target_node"]))
+                num_nodes = len(nodes)
+                
             edge_node_df_sizes.append((diff_thres, num_edges, num_nodes))
         # convert to dataframe
         self.edge_node_df_sizes = pd.DataFrame(
