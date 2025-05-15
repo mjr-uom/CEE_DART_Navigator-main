@@ -1905,65 +1905,72 @@ if st.session_state.get("ai_assistant_shown", False):
 ##########################################
 #### AI Assistant Sidebar 
 ##########################################               
-# At the very end of the script, render the AI Assistant functionality if the current page is "AI Assistant"
 if st.session_state.page == "AI Assistant":
-                        
+    
     # Text area for additional context
     context_input = st.text_area("Context", 
                                  placeholder="Enter context here...", 
                                  key="ai_context",
-                                 value="")
+                                 value=st.session_state.get("ai_context", ""))
     
     # Text area for Question/Prompt
     prompt_input = st.text_area("Question/Prompt", 
                                 placeholder="Enter your question or prompt here...", 
                                 key="ai_prompt",
-                                value="")
+                                value=st.session_state.get("ai_prompt", ""))
     
-    # Print current inputs for debugging
     print("Displayed AI Assistant page with context:", st.session_state.get("ai_context"),
           "and prompt:", st.session_state.get("ai_prompt"))
     
-    # Gene selection: choose between file upload or selecting from built-in list (from Keyword Selection)
-    st.markdown("### Gene Selection Options:")
-    gene_choice = st.radio("Choose gene selection method:", 
-                           ("Upload gene list", "Select from built-in list"),
-                           key="gene_selection_method")
-    print("Gene selection method chosen:", st.session_state.get("gene_selection_method"))
+    ##########################################################
+    # Keyword Options: Either upload frequent keywords or select keywords
+    ##########################################################
+    st.markdown("### Keyword Options:")
+    keyword_option = st.radio("Choose keyword option:",
+                              ("Upload Frequent Keywords", "Keyword Selection"),
+                              key="keyword_option")
+    print("Keyword option chosen:", st.session_state.get("keyword_option"))
     
-    if gene_choice == "Upload gene list":
-        # File uploader for gene list (CSV or TXT)
-        gene_list_file = st.file_uploader("Upload Gene List", type=["csv", "txt"], key="gene_list_file")
-        if gene_list_file:
+    if keyword_option == "Upload Frequent Keywords":
+        # File uploader for frequent keywords (CSV or TXT)
+        keyword_file = st.file_uploader("Upload Frequent Keywords", type=["csv", "txt"], key="keyword_file")
+        if keyword_file:
             try:
-                # Attempt to read gene list as CSV (assuming one gene per row)
-                gene_list_df = pd.read_csv(gene_list_file, header=None)
-                gene_list = gene_list_df[0].tolist()
-                st.session_state["uploaded_gene_list"] = gene_list
-                st.success("Gene list uploaded successfully (CSV)!")
-                st.write("Uploaded genes:", gene_list)
-                print("Gene list loaded from CSV:", gene_list)
-            except Exception as csv_e:
-                # If CSV fails, try reading as plain text
-                gene_list_str = gene_list_file.getvalue().decode("utf-8")
-                gene_list = [line.strip() for line in gene_list_str.splitlines() if line.strip()]
-                st.session_state["uploaded_gene_list"] = gene_list
-                st.success("Gene list uploaded successfully (TEXT)!")
-                st.write("Uploaded genes:", gene_list)
-                print("Gene list loaded from text:", gene_list)
+                # Read keywords as CSV (assuming one keyword per row)
+                keywords_df = pd.read_csv(keyword_file, header=None)
+                uploaded_keywords = keywords_df[0].tolist()
+                st.session_state["uploaded_keywords"] = uploaded_keywords
+                st.success("Frequent keywords uploaded successfully (CSV)!")
+                st.write("Uploaded frequent keywords:", uploaded_keywords)
+                print("Frequent keywords loaded from CSV:", uploaded_keywords)
+            except Exception as e_csv:
+                # If CSV reading fails, try reading as plain text
+                keyword_file_str = keyword_file.getvalue().decode("utf-8")
+                uploaded_keywords = [line.strip() for line in keyword_file_str.splitlines() if line.strip()]
+                st.session_state["uploaded_keywords"] = uploaded_keywords
+                st.success("Frequent keywords uploaded successfully (TEXT)!")
+                st.write("Uploaded frequent keywords:", uploaded_keywords)
+                print("Frequent keywords loaded from text:", uploaded_keywords)
         else:
-            print("No gene list file uploaded.")
-    else:  # Select from built-in list
-        # Assume that the built-in gene list is the one used in the Keyword Selection section.
-        # For example, we can use st.session_state['keywords'] (populated earlier).
-        built_in_gene_list = st.session_state.get("keywords", [])
-        if not built_in_gene_list:
-            st.warning("No built-in gene list available from Keyword Selection.")
-            print("No built-in gene list available.")
+            print("No frequent keywords file uploaded.")
+    else:  # Keyword Selection branch using the frequent keywords list from Analyse page
+        if st.session_state.get("frequent_kws") is not None and not st.session_state["frequent_kws"].empty:
+            # Use the first column of the uploaded frequent keywords CSV
+            uploaded_list = st.session_state["frequent_kws"][0].tolist()
+            selected_keywords = st.multiselect("Please select your keyword:", 
+                                                 uploaded_list, 
+                                                 key="selected_keywords")
+            st.session_state["selected_keywords"] = selected_keywords
+            st.write("Selected keywords:", selected_keywords)
+            print("Selected keywords from uploaded list:", selected_keywords)
         else:
-            selected_genes = st.multiselect("Select Genes from built-in list:", 
-                                            built_in_gene_list, 
-                                            key="selected_gene_list")
-            st.session_state["selected_gene_list"] = selected_genes
-            st.write("Selected genes:", selected_genes)
-            print("Selected genes from built-in list:", selected_genes)
+            st.warning("No frequent keywords available. Please upload frequent keywords in the Analyse page.")
+            print("No frequent keywords available.")
+    
+    # Ensure that one of the options is provided before proceeding.
+    provided_keywords = (st.session_state.get("uploaded_keywords")
+                           if st.session_state.get("keyword_option") == "Upload Frequent Keywords"
+                           else st.session_state.get("selected_keywords"))
+    
+    if not provided_keywords:
+        st.warning("Please provide frequent keywords either by uploading a file or by selecting from the uploaded list to proceed.")
