@@ -49,33 +49,64 @@ import collections
 import scanpy as sc
 import altair as alt
 
+
+
 default_session_state = {
-    'first_form_completed': False,
-    'second_form_completed': False,
-    'Generate_graphs_button': False,
-    'enable_comparison': False,
-    'G_dict': {},
-    'keywords': list(),
+    
+    'civic_data': pd.DataFrame([]),
+    'page':'Home',
+    'lrp_df': pd.DataFrame([]), # raw loaded data
     'tumor_tissue_site': list(),
     'ttss_selected': list(),
-    'acronym': list(),
-    'lrp_df': pd.DataFrame([]), # raw loaded data
+    'acronym': list(),    
     'filtered_tts_lrp_df': pd.DataFrame([]),
     'metadata_df': pd.DataFrame([]), # raw loaded data
-    'civic_data': pd.DataFrame([]),
-    'filtered_df': pd.DataFrame([]),  # Initialize as an empty DataFrame
+    'filtered_lrp_df': pd.DataFrame([]),  # Initialize as an empty DataFrame
+    'filtered_data_to_graphs': pd.DataFrame([]),
     'f_tumor_tissue_site': pd.DataFrame([]),
     'f_acronym': pd.DataFrame([]),
-    'filters_form_completed': None,
-    'tts_filter_button': None,
+    'keywords': list(),
     'frequent_kws': pd.DataFrame([]), # raw loaded data
-    'LRP_to_graphs_stratified': pd.DataFrame([]),
-    'calculate_button': False,
-    'comparison_grp_button': False,
-    'compare_form_complete': False,
+    'tts_filter_button': None,
+    #'first_form_completed': False,
+    'sample_names': list(),
+    'sample1': None,
+    'sample2': None,
+    'sample2_options': list(),
     'top_n': 150,
-    'top_diff_n': 0,
-    'top_n_similar': None,
+    'stratify_by': None,
+    'new_stratify_by': None,
+    'group1': None,
+    'group2': None,
+    'sg_grouping_column': None,
+    'sg_group_options': list(),
+    'gg_grouping_column': None,
+    'gg_group_options': list(),
+    'group_for_agg': None,
+    'gene_enrichment': None,
+
+
+    'Filter_data_button': False, # 11
+    'analysis_type': None,
+    'Type_of_analysis_selected': False,
+    'comparison_type': None,
+    'Type_of_comparison_selected': False,
+    'Generate_graphs_button': False, # plot 2 graphs
+    'G1_G2_displayed': False,
+    'G_dict': {},
+    'diff_thres': 0.5,
+    'p_value': 0.05,
+    'Calculate_button': False, # plot DIFF graph
+    'diff_Graphs_displayed': False,
+    'community_analysis': dict(),
+    'Analyse_evidence_button': False,
+    'Evidence_analysis_done': False,
+
+    'LRP_to_graphs_stratified': pd.DataFrame([]),
+    
+    'comparison_grp_button': False,
+    
+    
     'compare_grp_selected': list(),
     'enable_chat_bot': False,
     'messages': list(),
@@ -86,39 +117,41 @@ default_session_state = {
     'openai_model': "gpt-3.5-turbo",
     'edge_df': pd.DataFrame([]),
     'all_facts': "",
-    'page': "Home",
-    'analysis_type': None,
-    'ready_for_comparison': False,
-    'sample_comparison_type': None,
-    'group_comparison_type': None,
-    'filtered_data': pd.DataFrame([]),
-    'stratify_by': None,
-    'new_stratify_by': None,
-    'group_for_agg': None,
-    'sample1': None,
-    'sample2': None,
-    'group1': None,
-    'group2': None,
-    'sg_grouping_column': None,
-    'sg_group_options': list(),
-    'gg_grouping_column': None,
-    'gg_group_options': list(),
+    
+    
     'LRP_to_graphs': pd.DataFrame([]),
-    'G_dict12': {},
+    
     'stratify_by_values': list(),
-    'diff_thres': 0.5,
-    'p_value': 0.05,
+    
     'gene_list': list(),
     'pharmakb_details': {},
     'gene_enrichment': None,     
     'civic_evidence': None,      
     'pharmakb_analysis': None,
-    'community_analysis': dict(),
+    
 }
 
 for key, default_value in default_session_state.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
+
+def reset_session_state_until(key_to_reset ):
+    """
+    Resets the session state of Streamlit variables until a specified key.
+    This function is useful for resetting the state of the application to a specific point.
+    """
+    keys = list(default_session_state.keys())
+    try:
+        idx = keys.index(key_to_reset)
+    except ValueError:
+        idx = -1
+    # Only reset keys from 'key_to_reset'
+    for key in keys[idx:]:
+        st.session_state[key] = default_session_state[key]
+    print_session_state()
+
+
+
 
 #sidebar_logo_DCR = "./images/CRUK_NBC_DCR.png"
 #sidebar_logo = "./images/CCE_Dart_logo.png"
@@ -136,11 +169,20 @@ def print_session_state():
     This function is useful for debugging and tracking the state of the application.
     """
     session_state_keys = [
-        'first_form_completed', 'analysis_type', 'stratify_by', 'second_form_completed',
+        'Filter_data_button',
+                'analysis_type',
+                'Type_of_analysis_selected',
+                'comparison_type',
+                'Type_of_comparison_selected',
+                'Generate_graphs_button',
+                'Calculate_button'
+    
+
+        'stratify_by', 'second_form_completed',
         'enable_comparison', 'filters_form_completed', 'tts_filter_button', 'calculate_button',
-        'comparison_grp_button', 'compare_form_complete', 'top_n', 'top_diff_n',
+        'comparison_grp_button', 'G1_G2_displayed', 'top_n', 'top_n',
         'top_n_similar', 'compare_grp_selected','ready_for_comparison',
-        'sample_comparison_type', 'group_comparison_type', 'group_for_agg',
+        'group_for_agg',
     'sample1',
     'sample2',
     'group1',
@@ -248,14 +290,15 @@ def plot_my_graph(container, graph, communities=None):
     # Helper function: Format node attributes
     def format_node_data(newG, pos, neighbor_map, node_community_mapping, group_color_mapper, node_color_mapper):
         for node, data in newG.nodes(data=True):
-            x, y = pos[node]
+            #x, y = pos[node]
             label = "_".join(node.split('_')[:-1])
             node_type = node.split('_')[-1]
             neighbors = neighbor_map[node]
 
             # Update node attributes
             data.update({
-                "x": x, "y": y, "label": label, "_type": node_type,
+                #"x": x, "y": y,
+                "label": label, "_type": node_type,
                 "click": f"Node: {label} \nType: {node_type} \nNeighbors: \n" + "\n".join(["_".join(n.split('_')[:-1]) for n in neighbors]),
                 "hover": f"{label} Neighbors: " + "\n".join(["_".join(n.split('_')[:-1]) for n in neighbors]),
                 "value": len(neighbors),
@@ -302,32 +345,33 @@ def plot_my_graph(container, graph, communities=None):
     # Render in Streamlit container
     container.markdown(css, unsafe_allow_html=True)
     container.markdown(f"<h1 style='{style_heading}'> '{graph.sample_ID}' {communities_label}</h1>", unsafe_allow_html=True)
-    container.markdown(f"<h2 style='{style_heading}'>Top '{graph.top_n_edges}' edges with the highest LRP values</h2>", unsafe_allow_html=True)
+    #container.markdown(f"<h2 style='{style_heading}'>Top '{len(newG.edges)}' edges with the highest LRP values</h2>", unsafe_allow_html=True)
     
     # Create and display graph visualization
     fig = gv.d3(
         newG,
         use_node_size_normalization=True,
          node_size_normalization_min = 2,
-          node_size_normalization_max = 20,
+          node_size_normalization_max = 10,
             node_size_data_source='value', node_hover_tooltip=True,
         node_hover_neighborhood=True, show_node_label=True, node_label_data_source='label',
         node_label_size_factor = .5,
 
         use_edge_size_normalization=True,
-         edge_size_normalization_min =.5,
-          edge_size_normalization_max = 3,
-            edge_size_data_source='weight', 
+        edge_size_normalization_min =.5,
+        edge_size_normalization_max = 3,
+        edge_size_data_source='weight', 
         edge_hover_tooltip=True,# zoom_factor=0.55,
-        edge_curvature=0.15,
+        edge_curvature=0.2,
         layout_algorithm_active=True,
-        many_body_force_strength=-10.0,
+        many_body_force_strength=100.0,
         use_many_body_force_max_distance=True,
-        many_body_force_max_distance=20.0,
+        #many_body_force_max_distance=20.0,
         use_collision_force=True,
-        collision_force_radius=10.0,
-        collision_force_strength=0.7,
+        #collision_force_radius=10.0,
+        #collision_force_strength=0.7,
         use_centering_force=True,
+            
 
     )
 
@@ -409,18 +453,24 @@ if __name__ == '__main__':
     # Navigation buttons
     if st.sidebar.button('Home'):
         st.session_state.page = "Home"
+        reset_session_state_until(key_to_reset = 'lrp_df')
     if st.sidebar.button('Analyse'):
         st.session_state.page = "Analyse"
+        print_session_state()
     if st.sidebar.button('AI Assistant'):  # New tab
         st.session_state.page = "AI Assistant"
     if st.sidebar.button('FAQ'):
         st.session_state.page = "FAQ"
+        reset_session_state_until(key_to_reset = 'lrp_df')
     if st.sidebar.button('About'):
         st.session_state.page = "About"
+        reset_session_state_until(key_to_reset = 'lrp_df')
     if st.sidebar.button('News'):
         st.session_state.page = "News"
+        reset_session_state_until(key_to_reset = 'lrp_df')
     if st.sidebar.button('Results'):  # New tab
         st.session_state.page = "Results"
+        reset_session_state_until(key_to_reset = 'lrp_df')
 
 
     # Render content based on the current page state
@@ -643,11 +693,11 @@ if __name__ == '__main__':
                 )
                 st.session_state['keywords'] = keywords_selected
                 # A single "Run" button to execute both filtering steps
-                run_button = combined_form.form_submit_button(label='Run')
+                filter_button = combined_form.form_submit_button(label='Filter data')
 
-            # Execute filtering when the "Run" button is clicked
-            if run_button:
-                # Filter data based on the selected metadata filters
+            # Execute filtering when the "Filter data" button is clicked
+            if filter_button:
+                reset_session_state_until(key_to_reset = 'Filter_data_button')
                 # Filter data based on the selected metadata filters
                 metadata = st.session_state['metadata_df'].data.copy()
                 filters_applied = False
@@ -677,42 +727,59 @@ if __name__ == '__main__':
                 # Filter data based on the selected keywords
                 if not keywords_selected:
                     st.warning("No keywords selected. Using the entire dataset for analysis.")
-                    st.session_state['filtered_df'] = st.session_state['filtered_tts_lrp_df']
+                    st.session_state['filtered_lrp_df'] = st.session_state['filtered_tts_lrp_df']
                 else:
-                    st.session_state['filtered_df'] = fg.filter_columns_by_keywords(
+                    st.session_state['filtered_lrp_df'] = fg.filter_columns_by_keywords(
                         st.session_state['filtered_tts_lrp_df'], st.session_state['keywords']
                     )
 
                 # Check if the filtered DataFrame is empty
-                if st.session_state['filtered_df'].empty:
+                if st.session_state['filtered_lrp_df'].empty:
                     st.error("The filtered dataset is empty. Please select different keywords or filters.")
                 else:
                     # Prepare the data for graph generation
-                    st.session_state['filtered_data'] = fg.prepare_lrp_to_graphs(st.session_state['filtered_df'])
-                    st.session_state['first_form_completed'] = True
-        
+                    st.session_state['filtered_data_to_graphs'] = fg.prepare_lrp_to_graphs(st.session_state['filtered_lrp_df'])
+                    #st.session_state['first_form_completed'] = True
+                    st.session_state['Filter_data_button'] = True
+                print_session_state()
                 # Filter data based on the selected keywords
                 #if not keywords_selected:
                 #    keywords_selected = None
                 
-                #st.session_state['filtered_df'] = fg.filter_columns_by_keywords(st.session_state['filtered_tts_lrp_df'], st.session_state['keywords'])
-                #st.session_state['filtered_data'] = fg.prepare_lrp_to_graphs(st.session_state['filtered_df'])
+                #st.session_state['filtered_lrp_df'] = fg.filter_columns_by_keywords(st.session_state['filtered_tts_lrp_df'], st.session_state['keywords'])
+                #st.session_state['filtered_data_to_graphs'] = fg.prepare_lrp_to_graphs(st.session_state['filtered_lrp_df'])
                 #st.session_state['first_form_completed'] = True
                 #st.success("Keywords filtered successfully! Proceed to the next step.")
+
+
         # After the filtering stage has completed
-        if st.session_state.get('first_form_completed', False):
+        if st.session_state.get('Filter_data_button', False):
             # In the "Analyse" branch, after filtering has completed and analysis type buttons are shown:
             st.markdown("### Type of analysis")
             col_a, col_b, col_c = st.columns(3)
             if col_a.button("sample-sample"):
                 st.session_state["analysis_type"] = "sample-sample"
-                st.session_state["ready_for_comparison"] = False
+                reset_session_state_until('Type_of_analysis_selected')
+                st.session_state["Type_of_analysis_selected"] = True
+                print_session_state()
+                #st.session_state["ready_for_comparison"] = False
+                #st.session_state["G1_G2_displayed"] = False
+                #print_session_state()
             if col_b.button("sample-group"):
                 st.session_state["analysis_type"] = "sample-group"
-                st.session_state["ready_for_comparison"] = False
+                reset_session_state_until('Type_of_analysis_selected')
+                st.session_state["Type_of_analysis_selected"] = True
+                print_session_state()
+                #st.session_state["ready_for_comparison"] = False
+                #st.session_state["G1_G2_displayed"] = False
+                #print_session_state()
             if col_c.button("group-group"):
                 st.session_state["analysis_type"] = "group-group"
-                st.session_state["ready_for_comparison"] = False
+                #st.session_state["ready_for_comparison"] = False
+                #st.session_state["G1_G2_displayed"] = False
+                reset_session_state_until('Type_of_analysis_selected')
+                st.session_state["Type_of_analysis_selected"] = True
+                print_session_state()
                 # Add visual feedback
             if "analysis_type" in st.session_state:
                 if st.session_state["analysis_type"] == "sample-sample":
@@ -723,37 +790,58 @@ if __name__ == '__main__':
                     col_c.markdown("**Selected: group-group**")
 
             
-            # If the selected analysis type is sample-sample, display the two sub-buttons always.
+            #####################################################################################################################
+            # UNIVARIABLE SAMPLE - SAMPLE COMPARISON
             if st.session_state.get("analysis_type") == "sample-sample":
                 st.markdown("### Sample-vs-Sample Comparison")
+                #st.session_state['']
                 # Display sub-buttons for comparison type:
                 col_uni, col_graph = st.columns(2)
                 if col_uni.button("Univariable Comparison"):
-                    st.session_state["sample_comparison_type"] = "univariable"
+                    st.session_state["comparison_type"] = "univariable"
+                    reset_session_state_until('Type_of_comparison_selected')
+                    st.session_state["Type_of_comparison_selected"] = True                    
+                    print_session_state()
                 if col_graph.button("Graph Comparison"):
-                    st.session_state["sample_comparison_type"] = "graph"
+                    st.session_state["comparison_type"] = "graph"
+                    reset_session_state_until('Type_of_comparison_selected')
+                    st.session_state["Type_of_comparison_selected"] = True
+                    print_session_state()
+                    
+                
 
-                if st.session_state.get("sample_comparison_type") == "univariable":
+                if st.session_state.get("comparison_type") == "univariable":
+                    
                     with st.form("sample_vs_sample_form"):
-                        if 'filtered_df' not in st.session_state:
-                            st.session_state['filtered_df'] = pd.DataFrame([])
+                        if 'filtered_lrp_df' not in st.session_state:
+                            st.session_state['filtered_lrp_df'] = pd.DataFrame([])
                         
                         if st.session_state["filtered_df"].empty:
                             st.error("Filtered dataset is empty. Please review your filtering criteria.")
-                            st.session_state.sample_names = []
+                            st.session_state['sample_names'] = []
                         else:
-                            st.session_state.sample_names = list(st.session_state["filtered_df"].index)
-                        
-                        if st.session_state.sample_names:
+                            st.session_state['sample_names'] = list(st.session_state["filtered_df"].index)
+                            print(st.session_state['sample_names'])
+
+                        if st.session_state['sample_names']:
                             # Remove the on_change callback from the selectbox: recalc options manually below.
-                            sample1 = st.selectbox("Select Sample 1", st.session_state.sample_names, key="sample1")
+                            sample1 = st.selectbox("Select Sample 1", st.session_state['sample_names'], key="sample1")
+                            sample2 = st.selectbox("Select Sample 2", st.session_state['sample_names'], key="sample2")
+                            print(sample1)
+                            print(sample2)
                             # Recalculate sample2_options based on sample1
-                            st.session_state.sample2_options = [s for s in st.session_state.sample_names if s != sample1]
-                            if not st.session_state.sample2_options:
-                                st.error("Not enough distinct samples available for comparison.")
-                                sample2 = None
-                            else:
-                                sample2 = st.selectbox("Select Sample 2", st.session_state.sample2_options, key="sample2", index=0)
+                            #st.session_state.
+                            #sample2_options = [s for s in st.session_state['sample_names'] if s != sample1]
+                            
+                            #if len(st.session_state.sample2_options)==0:
+                            #    st.error("Not enough distinct samples available for comparison.")
+                            #    sample2 = None
+                            #else:
+                            
+                            
+                            #st.session_state['sample1'] = sample1
+                            #st.session_state['sample2'] = sample2                          
+                            
                             top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
                             singles = sorted({col.split("_")[-1] for col in st.session_state["filtered_df"].columns if "_" in col})
                             pairs = [f"{t1}-{t2}" for i, t1 in enumerate(singles) for t2 in singles[i:]]
@@ -766,6 +854,8 @@ if __name__ == '__main__':
 
                     if compare_submit:
                         if sample1 == sample2 or sample2 is None:
+                            #print('Sample1:', sample1)
+                            #print('Sample2:', sample2)
                             st.error("Selected samples must be distinct. Please choose two different samples for comparison.")
                         else:
                             print("Filtered DataFrame Index:", st.session_state["filtered_df"].index)
@@ -789,20 +879,29 @@ if __name__ == '__main__':
                                 with centered_col:
                                     st.pyplot(fig, use_container_width=False)  # Removed width and height arguments
 
-                elif st.session_state.get("sample_comparison_type") == "graph":
+                elif st.session_state.get("comparison_type") == "graph":
+                    #st.session_state['G1_G2_displayed'] = False
                     # Placeholder for Graph Comparison analysis.
                     st.markdown("### Graph Comparison for Sample vs Sample")
-            # If the selected analysis type is sample-group, display the two sub-buttons always.
+
+            #####################################################################################################################
+            # UNIVARIABLE SAMPLE - GROUP COMPARISON
             if st.session_state.get("analysis_type") == "sample-group":
                 st.markdown("### Sample-vs-Group Comparison")
                 # Display sub-buttons for comparison type:
                 col_uni2, col_graph2 = st.columns(2)
                 if col_uni2.button("Univariable Comparison"):
-                    st.session_state["group_comparison_type"] = "univariable"
+                    st.session_state["comparison_type"] = "univariable"
+                    reset_session_state_until('Type_of_comparison_selected')
+                    st.session_state["Type_of_comparison_selected"] = True                    
+                    print_session_state()
                 if col_graph2.button("Graph Comparison"):
-                    st.session_state["group_comparison_type"] = "graph"
+                    st.session_state["comparison_type"] = "graph"
+                    reset_session_state_until('Type_of_comparison_selected')
+                    st.session_state["Type_of_comparison_selected"] = True                    
+                    print_session_state()
                 
-                if st.session_state.get("group_comparison_type") == "univariable":
+                if st.session_state.get("comparison_type") == "univariable":
                     # Use filtered metadata from the filtering stage
                     filtered_metadata = st.session_state["metadata_df"].data.loc[
                         st.session_state["filtered_tts_lrp_df"].index
@@ -869,19 +968,28 @@ if __name__ == '__main__':
                         with centered_col:
                             st.pyplot(fig, use_container_width=False)  # Removed width and height arguments
                 
-                elif st.session_state.get("group_comparison_type") == "graph":
+                elif st.session_state.get("comparison_type") == "graph":
                     st.markdown("### Graph Comparison for Sample vs Group")
-            # If the selected analysis type is group-group, display the two sub-buttons
+
+
+            #####################################################################################################################
+            # UNIVARIABLE GROUP - GROUP COMPARISON
             if st.session_state.get("analysis_type") == "group-group":
                 st.markdown("### Group-vs-Group Comparison")
                 # Display sub-buttons for comparison type:
                 col_uni2, col_graph2 = st.columns(2)
                 if col_uni2.button("Univariable Comparison"):
-                    st.session_state["group_comparison_type"] = "univariable"
+                    st.session_state["comparison_type"] = "univariable"
+                    reset_session_state_until('Type_of_comparison_selected')
+                    st.session_state["Type_of_comparison_selected"] = True                    
+                    print_session_state()
                 if col_graph2.button("Graph Comparison"):
-                    st.session_state["group_comparison_type"] = "graph"
+                    st.session_state["comparison_type"] = "graph"
+                    reset_session_state_until('Type_of_comparison_selected')
+                    st.session_state["Type_of_comparison_selected"] = True                    
+                    print_session_state()
 
-                if st.session_state.get("group_comparison_type") == "univariable":
+                if st.session_state.get("comparison_type") == "univariable":
                     # Use filtered metadata from the filtering stage
                     filtered_metadata = st.session_state["metadata_df"].data.loc[
                         st.session_state["filtered_tts_lrp_df"].index
@@ -908,6 +1016,7 @@ if __name__ == '__main__':
                                             key="gg_group1")
                         group2 = st.selectbox("Select Group 2", st.session_state["gg_group_options"],
                                             key="gg_group2")
+                        
                         top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
                         # Determine available node types (both single and paired)
                         singles = sorted({col.split("_")[-1] for col in st.session_state["filtered_df"].columns if "_" in col})
@@ -955,7 +1064,7 @@ if __name__ == '__main__':
                             with centered_col:
                                 st.pyplot(fig, use_container_width=False)  # Removed width and height arguments
 
-                elif st.session_state.get("group_comparison_type") == "graph":
+                elif st.session_state.get("comparison_type") == "graph":
                     st.markdown("### Graph Comparison for Group vs Group")
     
     elif st.session_state.page == "AI Assistant":
@@ -1213,7 +1322,7 @@ if __name__ == '__main__':
             st.image("./images/CCE_DART.png", width=170)
 ################
 #
-#  Second part - s-s
+#  GRAPH COMPARISON
 #
 ###############
 ###############
@@ -1222,14 +1331,14 @@ if __name__ == '__main__':
 #
 ###############
 
-if (st.session_state.get('first_form_completed', False) and 
+if (st.session_state.get('Type_of_comparison_selected', False) and 
     st.session_state.get('analysis_type') == 'sample-sample' and 
-    st.session_state.get("sample_comparison_type") == "graph"):
+    st.session_state.get("comparison_type") == "graph"):
 
     sample_container = st.container()
 
     # Get available sample IDs from the LRP data
-    sample_options = [col for col in st.session_state['filtered_data'].columns 
+    sample_options = [col for col in st.session_state['filtered_data_to_graphs'].columns 
                       if col not in ["index", "source_node", "target_node"]]
 
     # Select Sample 1
@@ -1252,16 +1361,18 @@ if (st.session_state.get('first_form_completed', False) and
     # Form to select the number of top edges to use for generating graphs
     compare_form = sample_container.form('Compare_sample_vs_sample')
     with compare_form:
-        st.session_state['top_diff_n'] = st.slider(
-            "Please select the number of top n edges",
+        st.session_state['top_n'] = st.slider(
+            "Please select $n$ edges with highest interaction (LRP values) to display.",
             min_value=1,
-            max_value=len(st.session_state['filtered_data'].index),
-            value=150 if len(st.session_state['filtered_data'].index) >= 150 else len(st.session_state['filtered_data'].index)
+            max_value=len(st.session_state['filtered_data_to_graphs'].index),
+            value=150 if len(st.session_state['filtered_data_to_graphs'].index) >= 150 else len(st.session_state['filtered_data_to_graphs'].index)
         )
         submit_button = st.form_submit_button(label='Generate graphs')
         if submit_button:
             st.session_state["Generate_graphs_button"] = True
-            st.session_state['Calcualte_button'] = False
+            reset_session_state_until('G1_G2_displayed')
+            print_session_state()
+            #st.session_state['Calculate_button'] = False
 
     
     if st.session_state.get("Generate_graphs_button"):
@@ -1272,7 +1383,7 @@ if (st.session_state.get('first_form_completed', False) and
             st.session_state["metadata_df"].data.index = st.session_state["metadata_df"].data.index.astype(str)
 
             # Use the already filtered & prepared LRP data
-            st.session_state["LRP_to_graphs"] = st.session_state["filtered_data"]
+            st.session_state["LRP_to_graphs"] = st.session_state['filtered_data_to_graphs']
             st.session_state["LRP_to_graphs"].columns = st.session_state["LRP_to_graphs"].columns.astype(str)
 
             # Call split_and_aggregate_lrp for sample_vs_sample comparison
@@ -1293,7 +1404,7 @@ if (st.session_state.get('first_form_completed', False) and
             # Generate graphs from the stratified data using the given top_diff_n value
             G_dict12 = fg.get_all_graphs_from_lrp(
                 LRP_to_graphs_stratified_sel_samples,
-                st.session_state['top_diff_n']
+                st.session_state['top_n']
             )
 
             
@@ -1313,9 +1424,8 @@ if (st.session_state.get('first_form_completed', False) and
                     plot_my_graph(container_topn, G)
 
             # Mark the comparison as complete
-            st.session_state["compare_form_complete"] = True
+            st.session_state["G1_G2_displayed"] = True
             st.session_state["G_dict12"] = G_dict12
-            st.session_state["ready_for_comparison"] = True
             print_session_state()
 
    
@@ -1325,9 +1435,9 @@ if (st.session_state.get('first_form_completed', False) and
 #
 ###############
 
-if (st.session_state.get('first_form_completed', False) and 
+if (st.session_state.get('Type_of_comparison_selected', False) and 
     st.session_state.get('analysis_type') == 'sample-group' and 
-    st.session_state.get("group_comparison_type") == "graph"):
+    st.session_state.get("comparison_type") == "graph"):
 
     group_container = st.container()
 
@@ -1367,9 +1477,9 @@ if (st.session_state.get('first_form_completed', False) and
 
         # ---- Sample Selection ----
         # Get available sample IDs from the LRP data.
-        # Here we assume st.session_state['filtered_data'] (created earlier) already contains:
+        # Here we assume st.session_state['filtered_data_to_graphs'] (created earlier) already contains:
         #    'index', 'source_node', 'target_node', and sample columns.
-        sample_options = [col for col in st.session_state['filtered_data'].columns 
+        sample_options = [col for col in st.session_state['filtered_data_to_graphs'].columns 
                           if col not in ["index", "source_node", "target_node"]]
         selected_sample = group_container.selectbox(
             "Please select a sample:",
@@ -1380,16 +1490,18 @@ if (st.session_state.get('first_form_completed', False) and
         # Form to select the number of top edges to use for generating graphs.
         compare_form = group_container.form('Compare_sample_vs_group')
         with compare_form:
-            st.session_state['top_diff_n'] = st.slider(
-                "Please select the number of top n edges",
+            st.session_state['top_n'] = st.slider(
+                "Please select $n$ edges with highest interaction (LRP values) to display.",
                 min_value=1,
-                max_value=len(st.session_state['filtered_data'].index),
-                value=150 if len(st.session_state['filtered_data'].index) >= 150 else len(st.session_state['filtered_data'].index)
+                max_value=len(st.session_state['filtered_data_to_graphs'].index),
+                value=150 if len(st.session_state['filtered_data_to_graphs'].index) >= 150 else len(st.session_state['filtered_data_to_graphs'].index)
             )
             submit_button = st.form_submit_button(label='Generate graphs')
             if submit_button:
                 st.session_state["Generate_graphs_button"] = True
-                st.session_state['Calcualte_button'] = False
+                reset_session_state_until('G1_G2_displayed')
+                print_session_state()
+                
         
         if st.session_state.get("Generate_graphs_button"):
             if not selected_sample:
@@ -1399,10 +1511,10 @@ if (st.session_state.get('first_form_completed', False) and
                 filtered_metadata.index = filtered_metadata.index.astype(str)
 
                 # Use the already filtered & prepared LRP data.
-                # NOTE: st.session_state['filtered_data'] is set from:
+                # NOTE: st.session_state['filtered_data_to_graphs'] is set from:
                 #       fg.prepare_lrp_to_graphs(filtered_df)
                 # which has 'index', 'source_node', 'target_node' and sample IDs as columns.
-                st.session_state["LRP_to_graphs"] = st.session_state["filtered_data"]
+                st.session_state["LRP_to_graphs"] = st.session_state['filtered_data_to_graphs']
                 st.session_state["LRP_to_graphs"].columns = st.session_state["LRP_to_graphs"].columns.astype(str)
 
                 # Call split_and_aggregate_lrp for sample_vs_group comparison.
@@ -1428,7 +1540,7 @@ if (st.session_state.get('first_form_completed', False) and
                 # Generate graphs from the stratified data using the given top_diff_n value.
                 G_dict12 = fg.get_all_graphs_from_lrp(
                     LRP_to_graphs_stratified_sel_grps,
-                    st.session_state['top_diff_n']
+                    st.session_state['top_n']
                 )
                 # Key modification: Save these graphs to st.session_state["G_dict12"]
                 
@@ -1447,9 +1559,9 @@ if (st.session_state.get('first_form_completed', False) and
                         container_topn = group_container.container(border=False)
                         plot_my_graph(container_topn, G)
                 
-                st.session_state["compare_form_complete"] = True
+                st.session_state["G1_G2_displayed"] = True
                 st.session_state["G_dict12"] = G_dict12
-                st.session_state["ready_for_comparison"] = True
+                
                 print_session_state()
 
 ###############
@@ -1457,9 +1569,9 @@ if (st.session_state.get('first_form_completed', False) and
 #  Second part - g-g
 #
 ###############
-if (st.session_state.get('first_form_completed', False) and 
+if (st.session_state.get('Type_of_comparison_selected', False) and 
     st.session_state.get('analysis_type') == 'group-group' and 
-    st.session_state.get("group_comparison_type") == "graph"):
+    st.session_state.get("comparison_type") == "graph"):
 
     group_container = st.container()
 
@@ -1494,7 +1606,7 @@ if (st.session_state.get('first_form_completed', False) and
 
         def on_group_selection_change():
             st.session_state["Generate_graphs_button"] = False
-            st.session_state['Calcualte_button'] = False
+            st.session_state['Calculate_button'] = False
 
         
         group1 = group_container.selectbox(
@@ -1513,17 +1625,18 @@ if (st.session_state.get('first_form_completed', False) and
         # Form to select the number of top edges to use for generating graphs.
         compare_form = group_container.form('Compare')
         with compare_form:
-            st.session_state['top_diff_n'] = st.slider(
-            "Please select the number of top n edges",
+            st.session_state['top_n'] = st.slider(
+            "Please select $n$ edges with highest interaction (LRP values) to display ",
             min_value=1,
-            max_value=len(st.session_state['filtered_data'].index),
-            value=150 if len(st.session_state['filtered_data'].index) >= 150 else len(st.session_state['filtered_data'].index)
+            max_value=len(st.session_state['filtered_data_to_graphs'].index),
+            value=150 if len(st.session_state['filtered_data_to_graphs'].index) >= 150 else len(st.session_state['filtered_data_to_graphs'].index)
             )
             st.session_state["ready_for_comparison"] = True
             submit_button = st.form_submit_button(label='Generate graphs')
             if submit_button:
                 st.session_state["Generate_graphs_button"] = True
-                st.session_state['Calcualte_button'] = False
+                reset_session_state_until('G1_G2_displayed')
+                print_session_state()
 
         # Inside the submit block
         #if submit_button:
@@ -1535,10 +1648,10 @@ if (st.session_state.get('first_form_completed', False) and
                 filtered_metadata.index = filtered_metadata.index.astype(str)
                 
                 # Use the already filtered & prepared LRP data.
-                # NOTE: st.session_state['filtered_data'] was set via:
-                #       st.session_state['filtered_data'] = fg.prepare_lrp_to_graphs(filtered_df)
+                # NOTE: st.session_state['filtered_data_to_graphs'] was set via:
+                #       st.session_state['filtered_data_to_graphs'] = fg.prepare_lrp_to_graphs(filtered_df)
                 # and thus has sample IDs as columns.
-                st.session_state["LRP_to_graphs"] = st.session_state["filtered_data"]
+                st.session_state["LRP_to_graphs"] = st.session_state['filtered_data_to_graphs']
                 st.session_state["LRP_to_graphs"].columns = st.session_state["LRP_to_graphs"].columns.astype(str)
                 
                 # Call split_and_aggregate_lrp using user-selected groups.
@@ -1560,7 +1673,7 @@ if (st.session_state.get('first_form_completed', False) and
                 # Generate graphs from the stratified data using the given top_diff_n value.
                 G_dict12 = fg.get_all_graphs_from_lrp(
                     LRP_to_graphs_stratified_sel_grps,
-                    st.session_state['top_diff_n']
+                    st.session_state['top_n']
                 )
                 
                 # Display the generated graphs.
@@ -1578,9 +1691,8 @@ if (st.session_state.get('first_form_completed', False) and
                         container_topn = group_container.container(border=False)
                         plot_my_graph(container_topn, G)
                 
-                st.session_state["compare_form_complete"] = True
+                st.session_state["G1_G2_displayed"] = True
                 st.session_state["G_dict12"] = G_dict12
-                st.session_state["ready_for_comparison"] = True
                 print_session_state()
 
 ###############
@@ -1607,9 +1719,9 @@ import civic_evidence_code
 #G_dict12 = st.session_state["G_dict12"]
 
 # Activate the block if analysis type is 'group-group', 'sample-group', or 'sample-sample' and comparison subtype is "graph"
-if st.session_state.get('ready_for_comparison') and st.session_state.get('sample_comparison_type') == "graph":
+if st.session_state.get('G1_G2_displayed'):
     #and st.session_state.get('analysis_type') in ['sample-sample', 'group-group', 'sample-group'] and \
-   #st.session_state.get("group_comparison_type") == "graph":
+   #st.session_state.get("comparison_type") == "graph":
     print_session_state()
     st.markdown("### Graph Difference Analysis")
     st.markdown("Display a graph which edges represent the differences between two graphs. The higher the difference, the more significant (thicker) the edge.")
@@ -1660,9 +1772,10 @@ if st.session_state.get('ready_for_comparison') and st.session_state.get('sample
         if calculate_button:
             print("Calculate button pressed.")
             print_session_state()
-            st.session_state['Calcualte_button'] = True
+            st.session_state['Calculate_button'] = True
+            reset_session_state_until('diff_Graphs_displayed')
 
-        if st.session_state.get('Calcualte_button'):
+        if st.session_state.get('Calculate_button'):
             # Perform graph difference analysis for the selected pair
             #if len(G_dict12) == 2:  # Ensure exactly two graphs are selected
             G_dict12 = st.session_state.get("G_dict12")
@@ -1690,7 +1803,7 @@ if st.session_state.get('ready_for_comparison') and st.session_state.get('sample
             #    source_column="source_node",
             #    target_column="target_node",
             #    edge_attrs=["LRP", "LRP_norm"],
-            #    top_n_edges=st.session_state.get('top_diff_n', 10),
+            #    top_n_edges=st.session_state.get('top_n', 10),
             #    sample_ID=f"DIFFERENCE {label1} vs {label2}"
             #)
 
@@ -1715,6 +1828,8 @@ if st.session_state.get('ready_for_comparison') and st.session_state.get('sample
                 plot_my_graph(col_diff2, diff_graph_obj.diff_graph, diff_graph_obj.diff_graph.communitites)
                 print("Node communities:", diff_graph_obj.diff_graph.communitites)
                 print("Communities: ", st.session_state['community_analysis'])
+
+                st.session_state['diff_Graphs_displayed'] = True
 
             diff_graph_obj.get_edges_and_nodes_vs_threshold()
             
@@ -1779,15 +1894,32 @@ if st.session_state.get('ready_for_comparison') and st.session_state.get('sample
             #else:
             #    st.error("Graph difference analysis requires exactly two graphs. Please select a valid pair.")     
 
-            st.session_state["enable_chat_bot"] = True
-            st.divider()
 
-            st.subheader("Evidence Analysis:")
-            st.markdown("This section provides information about the evidence related to the genes in the difference graph.")
+
+            ###############################################################################################################################################
+            ###############################################################################################################################################
+
+            # Add "Analyse evidence" button
+            
+            st.divider()
+            col_button, col_slider, col_slider2  = st.columns([1, 1, 1])
+
+            with col_button:
+                analyse_evidence = st.form_submit_button(label='Analyse evidence')
+
+            if analyse_evidence:
+                st.session_state['Analyse_evidence_button'] = True
+                reset_session_state_until('Evidence_analysis_done')
+                print_session_state()
+
             
             # Używamy właściwego atrybutu node_names_no_type dla wybranej pary
             #diff_graph = LRPgraphdiff.LRPGraphDiff(G_dict12[0], G_dict12[1], diff_thres=st.session_state['diff_thres'])
             ###############################################################################################################################################
+        if st.session_state['Analyse_evidence_button']:
+            st.subheader("Evidence Analysis:")
+            st.markdown("This section provides information about the evidence related to the genes in the difference graph.")
+            
             # Gene list 
             gene_list = diff_graph_obj.diff_graph.node_names_no_type
             st.session_state['gene_list'] = gene_list
@@ -1804,7 +1936,7 @@ if st.session_state.get('ready_for_comparison') and st.session_state.get('sample
             with st.expander("See groups (communities)"):
                 st.write(st.session_state['community_analysis'] )
             ###############################################################################################################################################
-            # Analiza gene enrichment
+            # Analiza gene enrichment for all nodes
             ge_analyser = ge.GE_Analyser(st.session_state['gene_list'])
             ge_results = ge_analyser.run_GE_on_nodes(user_threshold=st.session_state['p_value'])  # dostosuj próg, jeśli potrzeba
             st.session_state['gene_enrichment'] = ge_results
@@ -1829,7 +1961,59 @@ if st.session_state.get('ready_for_comparison') and st.session_state.get('sample
             else:
                 st.write("No Gene Enrichment Results available.")
                 st.session_state['gene_enrichment'] = None
+            
+            # Gene enrichment analysis for each community
+            community_enrichment_results = {}
 
+            for community_id, gene_list in st.session_state['community_analysis'].items():
+                if gene_list:  # Only run if the community has genes
+                    gene_list = set([gene.split('_')[0] for gene in gene_list])  # Remove type suffix)
+                    print(f"Running gene enrichment for community {community_id} with genes: {gene_list}")
+                    ge_analyser = ge.GE_Analyser(gene_list)
+                    ge_results = ge_analyser.run_GE_on_nodes(user_threshold=st.session_state['p_value'])
+                    community_enrichment_results[community_id] = ge_results
+
+            st.session_state['community_enrichment'] = community_enrichment_results
+
+            # Display results in the dashboard
+            #st.subheader("Gene Enrichment Results for Each Community")
+            #with st.expander("See Community Gene Enrichment Results"):
+            #    for community_id, ge_results in community_enrichment_results.items():
+                    # Show community ID and its genes in the title
+            #         genes_in_community = ", ".join(gene_list)
+            #        st.markdown(f"### Community {community_id}: {genes_in_community}")
+            #        if ge_results is not None and not ge_results.empty:
+            #            for idx, row in ge_results.iterrows():
+            #                st.markdown(f"### Enriched Term: {row['name']}")
+            #                tab_term, tab_desc, tab_inter, tab_pval = st.tabs([
+            #                    "Term", "Description", "Intersection Size", "p-value"
+            #                ])
+            #                with tab_term:
+            #                    st.write(row["name"])
+            #                with tab_desc:
+            #                    st.write(row["description"])
+            #                with tab_inter:
+            #                    st.write(row.get("intersections", "N/A"))
+            #                with tab_pval:
+            #                    st.write(row.get("p_value", "N/A"))
+            #        else:
+            #            st.write("No enrichment results for this community.")
+
+            # Display results in the dashboard
+            st.subheader("Gene Enrichment Results for Each Community")
+            with st.expander("See Community Gene Enrichment Results"):
+                for community_id, ge_results in community_enrichment_results.items():
+                    genes_in_community = ", ".join(st.session_state['community_analysis'][community_id])
+                    st.markdown(f"### Community {community_id}")
+                    st.markdown(f"Genes in this community: {genes_in_community}")
+                    if ge_results is not None and not ge_results.empty:
+                        # Select columns to display (adjust as needed)
+                        columns_to_show = ["name", "description", "intersections", "p_value"]
+                        # Only show columns that exist in the DataFrame
+                        columns_to_show = [col for col in columns_to_show if col in ge_results.columns]
+                        st.dataframe(ge_results[columns_to_show], use_container_width=True)
+                    else:
+                        st.write("No enrichment results for this community.")
                 
             #############################################################################################################################################  
             # CIVIC Evidence Analysis
