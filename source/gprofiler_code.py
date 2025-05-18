@@ -72,8 +72,9 @@ class GE_Analyser:
             enrichment_results['intersections'] = enrichment_results['intersections'].astype(str).str.replace('[', '').str.replace(']', '').str.replace("'","")
             self.ge_results = enrichment_results
             
-            # Create a dictionary from ge_results using 'name' as the key and store it in self
-            self.ge_results_dict = enrichment_results.set_index('name')[
+            # Ensure 'name' is unique before setting as index to avoid errors
+            enrichment_results_unique = enrichment_results.drop_duplicates(subset='name')
+            self.ge_results_dict = enrichment_results_unique.set_index('name')[
                 ['description', 'intersections', 'native', 'source']
             ].to_dict(orient='index')
 

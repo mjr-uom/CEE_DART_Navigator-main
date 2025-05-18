@@ -1,7 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
-import seaborn as sns
 import gravis as gv
 import altair as alt
 import networkx as nx
@@ -9,44 +8,36 @@ import matplotlib as mt
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import numpy as np
-from pyvis.network import Network
 import os
 import hashlib
-import itertools
-import importlib, sys
+import importlib
+import sys
 import matplotlib.pyplot as plt
-from gptAgent import OpenAIAgent
-import os
 from len_gen import generate_legend_table, generate_legend_table_community
+
+# Add source directory to sys.path if not already present
 path_to_functions_directory = r'./source'
 if path_to_functions_directory not in sys.path:
     sys.path.append(path_to_functions_directory)
 
 import civic_data_code as civic
-
 importlib.reload(civic)
 
 import dataloaders as dtl
-
 importlib.reload(dtl)
 
 import functions_graphs as fg
-
 importlib.reload(fg)
 
 import LRPGraph_code as lrpgraph
-
 importlib.reload(lrpgraph)
 
 import LRP_comparison_code as lrpcomp
-
-import pingouin as pg
 
 import pharmabk_code as pbk
 importlib.reload(pbk)
 import collections
 
-import scanpy as sc
 import altair as alt
 
 
@@ -84,7 +75,16 @@ default_session_state = {
     'gg_group_options': list(),
     'group_for_agg': None,
     'gene_enrichment': None,
-
+    'gene_list': list(),
+    'gene_list_no_types': list(),
+    'pharmGKB_details': {},
+    'gene_enrichment': None,     
+    'community_enrichment': None,
+    'civic_evidence': None,      
+    'pharmGKB_analysis': None,
+    'ai_context':str(),
+    'ai_prompt':str(),
+    'community_analysis': dict(),
 
     'Filter_data_button': False, # 11
     'analysis_type': None,
@@ -98,36 +98,9 @@ default_session_state = {
     'p_value': 0.05,
     'Calculate_button': False, # plot DIFF graph
     'diff_Graphs_displayed': False,
-    'community_analysis': dict(),
-    'Analyse_evidence_button': False,
+    #'Analyse_evidence_button': False,
     'Evidence_analysis_done': False,
-
-    'LRP_to_graphs_stratified': pd.DataFrame([]),
-    
-    'comparison_grp_button': False,
-    
-    
-    'compare_grp_selected': list(),
-    'enable_chat_bot': False,
-    'messages': list(),
-    'context_input': None,
-    'awaiting_context': True,
-    'user_input': "",
-    'disabled': False,
-    'openai_model': "gpt-3.5-turbo",
-    'edge_df': pd.DataFrame([]),
-    'all_facts': "",
-    
-    
-    'LRP_to_graphs': pd.DataFrame([]),
-    
-    'stratify_by_values': list(),
-    
-    'gene_list': list(),
-    'pharmakb_details': {},
-    'gene_enrichment': None,     
-    'civic_evidence': None,      
-    'pharmakb_analysis': None,
+    'AI_assistance_button': False,
     
 }
 
@@ -170,29 +143,31 @@ def print_session_state():
     """
     session_state_keys = [
         'Filter_data_button',
-                'analysis_type',
-                'Type_of_analysis_selected',
-                'comparison_type',
-                'Type_of_comparison_selected',
-                'Generate_graphs_button',
-                'Calculate_button'
-    
-
-        'stratify_by', 'second_form_completed',
-        'enable_comparison', 'filters_form_completed', 'tts_filter_button', 'calculate_button',
-        'comparison_grp_button', 'G1_G2_displayed', 'top_n', 'top_n',
-        'top_n_similar', 'compare_grp_selected','ready_for_comparison',
+        'analysis_type',
+        'Type_of_analysis_selected',
+        'comparison_type',
+        'Type_of_comparison_selected',
+        'Generate_graphs_button',
+        'G1_G2_displayed',
+        'diff_thres',
+        'p_value',
+        'Calculate_button',
+        'diff_Graphs_displayed',
+        'Analyse_evidence_button',
+        'Evidence_analysis_done',
+        'AI_assistance_button',
+        'top_n',
         'group_for_agg',
-    'sample1',
-    'sample2',
-    'group1',
-    'group2',
-    'sg_grouping_column',
-    'sg_group_options',
-    'gg_grouping_column',
-    'gg_group_options'
+        'sample1',
+        'sample2',
+        'group1',
+        'group2',
+        'sg_grouping_column',
+        'sg_group_options',
+        'gg_grouping_column',
+        'gg_group_options'
     ]
-    
+
     session_state = {key: st.session_state.get(key, None) for key in session_state_keys}
     print('\nSession state: \n', session_state)
     
@@ -273,18 +248,66 @@ def plot_my_graph(container, graph, communities=None):
         return None, None
 
     # Helper function: Format edge attributes
+    # def format_edge_data(newG):
+    #     edge_dist = list(nx.get_edge_attributes(newG, 'LRP_norm').values())
+    #     norm_colour = mt.colors.Normalize(vmin=0.0, vmax=max(edge_dist), clip=True)
+    #     colour_mapper = cm.ScalarMappable(norm=norm_colour, cmap=cm.Greys)
+    #     for u, v, data in newG.edges(data=True):
+    #         lrp_norm = data.get("LRP_norm", 0)
+    #         data.update({
+    #             "hover": f'LRP_norm: {lrp_norm:.4f}',
+    #             "color": mt.colors.rgb2hex(colour_mapper.to_rgba(lrp_norm)),
+    #             "weight": lrp_norm,
+    #             "value": lrp_norm,
+    #             "click": f'LRP_norm: {lrp_norm:.4f}'
+    #         })
     def format_edge_data(newG):
+        # Step 1: Identify all unique edge types in the graph
+        edge_types = set()
+        for u, v in newG.edges():
+            u_type = u.split('_')[-1]
+            v_type = v.split('_')[-1]
+            # Always store as sorted tuple for symmetry (rna, prot) == (prot, rna)
+            edge_types.add(tuple(sorted([u_type, v_type])))
+
+        # Step 2: Assign a unique color to each edge type using matplotlib colormap
+        if len(edge_types) > 9:
+            color_map = cm.get_cmap('tab20', len(edge_types))
+        else:
+            color_map = cm.get_cmap('Set1', len(edge_types))
+        edge_type_to_color = {}
+        for idx, edge_type in enumerate(sorted(edge_types)):
+            rgb = color_map(idx)[:3]  # get RGB, ignore alpha
+            edge_type_to_color[edge_type] = mt.colors.rgb2hex(rgb)
+
+        # Step 3: Fallback color for edges with missing/unknown types
+        default_color = '#888888'
+
+        # Step 4: Normalize edge weights for other visual attributes
         edge_dist = list(nx.get_edge_attributes(newG, 'LRP_norm').values())
-        norm_colour = mt.colors.Normalize(vmin=0.0, vmax=max(edge_dist), clip=True)
-        colour_mapper = cm.ScalarMappable(norm=norm_colour, cmap=cm.Greys)
+        if edge_dist:
+            norm_colour = mt.colors.Normalize(vmin=0.0, vmax=max(edge_dist), clip=True)
+            colour_mapper = cm.ScalarMappable(norm=norm_colour, cmap=cm.Greys)
+        else:
+            norm_colour = None
+            colour_mapper = None
+
+        # Step 5: Assign color and attributes to each edge
         for u, v, data in newG.edges(data=True):
             lrp_norm = data.get("LRP_norm", 0)
+            u_type = u.split('_')[-1]
+            v_type = v.split('_')[-1]
+            edge_type = tuple(sorted([u_type, v_type]))
+            color = edge_type_to_color.get(edge_type, default_color)
+            # Optionally, fallback to grayscale if no edge types found
+            if color == default_color and colour_mapper:
+                color = mt.colors.rgb2hex(colour_mapper.to_rgba(lrp_norm))
             data.update({
-                "hover": f'LRP_norm: {lrp_norm:.4f}',
-                "color": mt.colors.rgb2hex(colour_mapper.to_rgba(lrp_norm)),
+                "hover": f'LRP_norm: {lrp_norm:.4f} | Type: {u_type}-{v_type}',
+                "color": color,
                 "weight": lrp_norm,
                 "value": lrp_norm,
-                "click": f'LRP_norm: {lrp_norm:.4f}'
+                "click": f'LRP_norm: {lrp_norm:.4f} | Type: {u_type}-{v_type}'
             })
 
     # Helper function: Format node attributes
@@ -359,17 +382,17 @@ def plot_my_graph(container, graph, communities=None):
 
         use_edge_size_normalization=True,
         edge_size_normalization_min =.5,
-        edge_size_normalization_max = 3,
+        edge_size_normalization_max = 5,
         edge_size_data_source='weight', 
         edge_hover_tooltip=True,# zoom_factor=0.55,
         edge_curvature=0.2,
         layout_algorithm_active=True,
         many_body_force_strength=100.0,
         use_many_body_force_max_distance=True,
-        #many_body_force_max_distance=20.0,
+        many_body_force_max_distance=50.0,
         use_collision_force=True,
-        #collision_force_radius=10.0,
-        #collision_force_strength=0.7,
+        collision_force_radius=20.0,
+        collision_force_strength=0.7,
         use_centering_force=True,
             
 
@@ -385,7 +408,7 @@ def plot_my_graph(container, graph, communities=None):
 
 def create_multiselect(catalog_name: str, values: list, container: object):
     with container:
-        selected_values = st.multiselect("Please select \"" + catalog_name + "\" : ",
+        selected_values = st.multiselect("Filter by groups from \"" + catalog_name + "\" : ",
             values,
             placeholder="Select one or more options (optional)"
         )
@@ -453,24 +476,33 @@ if __name__ == '__main__':
     # Navigation buttons
     if st.sidebar.button('Home'):
         st.session_state.page = "Home"
-        reset_session_state_until(key_to_reset = 'lrp_df')
+        reset_session_state_until('Filter_data_button')
+        print_session_state()
     if st.sidebar.button('Analyse'):
+        reset_session_state_until('Filter_data_button')
+        print_session_state()
         st.session_state.page = "Analyse"
         print_session_state()
     if st.sidebar.button('AI Assistant'):  # New tab
         st.session_state.page = "AI Assistant"
+        reset_session_state_until('Filter_data_button')
+        print_session_state()
     if st.sidebar.button('FAQ'):
         st.session_state.page = "FAQ"
-        reset_session_state_until(key_to_reset = 'lrp_df')
+        reset_session_state_until('Filter_data_button')
+        print_session_state()
     if st.sidebar.button('About'):
         st.session_state.page = "About"
-        reset_session_state_until(key_to_reset = 'lrp_df')
+        reset_session_state_until('Filter_data_button')
+        print_session_state()
     if st.sidebar.button('News'):
         st.session_state.page = "News"
-        reset_session_state_until(key_to_reset = 'lrp_df')
+        reset_session_state_until('Filter_data_button')
+        print_session_state()
     if st.sidebar.button('Results'):  # New tab
         st.session_state.page = "Results"
-        reset_session_state_until(key_to_reset = 'lrp_df')
+        reset_session_state_until('Filter_data_button')
+        print_session_state()
 
 
     # Render content based on the current page state
@@ -496,11 +528,13 @@ if __name__ == '__main__':
         with col1:
             if st.button("Analyse Your Samples"):
                 st.session_state.page = "Analyse"
-                rerun()
+                reset_session_state_until('Filter_data_button')
+                print_session_state()
+                #rerun()
         with col2:
             if st.button("See Examples"):
                 st.session_state.page = "Examples"
-                rerun()
+                #rerun()
 
         # Spacer
         st.markdown("<br>", unsafe_allow_html=True)
@@ -589,17 +623,43 @@ if __name__ == '__main__':
 
 
     elif st.session_state.page == "Analyse":
+        
+        
         st.title("Analyse Molecular Interaction Signatures")
         st.markdown("""
             <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
-                        margin-top:20px; text-align:center; font-size:18px;">
-                <strong>Analyse Your Samples</strong><br>
-                <br>
-                Compare and interpret biological samples based on molecular interaction signatures according to multiple evidence sources.
-                Upload your LRP-based Interaction Metrics data and metadata to start analyzing your samples based on molecular interaction signatures.
-                <br><br>
+                        margin-top:20px; font-size:16px;">
+            <strong>Instructions to Analyse Your Samples</strong>
+
+            - 📁 **Upload your LRP results file** containing gene-gene interaction data.  
+            _Format: CSV or TSV with columns: `SampleID`, `GeneA`, `GeneB`, `LRP_score`_
+
+            - 🧾 **Upload your metadata file** with sample IDs and group labels.  
+            _Format: CSV or TSV with columns: `SampleID`, `Group`_
+
+            - 🔍 **Filter your data**:  
+            &nbsp;&nbsp;&nbsp;&nbsp;• Choose a group of samples using metadata  
+            &nbsp;&nbsp;&nbsp;&nbsp;• Optionally, specify a set of genes of interest
+
+            - ⚙️ **Select analysis type**:  
+            &nbsp;&nbsp;&nbsp;&nbsp;• Sample vs Sample  
+            &nbsp;&nbsp;&nbsp;&nbsp;• Sample vs Group Median  
+            &nbsp;&nbsp;&nbsp;&nbsp;• Group vs Group (Median vs Median)
+
+            - 📊 **Choose statistical approach**:  
+            &nbsp;&nbsp;&nbsp;&nbsp;• Univariable test (Mann–Whitney U test)  
+            &nbsp;&nbsp;&nbsp;&nbsp;• Graph-based interaction comparison
+
+            - 🧠 **For graph analysis**, define a **difference threshold**:  
+            This controls which `LRP_diff` values (Graph1 - Graph2) are shown in the Difference Graph.
+
+            - 🧬 **Automatic evidence extraction** will be performed after the analysis.
+
+            - 🤖 To explore extracted evidence with the AI, go to the **'AI Assistant'** tab.
             </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+
+
 
         # Create a column layout with two columns for the upload buttons
         col1, col2 = st.columns(2)
@@ -649,15 +709,15 @@ if __name__ == '__main__':
             # Create a combined form for both data filtering and keyword selection
             combined_form = st.form('combined_filters')
             with combined_form:
-                st.markdown("### Data Filtering")
+                st.markdown("### Filter samples")
                 # Create widgets for filtering based on metadata columns
                 filters = {}
                 for key, values in filter_catalog.items():
                     filters[key] = create_multiselect(key, values, combined_form)
 
-                st.markdown("### Upload Frequent Keywords")
+                st.markdown("### Filter genes of interest")
                 # File uploader widget for frequent keywords
-                path_to_plkeywords = st.file_uploader("Upload frequent keywords")
+                path_to_plkeywords = st.file_uploader("Upload file with genes of interest")
                 if path_to_plkeywords is not None:
                     temp_dir = tempfile.gettempdir()
                     st.session_state['frequent_kws'] = pd.read_csv(
@@ -665,7 +725,7 @@ if __name__ == '__main__':
                     )
                     st.info('File {0} has been analysed.'.format(path_to_plkeywords.name))
 
-                st.markdown("### Keyword Selection")
+                st.markdown("or")
                 # Set up the keywords list based on whether a file was uploaded
                 if st.session_state.get('frequent_kws') is None or st.session_state['frequent_kws'].empty:
                     # No file uploaded – generate keywords from data
@@ -686,10 +746,10 @@ if __name__ == '__main__':
 
                 # Multiselect widget for selecting keywords
                 keywords_selected = combined_form.multiselect(
-                    "Please select your keyword: ",
+                    "Please select your genes of interest: ",
                     keywords,
                     default_keywords,
-                    placeholder="Select one or more options (optional)"
+                    placeholder="Select one or more (optional)"
                 )
                 st.session_state['keywords'] = keywords_selected
                 # A single "Run" button to execute both filtering steps
@@ -816,11 +876,11 @@ if __name__ == '__main__':
                         if 'filtered_lrp_df' not in st.session_state:
                             st.session_state['filtered_lrp_df'] = pd.DataFrame([])
                         
-                        if st.session_state["filtered_df"].empty:
+                        if st.session_state["filtered_lrp_df"].empty:
                             st.error("Filtered dataset is empty. Please review your filtering criteria.")
                             st.session_state['sample_names'] = []
                         else:
-                            st.session_state['sample_names'] = list(st.session_state["filtered_df"].index)
+                            st.session_state['sample_names'] = list(st.session_state["filtered_lrp_df"].index)
                             print(st.session_state['sample_names'])
 
                         if st.session_state['sample_names']:
@@ -843,7 +903,7 @@ if __name__ == '__main__':
                             #st.session_state['sample2'] = sample2                          
                             
                             top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
-                            singles = sorted({col.split("_")[-1] for col in st.session_state["filtered_df"].columns if "_" in col})
+                            singles = sorted({col.split("_")[-1] for col in st.session_state['filtered_lrp_df'].columns if "_" in col})
                             pairs = [f"{t1}-{t2}" for i, t1 in enumerate(singles) for t2 in singles[i:]]
                             available_node_types = sorted(list(set(singles + pairs)))
                             selected_node_types = st.multiselect("Select Edge Type(s)", available_node_types,
@@ -858,15 +918,15 @@ if __name__ == '__main__':
                             #print('Sample2:', sample2)
                             st.error("Selected samples must be distinct. Please choose two different samples for comparison.")
                         else:
-                            print("Filtered DataFrame Index:", st.session_state["filtered_df"].index)
-                            if sample1 not in st.session_state["filtered_df"].index or sample2 not in st.session_state["filtered_df"].index:
+                            print("Filtered DataFrame Index:", st.session_state['filtered_lrp_df'].index)
+                            if sample1 not in st.session_state['filtered_lrp_df'].index or sample2 not in st.session_state['filtered_lrp_df'].index:
                                 st.error(f"One or both selected samples ({sample1}, {sample2}) are not present in the filtered dataset. Please select valid samples.")
                             else:
                                 save_plot = False  # Adjust as needed
                                 comparison = lrpcomp.SampleVsSampleComparison(
                                     sample1_name=sample1,
                                     sample2_name=sample2,
-                                    data_df=st.session_state["filtered_df"],
+                                    data_df=st.session_state['filtered_lrp_df'],
                                     clinical_features_df=st.session_state["metadata_df"].data
                                 )
                                 comparison.compute_boxplot_values()
@@ -927,14 +987,14 @@ if __name__ == '__main__':
                     # Now inside the form, use the updated sg_group_options.
                     with st.form("sample_vs_group_form"):
                         # Create selection box for sample (from lrp_df index).
-                        sample_names = list(st.session_state["filtered_df"].index)
+                        sample_names = list(st.session_state['filtered_lrp_df'].index)
                         sample1 = st.selectbox("Select Sample", sample_names, key="sample_vs_group_sample")
                         # Use the updated group options from filtered metadata.
                         chosen_group = st.selectbox("Select Group", st.session_state["sg_group_options"],
                                                     key="group_selected")
                         top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
                         # Determine available node types (both single and paired).
-                        singles = sorted({col.split("_")[-1] for col in st.session_state["filtered_df"].columns if "_" in col})
+                        singles = sorted({col.split("_")[-1] for col in st.session_state['filtered_lrp_df'].columns if "_" in col})
                         pairs = [f"{t1}-{t2}" for i, t1 in enumerate(singles) for t2 in singles[i:]]
                         available_node_types = sorted(list(set(singles + pairs)))
                         selected_node_types = st.multiselect("Select Edge Type(s)", available_node_types,
@@ -947,7 +1007,7 @@ if __name__ == '__main__':
                             sample1_name=sample1,
                             column_name=chosen_column,
                             group1_name=chosen_group,
-                            data_df=st.session_state["filtered_df"],
+                            data_df=st.session_state['filtered_lrp_df'],
                             clinical_features_df=st.session_state["metadata_df"].data
                         )
                         comparison.compute_boxplot_values()
@@ -1019,7 +1079,7 @@ if __name__ == '__main__':
                         
                         top_n_features = st.slider("Select Top N Features", min_value=1, max_value=100, value=10)
                         # Determine available node types (both single and paired)
-                        singles = sorted({col.split("_")[-1] for col in st.session_state["filtered_df"].columns if "_" in col})
+                        singles = sorted({col.split("_")[-1] for col in st.session_state['filtered_lrp_df'].columns if "_" in col})
                         pairs = []
                         for i, t1 in enumerate(singles):
                             for t2 in singles[i:]:
@@ -1040,9 +1100,9 @@ if __name__ == '__main__':
                                 filtered_metadata[chosen_column].isin([group1, group2])
                             ]
                             # Ensure that the filtered_sel_metadata and lrp_df share the same index.
-                            common_index = st.session_state["filtered_df"].index.intersection(filtered_sel_metadata.index)
+                            common_index = st.session_state['filtered_lrp_df'].index.intersection(filtered_sel_metadata.index)
                             filtered_sel_metadata = filtered_sel_metadata.loc[common_index]
-                            data_df = st.session_state["filtered_df"].loc[common_index]
+                            data_df = st.session_state['filtered_lrp_df'].loc[common_index]
                             
                             # Create the comparison object using the index-matched data.
                             comparison = lrpcomp.GroupVsGroupComparison(
@@ -1183,15 +1243,15 @@ if __name__ == '__main__':
                 <strong>Contact Us:</strong><br>
                 For more information, please visit our website or contact us at info@misportal.org.
                 <br><br>
-                <strong>Project Coordinators:</strong><br>
-                Andre Freitas, PhD <br>
-                Oskar Wysocki, PhD <br>
-                Magdalena Wysocka, PhD
-                <br><br>
                 <strong>Design & Development:</strong><br>
-                Oskar Wysocki, PhD <br>
-                Magdalena Wysocka, PhD <br>
-                Mauricio Jacobo-Romero, PhD
+                <a href="https://www.linkedin.com/in/oskar-wysocki/" target="_blank" style="color: #0077b5; text-decoration: underline;">Oskar Wysocki, PhD</a> 
+                [<a href="https://scholar.google.com/citations?user=3r-xFXsAAAAJ&hl=en" target="_blank" style="color: #4285F4; text-decoration: underline;">Google Scholar</a>]<br>
+                <a href="https://www.linkedin.com/in/magdalena-wysocka-052905141/" target="_blank" style="color: #0077b5; text-decoration: underline;">Magdalena Wysocka, PhD</a> 
+                [<a href="https://scholar.google.com/citations?user=lJQO-lEAAAAJ&hl=en" target="_blank" style="color: #4285F4; text-decoration: underline;">Google Scholar</a>]<br>
+                <a href="https://www.linkedin.com/in/mauricio-jacobo/" target="_blank" style="color: #0077b5; text-decoration: underline;">Mauricio Jacobo-Romero, PhD</a>
+                <br>
+                <a href="https://www.linkedin.com/in/andrefreitas/" target="_blank" style="color: #0077b5; text-decoration: underline;">Andre Freitas, PhD</a> 
+                [<a href="https://scholar.google.com/citations?user=ExmHmMoAAAAJ&hl=en" target="_blank" style="color: #4285F4; text-decoration: underline;">Google Scholar</a>]<br>
                 <br><br>
                 <strong>Collaborators:</strong><br>
                 <a href="https://www.cancercoreeurope.eu/" target="_blank" style="color: black; text-decoration: underline;">Cancer Core Europe</a>
@@ -1705,6 +1765,9 @@ if (st.session_state.get('Type_of_comparison_selected', False) and
 import LRPgraphdiff_code as LRPgraphdiff  # module for calculating differences between graphs
 import gprofiler_code as ge  # module performing gene enrichment analysis
 import civic_evidence_code  
+import requests
+import json
+import io
 
 
 ###############
@@ -1713,10 +1776,6 @@ import civic_evidence_code
 #
 ###############
 
-# Ensure G_dict12 is available in session state
-#if "G_dict12" not in st.session_state:
-#    st.session_state["G_dict12"] = {}
-#G_dict12 = st.session_state["G_dict12"]
 
 # Activate the block if analysis type is 'group-group', 'sample-group', or 'sample-sample' and comparison subtype is "graph"
 if st.session_state.get('G1_G2_displayed'):
@@ -1725,21 +1784,6 @@ if st.session_state.get('G1_G2_displayed'):
     print_session_state()
     st.markdown("### Graph Difference Analysis")
     st.markdown("Display a graph which edges represent the differences between two graphs. The higher the difference, the more significant (thicker) the edge.")
-    # Retrieve generated graphs from session state
-    #G_dict12 = st.session_state.get("G_dict12")
-    #if not G_dict12:
-    #    st.error("No graphs available for difference analysis. Please run the graph generation step first.")
-    #else:
-        # Perform graph difference analysis
-        #fg.get_all_fixed_size_adjacency_matrices(G_dict12)
-        #fg.get_all_fixed_size_embeddings(G_dict12)
-
-        # Calculate adjacency differences for each pair of graphs
-    #    pairs = list(itertools.combinations(range(len(G_dict12)), 2))
-    #    adj_diff_list = []
-    #    for i, j in pairs:
-    #        diff = fg.calculate_adjacency_difference(G_dict12[i], G_dict12[j])
-    #        adj_diff_list.append(diff)
 
     # Threshold selection form
     threshold_selection_form = st.form('ThresSelection')
@@ -1751,7 +1795,7 @@ if st.session_state.get('G1_G2_displayed'):
                 min_value=0.0,
                 max_value=1.0,
                 value=0.5,
-                help="Select a threshold for significant differences."
+                help="Select a threshold for significant differences. The higher the threshold, the fewer edges are included in the diff.graph. If the threshold is too high, the diff.graph may be empty.",
             )
             st.session_state['diff_thres'] = diff_thres
                             
@@ -1762,7 +1806,7 @@ if st.session_state.get('G1_G2_displayed'):
                 max_value=0.2,
                 value=0.05,
                 step=0.001,
-                help="Select a p-value threshold for significance for Gene Enrichment analysis."
+                help="Select a p-value threshold for significance for Gene Enrichment analysis. The lower the p-value, the more significant the enrichment and less likely to be a false positive. The pathways and biological processes are filtered ",
             )
             st.session_state['p_value'] = p_value
                             
@@ -1780,513 +1824,531 @@ if st.session_state.get('G1_G2_displayed'):
             #if len(G_dict12) == 2:  # Ensure exactly two graphs are selected
             G_dict12 = st.session_state.get("G_dict12")
             fg.get_all_fixed_size_adjacency_matrices(G_dict12)
-            fg.get_all_fixed_size_embeddings(G_dict12)
-            diff_graph_obj = LRPgraphdiff.LRPGraphDiff(G_dict12[0], G_dict12[1], diff_thres=st.session_state['diff_thres'])
-
-            #fg.get_all_fixed_size_adjacency_matrices(G_dict12)
             #fg.get_all_fixed_size_embeddings(G_dict12)
 
-            # Calculate adjacency difference for the selected pair
-            #diff = fg.calculate_adjacency_difference(G_dict12[0], G_dict12[1])
-
-            #edge_df = fg.create_edge_dataframe_from_adj_diff(diff, diff_thres)
-            #print("Edge DataFrame Columns:", edge_df.columns)
-            #if edge_df.empty:
-            #    st.subheader("The edges representing graph differences are not above the threshold to plot.")
-            #    print("No edges above the threshold to plot.")
-            #else:
-            label1 = "Graph 1"
-            label2 = "Graph 2"
-
-            #diff_graph = lrpgraph.LRPGraph(
-            #    edges_sample_i=edge_df,
-            #    source_column="source_node",
-            #    target_column="target_node",
-            #    edge_attrs=["LRP", "LRP_norm"],
-            #    top_n_edges=st.session_state.get('top_n', 10),
-            #    sample_ID=f"DIFFERENCE {label1} vs {label2}"
-            #)
-
-            # Display the difference graph
-            col_diff1, col_diff2 = st.columns(2)
-            with col_diff1:
-                print(f"Displaying difference graph for {label1} vs {label2} in the first column.")
-                plot_my_graph(col_diff1, diff_graph_obj.diff_graph)
-            with col_diff2:
-                print(f"Displaying communities for {label1} vs {label2} in the second column.")
-                #diff_graph.get_communitites()
-                if diff_graph_obj.diff_graph.communitites is not None and not diff_graph_obj.diff_graph.communitites.empty and "node" in diff_graph_obj.diff_graph.communitites.columns and "community" in diff_graph_obj.diff_graph.communitites.columns:
-                    #st.session_state['community_analysis'] = dict(zip(diff_graph_obj.diff_graph.communitites["node"], diff_graph_obj.diff_graph.communitites["community"]))
-                    # Invert the mapping: community number -> list of gene names
-                    comm_df = diff_graph_obj.diff_graph.communitites
-                    community_to_genes = collections.defaultdict(list)
-                    for node, comm in zip(comm_df["node"], comm_df["community"]):
-                        community_to_genes[comm].append(node)
-                    st.session_state['community_analysis'] = dict(community_to_genes)
-                else:
-                    st.session_state['community_analysis'] = {} # Ensure it's an empty dict if no communities
-                plot_my_graph(col_diff2, diff_graph_obj.diff_graph, diff_graph_obj.diff_graph.communitites)
-                print("Node communities:", diff_graph_obj.diff_graph.communitites)
-                print("Communities: ", st.session_state['community_analysis'])
-
-                st.session_state['diff_Graphs_displayed'] = True
-
-            diff_graph_obj.get_edges_and_nodes_vs_threshold()
+            try:
+                diff_graph_obj = LRPgraphdiff.LRPGraphDiff(G_dict12[0], G_dict12[1], diff_thres=st.session_state['diff_thres'])
             
-            #edge_df_sizes = []
-            #for th_val in np.arange(0.0, 1.0, 0.02):
-            #    tmp_edge_df = fg.create_edge_dataframe_from_adj_diff(diff, th_val)
-            #    edge_df_sizes.append((th_val, len(tmp_edge_df)))
+                label1 = "Graph 1"
+                label2 = "Graph 2"
 
-            col_chart1, col_chart2 = st.columns(2)
-            with col_chart1:
-                print(f"Plotting 'Number of Edges vs Difference Threshold' for {label1} vs {label2}.")
-                st.subheader("Number of Edges vs Difference Threshold")
-                st.markdown("This plot shows the number of edges and nodes in the graph as a function of the difference threshold. The higher the threshold, the fewer edges and nodes are included.")
-                # Use Altair for multi-line plot
-                df = diff_graph_obj.edge_node_df_sizes
-                threshold = st.session_state['diff_thres']
-                # Main line chart with custom legend labels
-                chart = alt.Chart(df).transform_fold(
-                    ['num_edges', 'num_nodes'],
-                    as_=['Metric', 'Count']
-                ).mark_line(point=True).encode(
-                    x=alt.X('threshold:Q', title='Difference Threshold'),
-                    y=alt.Y('Count:Q', title='Count'),
-                    color=alt.Color(
-                        'Metric:N',
-                        title='Metric',
-                        scale=alt.Scale(
-                            domain=['num_edges', 'num_nodes'],
-                            range=['#1f77b4', '#ff7f0e']
-                        ),
-                        legend=alt.Legend(
-                            title="Metric",
-                            labelExpr="{'num_edges': 'Number of Edges', 'num_nodes': 'Number of Nodes'}[datum.label]"
+                # Display the difference graph
+                col_diff1, col_diff2 = st.columns(2)
+                with col_diff1:
+                    print(f"Displaying difference graph for {label1} vs {label2} in the first column.")
+                    plot_my_graph(col_diff1, diff_graph_obj.diff_graph)
+                with col_diff2:
+                    print(f"Displaying communities for {label1} vs {label2} in the second column.")
+                    #diff_graph.get_communitites()
+                    if diff_graph_obj.diff_graph.communitites is not None and not diff_graph_obj.diff_graph.communitites.empty and "node" in diff_graph_obj.diff_graph.communitites.columns and "community" in diff_graph_obj.diff_graph.communitites.columns:
+                        #st.session_state['community_analysis'] = dict(zip(diff_graph_obj.diff_graph.communitites["node"], diff_graph_obj.diff_graph.communitites["community"]))
+                        # Invert the mapping: community number -> list of gene names
+                        comm_df = diff_graph_obj.diff_graph.communitites
+                        community_to_genes = collections.defaultdict(list)
+                        for node, comm in zip(comm_df["node"], comm_df["community"]):
+                            community_to_genes[comm].append(node)
+                        st.session_state['community_analysis'] = dict(community_to_genes)
+                    else:
+                        st.session_state['community_analysis'] = {} # Ensure it's an empty dict if no communities
+                    plot_my_graph(col_diff2, diff_graph_obj.diff_graph, diff_graph_obj.diff_graph.communitites)
+                    print("Node communities:", diff_graph_obj.diff_graph.communitites)
+                    print("Communities: ", st.session_state['community_analysis'])
+
+                    st.session_state['diff_Graphs_displayed'] = True
+
+                diff_graph_obj.get_edges_and_nodes_vs_threshold()
+
+
+                col_chart0, col_chart1, col_chart2 = st.columns(3)
+                with col_chart1:
+                    print(f"Plotting 'Number of Edges vs Difference Threshold' for {label1} vs {label2}.")
+                    st.subheader("Number of Edges vs Difference Threshold")
+                    st.markdown(
+                        "This plot shows the number of edges and nodes in the graph as a function of the difference threshold. "
+                        "The higher the threshold, the fewer edges and nodes are included. Guided by this graph, you can adjust the size of the diff.graph."
+                    )
+                    # Use Altair for multi-line plot
+                    df = diff_graph_obj.edge_node_df_sizes
+                    threshold = st.session_state['diff_thres']
+                    # Main line chart with custom legend labels
+                    chart = alt.Chart(df).transform_fold(
+                        ['num_edges', 'num_nodes'],
+                        as_=['Metric', 'Count']
+                    ).mark_line(point=True).encode(
+                        x=alt.X('threshold:Q', title='Difference in LRP interactions between two graphs (threshold)'),
+                        y=alt.Y('Count:Q', title=''),
+                        color=alt.Color(
+                            'Metric:N',
+                            title='',
+                            scale=alt.Scale(
+                                domain=['num_edges', 'num_nodes'],
+                                range=['#1f77b4', '#ff7f0e']
+                            ),
+                            legend=alt.Legend(
+                                title="Metric",
+                                labelExpr="{'num_edges': '# Edges', 'num_nodes': '# Nodes'}[datum.label]"
+                            )
                         )
                     )
-                )
 
-                # Vertical dashed line for threshold
-                vline = alt.Chart(pd.DataFrame({'threshold': [threshold], 'legend': ['Selected Threshold']})).mark_rule(
-                    color='black', strokeDash=[4,4]
-                ).encode(
-                    x='threshold:Q',
-                    detail='legend:N',
-                    color=alt.value('black')
-                )
+                    # Vertical dashed line for threshold
+                    vline = alt.Chart(pd.DataFrame({'threshold': [threshold], 'legend': ['Selected Threshold']})).mark_rule(
+                        color='black', strokeDash=[4,4]
+                    ).encode(
+                        x='threshold:Q',
+                        detail='legend:N',
+                        color=alt.value('black')
+                    )
 
-                # Combine the main chart and the vertical line
-                final_chart = chart + vline
+                    # Combine the main chart and the vertical line
+                    final_chart = chart + vline
 
-                # Add a manual legend for the dashed line
-                st.altair_chart(final_chart, use_container_width=True)
-                
-                #'''with col_chart2:
-                #print(f"Plotting 'LRP Values for Edges Sorted by LRP' for {label1} vs {label2}.")
-                #st.subheader("LRP Values for Edges in the difference graph")
-                #st.markdown(" \n \n")
-
-                #edge_df = diff_graph_obj.edge_df
-                #if 'LRP' not in edge_df.columns and 'LRP_norm' in edge_df.columns:
-                #    edge_df = edge_df.rename(columns={'LRP_norm': 'LRP'})
-                #st.line_chart(edge_df['LRP'], x_label='Edge #', y_label='LRP')'''
-            #else:
-            #    st.error("Graph difference analysis requires exactly two graphs. Please select a valid pair.")     
+                    # Add a manual legend for the dashed line
+                    st.altair_chart(final_chart, use_container_width=True)
+            except:
+                print("Defined G_dict12 but no graph difference object.")
+                st.error("Error: Unable to calculate graph differences. Try lowering the difference threshold to include more edges in the difference graph.")
 
 
+    ###############################################################################################################################################
+    ###############################################################################################################################################
 
-            ###############################################################################################################################################
-            ###############################################################################################################################################
+# Add "Analyse evidence" button
 
-            # Add "Analyse evidence" button
-            
-            st.divider()
-            col_button, col_slider, col_slider2  = st.columns([1, 1, 1])
 
-            with col_button:
-                analyse_evidence = st.form_submit_button(label='Analyse evidence')
+#col_button, col_slider, col_slider2  = st.columns([1, 1, 1])
 
-            if analyse_evidence:
-                st.session_state['Analyse_evidence_button'] = True
-                reset_session_state_until('Evidence_analysis_done')
-                print_session_state()
+#with col_button:
+    #analyse_evidence = st.form_submit_button(label='Analyse evidence')
+# If the button is clicked, set a persistent flag in session state.
+#if analyse_evidence:
+#    st.session_state['Analyse_evidence_button'] = True
+#    reset_session_state_until('Evidence_analysis_done')
+#    print_session_state()
 
-            
-            # Używamy właściwego atrybutu node_names_no_type dla wybranej pary
-            #diff_graph = LRPgraphdiff.LRPGraphDiff(G_dict12[0], G_dict12[1], diff_thres=st.session_state['diff_thres'])
-            ###############################################################################################################################################
-        if st.session_state['Analyse_evidence_button']:
-            st.subheader("Evidence Analysis:")
-            st.markdown("This section provides information about the evidence related to the genes in the difference graph.")
-            
-            # Gene list 
-            gene_list = diff_graph_obj.diff_graph.node_names_no_type
-            st.session_state['gene_list'] = gene_list
-            print("Gene List:", st.session_state['gene_list'])
-            # show the gene list
-            st.subheader("Gene List:")
-            with st.expander("See Gene List"):
-                st.write(st.session_state['gene_list'] )
+#if st.session_state.get('diff_Graphs_displayed'):
+    #if st.button("Analyse evidence"):#, key="Analyse_evidence_button"):
+    #    print("Analyse_evidence_button clicked.")
+    #st.session_state["Analyse_evidence_button"] = True
+    #reset_session_state_until('Evidence_analysis_done')
+    #print_session_state()
 
-            ###############################################################################################################################################
-            # Communities
-            
-            st.subheader("Groups of nodes interacting (communities):")
-            with st.expander("See groups (communities)"):
-                st.write(st.session_state['community_analysis'] )
-            ###############################################################################################################################################
-            # Analiza gene enrichment for all nodes
-            ge_analyser = ge.GE_Analyser(st.session_state['gene_list'])
-            ge_results = ge_analyser.run_GE_on_nodes(user_threshold=st.session_state['p_value'])  # dostosuj próg, jeśli potrzeba
-            st.session_state['gene_enrichment'] = ge_results
+
+
+# Używamy właściwego atrybutu node_names_no_type dla wybranej pary
+#diff_graph = LRPgraphdiff.LRPGraphDiff(G_dict12[0], G_dict12[1], diff_thres=st.session_state['diff_thres'])
+###############################################################################################################################################
+if st.session_state['diff_Graphs_displayed']:
+    st.divider()
+    st.subheader("Evidence Analysis:")
+    st.markdown("""
+            This section provides comprehensive information about the evidence related to the genes identified in the difference graph.
+
+            We integrate multiple sources of biological and clinical knowledge to support the interpretation of molecular interaction signatures:
+            - **Gene Enrichment Analysis** is performed using [g:Profiler](https://biit.cs.ut.ee/gprofiler/gost), which identifies statistically significant biological pathways, Gene Ontology terms, and functional categories enriched in your gene set.
+            - **CIViC (Clinical Interpretation of Variants in Cancer)** provides curated clinical evidence for cancer-related genes and variants, including summaries, descriptions, molecular profiles, and supporting literature ([link](https://civicdb.org/evidence/home)).
+            - **PharmaGKB** offers pharmacogenomics knowledge, linking genes to drug responses, clinical annotations, and relevant literature ([link](https://www.pharmgkb.org/)).
+
+            These integrated resources help you understand the biological and clinical relevance of the genes and interactions highlighted by the difference graph, supporting biomarker discovery and hypothesis generation.
+            """)
+    
+    # Gene list 
+
+    st.session_state['gene_list'] = diff_graph_obj.diff_graph.G.nodes
+    st.session_state['gene_list_no_types'] = list(set(diff_graph_obj.diff_graph.node_names_no_type))
+    print("Gene List:", st.session_state['gene_list'])
+    print("Gene List no types:", st.session_state['gene_list_no_types'])
+    # show the gene list
+    st.subheader("Gene List:")
+    with st.expander("See Gene List"):
+        st.write(st.session_state['gene_list'] )
+
+    ###############################################################################################################################################
+    # Communities
+    
+    st.subheader("Groups of nodes interacting (communities):")
+    with st.expander("See groups (communities)"):
+        st.write(st.session_state['community_analysis'] )
+    ###############################################################################################################################################
+    # Analiza gene enrichment for all nodes
+    # Analiza gene enrichment for all nodes
+    ge_analyser = ge.GE_Analyser(st.session_state['gene_list_no_types'])
+    ge_results = ge_analyser.run_GE_on_nodes(user_threshold=st.session_state['p_value'])  # dostosuj próg, jeśli potrzeba
+    st.session_state['gene_enrichment'] = ge_analyser.ge_results_dict
+
+    st.subheader("Gene Enrichment for All Genes")
+    with st.expander("See details of Gene Enrichment for All Genes"):
+        if ge_results is not None and not ge_results.empty:
+            # Select columns to display (adjust as needed)
+            columns_to_show = ["name", "description", "intersections", "p_value","native"]
+            columns_to_show = [col for col in columns_to_show if col in ge_results.columns]
+            st.dataframe(ge_results[columns_to_show], use_container_width=True)
+        else:
+            st.write("No Gene Enrichment Results available.")
+            st.session_state['gene_enrichment'] = None
+    
+    # Gene enrichment analysis for each community
+    community_enrichment_dfs = {}
+    community_enrichment_results = {}
+
+    for community_id, gene_list in st.session_state['community_analysis'].items():
+        if gene_list:  # Only run if the community has genes
+            gene_list = set([gene.split('_')[0] for gene in gene_list])  # Remove type suffix)
+            print(f"Running gene enrichment for community {community_id} with genes: {gene_list}")
+            ge_analyser = ge.GE_Analyser(gene_list)
+            ge_results = ge_analyser.run_GE_on_nodes(user_threshold=st.session_state['p_value'])
+            community_enrichment_results[community_id] = ge_analyser.ge_results_dict
+            community_enrichment_results[community_id]['gene_list'] = ", ".join(gene_list)
+            community_enrichment_dfs[community_id] = ge_results
+
+    st.session_state['community_enrichment'] = community_enrichment_results
+
+    # Display results in the dashboard
+    st.subheader("Gene Enrichment for Each Community")
+    with st.expander("See details of Community Gene Enrichment"):
+        for community_id, ge_results in community_enrichment_dfs.items():
+            genes_in_community = ", ".join(st.session_state['community_analysis'][community_id])
+            st.markdown(f"### Community {community_id}")
+            st.markdown(f"Nodes: {genes_in_community}")
             if ge_results is not None and not ge_results.empty:
-                st.subheader("Gene Enrichment Results:")
-                with st.expander("See Gene Enrichment Results"):
-                    # Dla każdego wyniku z analizy gene enrichment
-                    for idx, row in ge_results.iterrows():
-                        st.markdown(f"### Enriched Term: {row['name']}")
-                        # Tworzymy zakładki odpowiadające informacjom ze słownika wyniku
-                        tab_term, tab_desc, tab_inter, tab_pval = st.tabs([
-                            "Term", "Description", "Intersection Size", "p-value"
-                        ])
-                        with tab_term:
-                            st.write(row["name"])
-                        with tab_desc:
-                            st.write(row["description"])
-                        with tab_inter:
-                            st.write(row.get("intersection_size", "N/A"))
-                        with tab_pval:
-                            st.write(row.get("p_value", "N/A"))
+                # Select columns to display (adjust as needed)
+                columns_to_show = ["name", "description", "intersections", "p_value","native"]
+                # Only show columns that exist in the DataFrame
+                columns_to_show = [col for col in columns_to_show if col in ge_results.columns]
+                st.dataframe(ge_results[columns_to_show], use_container_width=True)
             else:
-                st.write("No Gene Enrichment Results available.")
-                st.session_state['gene_enrichment'] = None
-            
-            # Gene enrichment analysis for each community
-            community_enrichment_results = {}
+                st.write("No enrichment results for this community.")
+        
+    #############################################################################################################################################  
+    # CIVIC Evidence Analysis
+    try:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        civicdb_path = os.path.join(base_path, 'resources', 'civicdb')
 
-            for community_id, gene_list in st.session_state['community_analysis'].items():
-                if gene_list:  # Only run if the community has genes
-                    gene_list = set([gene.split('_')[0] for gene in gene_list])  # Remove type suffix)
-                    print(f"Running gene enrichment for community {community_id} with genes: {gene_list}")
-                    ge_analyser = ge.GE_Analyser(gene_list)
-                    ge_results = ge_analyser.run_GE_on_nodes(user_threshold=st.session_state['p_value'])
-                    community_enrichment_results[community_id] = ge_results
+        if not os.path.exists(civicdb_path):
+            st.error(f"CIVIC database path does not exist: {civicdb_path}")
+            st.session_state['civic_evidence'] = None
+        else:
+            analyzer = civic_evidence_code.CivicEvidenceAnalyzer(civicdb_path, st.session_state['gene_list_no_types'])
+            analyzer.create_feature_details_dict()
+            details_dict = analyzer.add_evidence_to_dict()
+            st.session_state['civic_evidence'] = details_dict
 
-            st.session_state['community_enrichment'] = community_enrichment_results
-
-            # Display results in the dashboard
-            #st.subheader("Gene Enrichment Results for Each Community")
-            #with st.expander("See Community Gene Enrichment Results"):
-            #    for community_id, ge_results in community_enrichment_results.items():
-                    # Show community ID and its genes in the title
-            #         genes_in_community = ", ".join(gene_list)
-            #        st.markdown(f"### Community {community_id}: {genes_in_community}")
-            #        if ge_results is not None and not ge_results.empty:
-            #            for idx, row in ge_results.iterrows():
-            #                st.markdown(f"### Enriched Term: {row['name']}")
-            #                tab_term, tab_desc, tab_inter, tab_pval = st.tabs([
-            #                    "Term", "Description", "Intersection Size", "p-value"
-            #                ])
-            #                with tab_term:
-            #                    st.write(row["name"])
-            #                with tab_desc:
-            #                    st.write(row["description"])
-            #                with tab_inter:
-            #                    st.write(row.get("intersections", "N/A"))
-            #                with tab_pval:
-            #                    st.write(row.get("p_value", "N/A"))
-            #        else:
-            #            st.write("No enrichment results for this community.")
-
-            # Display results in the dashboard
-            st.subheader("Gene Enrichment Results for Each Community")
-            with st.expander("See Community Gene Enrichment Results"):
-                for community_id, ge_results in community_enrichment_results.items():
-                    genes_in_community = ", ".join(st.session_state['community_analysis'][community_id])
-                    st.markdown(f"### Community {community_id}")
-                    st.markdown(f"Genes in this community: {genes_in_community}")
-                    if ge_results is not None and not ge_results.empty:
-                        # Select columns to display (adjust as needed)
-                        columns_to_show = ["name", "description", "intersections", "p_value"]
-                        # Only show columns that exist in the DataFrame
-                        columns_to_show = [col for col in columns_to_show if col in ge_results.columns]
-                        st.dataframe(ge_results[columns_to_show], use_container_width=True)
-                    else:
-                        st.write("No enrichment results for this community.")
-                
-            #############################################################################################################################################  
-            # CIVIC Evidence Analysis
-            try:
-                base_path = os.path.dirname(os.path.abspath(__file__))
-                civicdb_path = os.path.join(base_path, 'resources', 'civicdb')
-
-                if not os.path.exists(civicdb_path):
-                    st.error(f"CIVIC database path does not exist: {civicdb_path}")
+            st.subheader("CIVICdb Knowledge:")
+            with st.expander("See details of CIVICdb Knowledge"):
+                if details_dict:
+                    for feature, feature_dict in details_dict.items():
+                        st.markdown(f"### {feature}")
+                        # Use tabs for displaying details
+                        tab_sum, tab_desc, tab_mp, tab_ev = st.tabs([
+                            "See Summary",
+                            "See Description",
+                            "See Molecular Profiles",
+                            "See Evidence"
+                        ])
+                        with tab_sum:
+                            st.write(feature_dict.get("Summary", "No Summary available."))
+                        with tab_desc:
+                            st.write(feature_dict.get("Description", "No Description available."))
+                        with tab_mp:
+                            st.write(feature_dict.get("Molecular_profiles", "No Molecular Profiles available."))
+                        with tab_ev:
+                            # Try "Evidence", if missing then try lower-case "pmid"
+                            evidence = feature_dict.get("Evidence")
+                            if evidence is None:
+                                evidence = feature_dict.get("pmid", "No Evidences available.")
+                            # If evidence is a list of dicts, display as table
+                            if isinstance(evidence, list) and len(evidence) > 0 and isinstance(evidence[0], dict):
+                                evidence_df = pd.DataFrame(evidence)
+                                # Make pmid column clickable if it exists
+                                if "pmid" in evidence_df.columns:
+                                    def make_link(pmid):
+                                        if pd.notnull(pmid) and str(pmid).strip() != "":
+                                            url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+                                            return f"[{pmid}]({url})"
+                                        return ""
+                                    evidence_df["pmid"] = evidence_df["pmid"].apply(make_link)
+                                # Display as markdown table to preserve links
+                                st.write(evidence_df.to_markdown(index=False), unsafe_allow_html=True)
+                            else:
+                                st.write(evidence)
+                else:
+                    st.write("No CIVIC evidence details available.")
                     st.session_state['civic_evidence'] = None
+    except Exception as e:
+        st.error(f"An error occurred during CIVIC Evidence Analysis: {e}")
+        st.session_state['civic_evidence'] = None
+
+    #############################################################################################################################################
+    # pharmGKB Analysis
+    try:
+        pharmagkb_files_path = os.path.join(base_path, 'resources', 'pharmgkb')
+
+        if not os.path.exists(pharmagkb_files_path):
+            st.error(f"PharmaGKB files path does not exist: {pharmagkb_files_path}")
+            st.session_state['pharmGKB_analysis'] = None
+        else:
+            pharmGKB_analyzer = pbk.pharmGKB_Analyzer(st.session_state['gene_list_no_types'])
+            pharmGKB_analyzer.get_pharmGKB_knowledge(files_path=pharmagkb_files_path)
+
+            # Combine all filtered data into one DataFrame
+            pharmGKB_df = pd.concat([
+                pharmGKB_analyzer.pharmGKB_var_pheno_ann_filtered,
+                pharmGKB_analyzer.pharmGKB_var_drug_ann_filtered,
+                pharmGKB_analyzer.pharmGKB_var_fa_ann_filtered
+            ], ignore_index=True)
+
+            if pharmGKB_df.empty:
+                st.write("No pharmGKB evidence details available.")
+                st.session_state['pharmGKB_analysis'] = None
+            else:
+                # Ensure required columns exist
+                required_columns = ['Gene', 'Drug(s)', 'Sentence', 'Notes', 'PMID']
+                missing_columns = [col for col in required_columns if col not in pharmGKB_df.columns]
+                if missing_columns:
+                    st.error(f"Missing required columns in pharmGKB data: {', '.join(missing_columns)}")
                 else:
-                    analyzer = civic_evidence_code.CivicEvidenceAnalyzer(civicdb_path, st.session_state['gene_list'])
-                    analyzer.create_feature_details_dict()
-                    details_dict = analyzer.add_evidence_to_dict()
-                    st.session_state['civic_evidence'] = details_dict
-
-                    st.subheader("CIVIC Evidence Knowledge:")
-                    with st.expander("See CIVIC Evidence Knowledge"):
-                        if details_dict:
-                            for feature, feature_dict in details_dict.items():
-                                st.markdown(f"### {feature}")
-                                # Use tabs for displaying details
-                                tab_desc, tab_sum, tab_mp, tab_ev = st.tabs([
-                                    "See Description",
-                                    "See Summary",
-                                    "See Molecular Profiles",
-                                    "See Evidences"
-                                ])
-                                with tab_desc:
-                                    st.write(feature_dict.get("Description", "No Description available."))
-                                with tab_sum:
-                                    st.write(feature_dict.get("Summary", "No Summary available."))
-                                with tab_mp:
-                                    st.write(feature_dict.get("Molecular_profiles", "No Molecular Profiles available."))
-                                with tab_ev:
-                                    # Try "Evidence", if missing then try lower-case "pmid"
-                                    evidence = feature_dict.get("Evidence")
-                                    if evidence is None:
-                                        evidence = feature_dict.get("pmid", "No Evidences available.")
-                                    st.write(evidence)
-                        else:
-                            st.write("No CIVIC evidence details available.")
-                            st.session_state['civic_evidence'] = None
-            except Exception as e:
-                st.error(f"An error occurred during CIVIC Evidence Analysis: {e}")
-                st.session_state['civic_evidence'] = None
-
-            #############################################################################################################################################
-            # PharmaKB Analysis
-            try:
-                pharmagkb_files_path = os.path.join(base_path, 'resources', 'pharmgkb')
-
-                if not os.path.exists(pharmagkb_files_path):
-                    st.error(f"PharmaGKB files path does not exist: {pharmagkb_files_path}")
-                    st.session_state['pharmakb_analysis'] = None
-                else:
-                    pharmakb_analyzer = pbk.Pharmakb_Analyzer(st.session_state['gene_list'])
-                    pharmakb_analyzer.get_pharmakb_knowledge(files_path=pharmagkb_files_path)
-
-                    # Combine all filtered data into one DataFrame
-                    pharmakb_df = pd.concat([
-                        pharmakb_analyzer.pharmakb_var_pheno_ann_filtered,
-                        pharmakb_analyzer.pharmakb_var_drug_ann_filtered,
-                        pharmakb_analyzer.pharmakb_var_fa_ann_filtered
-                    ], ignore_index=True)
-
-                    if pharmakb_df.empty:
-                        st.write("No PharmaKB evidence details available.")
-                        st.session_state['pharmakb_analysis'] = None
-                    else:
-                        # Ensure required columns exist
-                        required_columns = ['Gene', 'Drug(s)', 'Sentence', 'Notes', 'PMID']
-                        missing_columns = [col for col in required_columns if col not in pharmakb_df.columns]
-                        if missing_columns:
-                            st.error(f"Missing required columns in PharmaKB data: {', '.join(missing_columns)}")
-                        else:
-                            # Group results by gene
-                            pharmakb_details = {}
-                            grouped = pharmakb_df.groupby('Gene')
-                            for gene, group in grouped:
-                                drugs = list(group['Drug(s)'].unique())
-                                statement = "; ".join(group['Sentence'].astype(str).unique())
-                                notes = "; ".join(group['Notes'].astype(str).unique())
-                                pmids = list(group['PMID'].unique())
-                                pharmakb_details[gene] = {
-                                    "Drug(s)": drugs if drugs else "No Drugs available.",
-                                    "Statement": statement if statement else "No Statement available.",
-                                    "Notes": notes if notes else "No Notes available.",
-                                    "PMID": pmids if pmids else "No PMID available."
-                                }
-                            st.session_state['pharmakb_analysis'] = pharmakb_details
-                            st.subheader("PharmaKB Knowledge:")
-                            with st.expander("See PharmaKB Knowledge"):
-                                for gene, details in pharmakb_details.items():
-                                    st.markdown(f"### {gene}")
-                                    # Use tabs for displaying details
-                                    tab_drug, tab_statement, tab_notes, tab_pmids = st.tabs([
-                                        "Drug(s)",
-                                        "Statement",
-                                        "Notes",
-                                        "PMID"
-                                    ])
-                                    with tab_drug:
-                                        st.write(details["Drug(s)"])
-                                    with tab_statement:
-                                        st.write(details["Statement"])
-                                    with tab_notes:
-                                        st.write(details["Notes"])
-                                    with tab_pmids:
-                                        st.write(details["PMID"])
+                    # Group results by gene in the requested format (list of dicts per gene)
+                    pharmGKB_details = {}
+                    grouped = pharmGKB_df.groupby('Gene')
+                    for gene, group in grouped:
+                        # Convert each row to a dictionary, keeping column names as keys
+                        gene_entries = []
+                        for _, row in group.iterrows():
+                            entry = {
+                                "Drug(s)": row.get("Drug(s)", None),
+                                "Sentence": row.get("Sentence", None),
+                                "Notes": row.get("Notes", None) if pd.notnull(row.get("Notes", None)) else None,
+                                "PMID": int(row["PMID"]) if pd.notnull(row.get("PMID", None)) and str(row["PMID"]).isdigit() else row.get("PMID", None)
+                            }
+                            gene_entries.append(entry)
+                        pharmGKB_details[gene] = gene_entries
+                    st.session_state['pharmGKB_analysis'] = pharmGKB_details
+                    st.subheader("pharmGKB Knowledge:")
+                    # Convert PMID values to PubMed URLs
+                    # Convert PMID values to PubMed URLs and display as clickable links
+                    pharmGKB_df['PMID'] = pharmGKB_df['PMID'].astype(str).apply(
+                        lambda pmid: f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid and pmid != 'nan' else ""
+                    )
+                    with st.expander("See details of pharmGKB Knowledge"):
+                        for gene, group in pharmGKB_df.groupby('Gene'):
+                            st.markdown(f"### {gene}")
+                            # Prepare table with clickable PMID links
+                            gene_table = group[["Drug(s)", "Sentence", "Notes", "PMID"]].reset_index(drop=True)
+                            # Create a copy for display with clickable links
+                            display_table = gene_table.copy()
+                            def make_link(url):
+                                if url:
+                                    pmid = url.rstrip('/').split('/')[-1]
+                                    return f"[{pmid}]({url})"
+                                return ""
+                            display_table['PMID'] = display_table['PMID'].apply(make_link)
+                            st.write(display_table.to_markdown(index=False), unsafe_allow_html=True)
+                            # Optionally, keep the tabs for more detailed view
                             
-            except Exception as e:
-                st.error(f"An error occurred during PharmaKB Analysis: {e}")
-                st.session_state['pharmakb_analysis'] = None
+                    
+    except Exception as e:
+        st.error(f"An error occurred during pharmGKB Analysis: {e}")
+        st.session_state['pharmGKB_analysis'] = None
 
+    if (st.session_state.get('gene_enrichment') is not None or st.session_state.get('civic_evidence') is not None or st.session_state.get('pharmGKB_analysis') is not None):
+        st.session_state['Evidence_analysis_done'] = True
+    print_session_state()
                 
-###################################
+#########################################################################################################
 #### AI Assistant button
-################################### 
+######################################################################################################### 
 # Check if at least one of the analyses has produced results, then display the AI Assistant button.
-st.session_state["ai_assistant_shown"] = False
+#st.session_state["ai_assistant_shown"] = False
 
-if (st.session_state.get('gene_enrichment') is not None or 
-    st.session_state.get('civic_evidence') is not None or 
-    st.session_state.get('pharmakb_analysis') is not None):
-
+#if st.session_state['Evidence_analysis_done']:
+    
     # If the button is clicked, set a persistent flag in session state.
-    if st.button("AI Assistant", key="ai_assistant_button_graphdiff"):
-        print("AI Assistant button clicked.")
-        st.session_state["ai_assistant_shown"] = True
+#    if st.button("Interpret results with AI Assistant", key="ai_assistant_button_graphdiff"):
+#        print("AI Assistant button clicked.")
+#        st.session_state["AI_assistance_button"] = True
 
 # If the flag is set (or already set), always display the AI Assistant UI.
-if st.session_state.get("ai_assistant_shown", False):
-    with st.container():
-        st.markdown("### AI Assistant")
-        # Two text areas for Context and Question/Prompt with unique keys.
-        # Their values are automatically stored in st.session_state under the specified keys.
-        context_input = st.text_area("Context", 
-                                     placeholder="Enter context here...", 
-                                     key="ai_context",
-                                     value=st.session_state.get("ai_context", ""))
-        prompt_input = st.text_area("Question/Prompt", 
-                                    placeholder="Enter your question or prompt here...", 
-                                    key="ai_prompt",
-                                    value=st.session_state.get("ai_prompt", ""))
-        print("Retrieved text areas; Context:", st.session_state.get("ai_context"), 
-              "Question/Prompt:", st.session_state.get("ai_prompt"))
-
-        st.markdown("### Pre-loaded Analysis Results:")
-        st.subheader("Gene Enrichment")
-        st.write(st.session_state.get('gene_enrichment'))
-        
-        st.subheader("CIVIC Evidence")
-        st.write(st.session_state.get('civic_evidence'))
-        
-        st.subheader("PharmaKB Analysis")
-        st.write(st.session_state.get('pharmakb_analysis'))
-        
-        # Provide a button to generate the JSON once context and prompt are provided.
-        if st.button("Generate AI JSON", key="generate_ai_json"):
-            print("Generate AI JSON button clicked.")
-            import json, tempfile
-
-            # --- Process gene enrichment results using GE_Analyser method ---
-            gene_enrichment_json = {}
-            ge_results = st.session_state.get('gene_enrichment')
-            if ge_results is not None and not ge_results.empty:
-                try:
-                    # Create a temporary GE_Analyser instance using the gene list extracted from the GE results.
-                    gene_list = ge_results["name"].tolist()  # assumes that 'name' column exists
-                    import gprofiler_code as ge  # ensure you import your module
-                    ge_instance = ge.GE_Analyser(gene_list)
-                    # Manually assign the GE results dictionary from the DataFrame.
-                    ge_instance.ge_results_dict = ge_results.set_index('name')[['description', 'intersections', 'native', 'source']].to_dict(orient='index')
-                    
-                    # Use a temporary directory to save the JSON.
-                    tmp_dir = tempfile.gettempdir()
-                    gene_json_path = ge_instance.save_ge_results_to_json(tmp_dir)
-                    print(f"Gene enrichment results saved to: {gene_json_path}")
-                    with open(gene_json_path, "r") as f:
-                        gene_enrichment_json = json.load(f)
-                    print("Loaded gene enrichment JSON from file.")
-                except Exception as e:
-                    print("Error processing gene enrichment to JSON:", str(e))
-                    gene_enrichment_json = {"error": str(e)}
-            else:
-                print("No valid Gene Enrichment results available for JSON conversion.")
-            
-            # Create the common AI result dictionary.
-            ai_result = {
-                "context": st.session_state.get("ai_context", ""),
-                "prompt": st.session_state.get("ai_prompt", ""),
-                "gene_enrichment": gene_enrichment_json,
-                "civic_evidence": st.session_state.get('civic_evidence'),
-                "pharmakb_analysis": st.session_state.get('pharmakb_analysis')
-            }
-            print("Created AI Assistant result dictionary:", ai_result)
-            ai_result_json = json.dumps(ai_result, indent=4, default=str)
-            st.session_state["ai_assistant_json"] = ai_result_json  # Save the JSON in the session state.
-            print("AI Assistant result has been saved as JSON.")
-            st.info("AI Assistant result has been automatically saved to JSON.")
-            st.code(ai_result_json, language="json")
-            print("Displayed AI Assistant result JSON.")
- 
-##########################################
-#### AI Assistant Sidebar 
-##########################################               
+#
 if st.session_state.page == "AI Assistant":
-    
-    # Text area for additional context
-    context_input = st.text_area("Context", 
-                                 placeholder="Enter context here...", 
-                                 key="ai_context",
-                                 value=st.session_state.get("ai_context", ""))
-    
-    # Text area for Question/Prompt
-    prompt_input = st.text_area("Question/Prompt", 
-                                placeholder="Enter your question or prompt here...", 
-                                key="ai_prompt",
-                                value=st.session_state.get("ai_prompt", ""))
-    
-    print("Displayed AI Assistant page with context:", st.session_state.get("ai_context"),
-          "and prompt:", st.session_state.get("ai_prompt"))
-    
-    ##########################################################
-    # Keyword Options: Either upload frequent keywords or select keywords
-    ##########################################################
-    st.markdown("### Keyword Options:")
-    keyword_option = st.radio("Choose keyword option:",
-                              ("Upload Frequent Keywords", "Keyword Selection"),
-                              key="keyword_option")
-    print("Keyword option chosen:", st.session_state.get("keyword_option"))
-    
-    if keyword_option == "Upload Frequent Keywords":
-        # File uploader for frequent keywords (CSV or TXT)
-        keyword_file = st.file_uploader("Upload Frequent Keywords", type=["csv", "txt"], key="keyword_file")
-        if keyword_file:
-            try:
-                # Read keywords as CSV (assuming one keyword per row)
-                keywords_df = pd.read_csv(keyword_file, header=None)
-                uploaded_keywords = keywords_df[0].tolist()
-                st.session_state["uploaded_keywords"] = uploaded_keywords
-                st.success("Frequent keywords uploaded successfully (CSV)!")
-                st.write("Uploaded frequent keywords:", uploaded_keywords)
-                print("Frequent keywords loaded from CSV:", uploaded_keywords)
-            except Exception as e_csv:
-                # If CSV reading fails, try reading as plain text
-                keyword_file_str = keyword_file.getvalue().decode("utf-8")
-                uploaded_keywords = [line.strip() for line in keyword_file_str.splitlines() if line.strip()]
-                st.session_state["uploaded_keywords"] = uploaded_keywords
-                st.success("Frequent keywords uploaded successfully (TEXT)!")
-                st.write("Uploaded frequent keywords:", uploaded_keywords)
-                print("Frequent keywords loaded from text:", uploaded_keywords)
+    context_input = st.text_area(
+            "Context",
+            placeholder="Enter context here...",
+            key="ai_context"
+        )
+    prompt_input = st.text_area(
+        "Question/Prompt",
+        placeholder="Enter your question or prompt here...",
+        key="ai_prompt"
+    )
+    print("Retrieved text areas; Context:", st.session_state.get("ai_context"),
+            "Question/Prompt:", st.session_state.get("ai_prompt"))
+
+
+    gene_enrichment = st.session_state.get('gene_enrichment')
+    community_enrichment = st.session_state.get('community_enrichment')
+    civic_evidence = st.session_state.get('civic_evidence')
+    pharmGKB_analysis = st.session_state.get('pharmGKB_analysis')
+
+    print("Gene Enrichment:", gene_enrichment)
+    print("Community Enrichment:", community_enrichment)
+    print("civic_evidence Analysis:", civic_evidence)
+    print("pharmGKB_analysis:", pharmGKB_analysis)
+
+    output_dict = {'Context': st.session_state.get("ai_context", ""),
+                    'Prompt': st.session_state.get("ai_prompt", ""),
+                    'Gene Enrichment': gene_enrichment,
+                    'Community Enrichment': community_enrichment,
+                    'CIVIC Evidence': civic_evidence,
+                    'pharmGKB Analysis': pharmGKB_analysis}
+
+    print("Output dictionary:", output_dict)
+    # Display the output dictionary in the dashboard in a readable format
+    #st.markdown("### AI Assistant Input (Dictionary View):")
+    def convert_np(obj):
+        if isinstance(obj, dict):
+            return {k: convert_np(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_np(i) for i in obj]
+        elif isinstance(obj, (np.integer, np.int32, np.int64)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float32, np.float64)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
         else:
-            print("No frequent keywords file uploaded.")
-    else:  # Keyword Selection branch using the frequent keywords list from Analyse page
-        if st.session_state.get("frequent_kws") is not None and not st.session_state["frequent_kws"].empty:
-            # Use the first column of the uploaded frequent keywords CSV
-            uploaded_list = st.session_state["frequent_kws"][0].tolist()
-            selected_keywords = st.multiselect("Please select your keyword:", 
-                                                 uploaded_list, 
-                                                 key="selected_keywords")
-            st.session_state["selected_keywords"] = selected_keywords
-            st.write("Selected keywords:", selected_keywords)
-            print("Selected keywords from uploaded list:", selected_keywords)
-        else:
-            st.warning("No frequent keywords available. Please upload frequent keywords in the Analyse page.")
-            print("No frequent keywords available.")
+            return obj
+
     
-    # Ensure that one of the options is provided before proceeding.
-    provided_keywords = (st.session_state.get("uploaded_keywords")
-                           if st.session_state.get("keyword_option") == "Upload Frequent Keywords"
-                           else st.session_state.get("selected_keywords"))
+    #########################################################################################################
+    # Send the output_dict to n8n webhook
+
+    # Add a button to send the JSON payload to the n8n webhook endpoint
+    send_to_n8n = st.button("Analyse with AI", key="send_to_n8n_button")
+
+    payload = convert_np(output_dict)
+    with st.expander("See json sent to AI", expanded=False):
+        st.json(payload)
+
+    #
+    # Add a button to download the payload as a JSON file
+
+    payload_json = json.dumps(payload, indent=2)
+    st.download_button(
+        label="Download JSON",
+        data=io.BytesIO(payload_json.encode("utf-8")),
+        file_name="analysis_output.json",
+        mime="application/json"
+    )
+
+
+    if send_to_n8n:
+        print('Sending JSON to AI')
+        
+
+        # Define the n8n webhook endpoint URL (replace with your actual endpoint)
+        n8n_webhook_url = "http://localhost:5678/webhook-test/ac8a4b13-ca15-4511-9663-39ab520132ca"
+
+
+        # Send the JSON payload to the n8n webhook endpoint
+        try:
+            response = requests.post(
+                n8n_webhook_url,
+                data=json.dumps(payload),
+                headers={"Content-Type": "application/json"}
+            )
+            if response.status_code == 200:
+                st.success("Data sent successfully to n8n webhook.")
+            else:
+                st.error(f"Failed to send data to n8n webhook. Status code: {response.status_code}")
+        except Exception as e:
+            st.error(f"Error sending data to n8n webhook: {e}")
+
+    # Display a text area with mockup AI output (placeholder)
+    st.markdown("### AI Assistant Output")
+    ai_output = st.text_area(     
+        label = ' ',   
+        value="This is a mockup output from the AI analyser. The results of your analysis will appear here.",
+        height=200,
+        key="ai_output_mockup"
+    )
+
+
+
+
+
+
+            
+ 
+# ##########################################
+# #### AI Assistant Sidebar 
+# ##########################################               
+# if st.session_state.page == "AI Assistant":
     
-    if not provided_keywords:
-        st.warning("Please provide frequent keywords either by uploading a file or by selecting from the uploaded list to proceed.")
+#     # Text area for additional context
+#     context_input = st.text_area("Context", 
+#                                  placeholder="Enter context here...", 
+#                                  key="ai_context",
+#                                  value=st.session_state.get("ai_context", ""))
+    
+#     # Text area for Question/Prompt
+#     prompt_input = st.text_area("Question/Prompt", 
+#                                 placeholder="Enter your question or prompt here...", 
+#                                 key="ai_prompt",
+#                                 value=st.session_state.get("ai_prompt", ""))
+    
+#     print("Displayed AI Assistant page with context:", st.session_state.get("ai_context"),
+#           "and prompt:", st.session_state.get("ai_prompt"))
+    
+#     ##########################################################
+#     # Keyword Options: Either upload frequent keywords or select keywords
+#     ##########################################################
+#     st.markdown("### Keyword Options:")
+#     keyword_option = st.radio("Choose keyword option:",
+#                               ("Upload Frequent Keywords", "Keyword Selection"),
+#                               key="keyword_option")
+#     print("Keyword option chosen:", st.session_state.get("keyword_option"))
+    
+#     if keyword_option == "Upload Frequent Keywords":
+#         # File uploader for frequent keywords (CSV or TXT)
+#         keyword_file = st.file_uploader("Upload Frequent Keywords", type=["csv", "txt"], key="keyword_file")
+#         if keyword_file:
+#             try:
+#                 # Read keywords as CSV (assuming one keyword per row)
+#                 keywords_df = pd.read_csv(keyword_file, header=None)
+#                 uploaded_keywords = keywords_df[0].tolist()
+#                 st.session_state["uploaded_keywords"] = uploaded_keywords
+#                 st.success("Frequent keywords uploaded successfully (CSV)!")
+#                 st.write("Uploaded frequent keywords:", uploaded_keywords)
+#                 print("Frequent keywords loaded from CSV:", uploaded_keywords)
+#             except Exception as e_csv:
+#                 # If CSV reading fails, try reading as plain text
+#                 keyword_file_str = keyword_file.getvalue().decode("utf-8")
+#                 uploaded_keywords = [line.strip() for line in keyword_file_str.splitlines() if line.strip()]
+#                 st.session_state["uploaded_keywords"] = uploaded_keywords
+#                 st.success("Frequent keywords uploaded successfully (TEXT)!")
+#                 st.write("Uploaded frequent keywords:", uploaded_keywords)
+#                 print("Frequent keywords loaded from text:", uploaded_keywords)
+#         else:
+#             print("No frequent keywords file uploaded.")
+#     else:  # Keyword Selection branch using the frequent keywords list from Analyse page
+#         if st.session_state.get("frequent_kws") is not None and not st.session_state["frequent_kws"].empty:
+#             # Use the first column of the uploaded frequent keywords CSV
+#             uploaded_list = st.session_state["frequent_kws"][0].tolist()
+#             selected_keywords = st.multiselect("Please select your keyword:", 
+#                                                  uploaded_list, 
+#                                                  key="selected_keywords")
+#             st.session_state["selected_keywords"] = selected_keywords
+#             st.write("Selected keywords:", selected_keywords)
+#             print("Selected keywords from uploaded list:", selected_keywords)
+#         else:
+#             st.warning("No frequent keywords available. Please upload frequent keywords in the Analyse page.")
+#             print("No frequent keywords available.")
+    
+#     # Ensure that one of the options is provided before proceeding.
+#     provided_keywords = (st.session_state.get("uploaded_keywords")
+#                            if st.session_state.get("keyword_option") == "Upload Frequent Keywords"
+#                            else st.session_state.get("selected_keywords"))
+    
+#     if not provided_keywords:
+#         st.warning("Please provide frequent keywords either by uploading a file or by selecting from the uploaded list to proceed.")
