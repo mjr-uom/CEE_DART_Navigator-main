@@ -11,3 +11,4 @@ gravis
 openai
 pingouin
 gprofiler-official
+scanpy
