@@ -9,3 +9,5 @@ scipy
 seaborn
 gravis
 openai
+pingouin
+gprofiler-official
