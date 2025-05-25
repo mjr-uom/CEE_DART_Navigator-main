@@ -1,0 +1,1742 @@
+{
+	"Gene Enrichment": {
+		"NADH dehydrogenase (ubiquinone) activity": {
+			"description": "Catalysis of the reaction: NADH + ubiquinone + 5 H+(in) = NAD+ + ubiquinol + 4 H+(out). [RHEA:29091]",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "GO:0008137",
+			"source": "GO:MF"
+		},
+		"Mitochondrial respiratory chain defects": {
+			"description": "Mitochondrial respiratory chain defects",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0200125",
+			"source": "HP"
+		},
+		"Blurred vision": {
+			"description": "Lack of sharpness of vision resulting in the inability to see fine detail.",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0000622",
+			"source": "HP"
+		},
+		"Bulbar signs": {
+			"description": "Bulbar signs",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0002483",
+			"source": "HP"
+		},
+		"Multiple glomerular cysts": {
+			"description": "The presence of many cysts in the glomerulus of the kidney related to dilatation of the Bowman's capsule.",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0100611",
+			"source": "HP"
+		},
+		"Hyperventilation": {
+			"description": "Hyperventilation refers to an increased pulmonary ventilation rate that is faster than necessary for the exchange of gases. Hyperventilation can result from increased frequency of breathing, an increased tidal volume, or both, and leads to an excess intake of oxygen and the blowing off of carbon dioxide.",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0002883",
+			"source": "HP"
+		},
+		"Abnormal basal ganglia MRI signal intensity": {
+			"description": "A deviation from normal signal on magnetic resonance imaging (MRI) of the basal ganglia.",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0012751",
+			"source": "HP"
+		},
+		"Slow decrease in visual acuity": {
+			"description": "Slow decrease in visual acuity",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0007924",
+			"source": "HP"
+		},
+		"Vascular tortuosity": {
+			"description": "Abnormal twisting of arteries or veins.",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0004948",
+			"source": "HP"
+		},
+		"Abnormal circulating non-proteinogenic amino acid concentration": {
+			"description": "Any deviation from the normal concentration in the blood circulation of an alpha-amino acid which is not a member of the group of 23 proteinogenic amino acids.",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0033109",
+			"source": "HP"
+		},
+		"Lacticaciduria": {
+			"description": "An increased concentration of lactic acid in the urine.",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0003648",
+			"source": "HP"
+		},
+		"Ventricular preexcitation": {
+			"description": "An abnormality in which the cardiac ventricles depolarize too early as a result of an abnormality of cardiac conduction pathways such as an accessory pathway.",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0004309",
+			"source": "HP"
+		},
+		"Arterial tortuosity": {
+			"description": "Abnormal tortuous (i.e., twisted) form of arteries.",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0005116",
+			"source": "HP"
+		},
+		"Retinal telangiectasia": {
+			"description": "Dilatation of small blood vessels of the retina.",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0007763",
+			"source": "HP"
+		},
+		"Focal T2 hyperintense basal ganglia lesion": {
+			"description": "A lighter than expected T2 signal on magnetic resonance imaging (MRI) of the basal ganglia. This term refers to a localized hyperintensity affecting a particular region of the basal ganglia.",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0007183",
+			"source": "HP"
+		},
+		"Abnormal circulating citrulline concentration": {
+			"description": "Any deviation from the normal concentration of citrulline in the blood circulation.",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0011965",
+			"source": "HP"
+		},
+		"Abnormal mitochondria in muscle tissue": {
+			"description": "An abnormality of the mitochondria in muscle tissue.",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0008316",
+			"source": "HP"
+		},
+		"Respiratory chain complex I (holoenzyme), mitochondrial": {
+			"description": "Respiratory chain complex I (holoenzyme), mitochondrial",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4L, MT-ND1",
+			"native": "CORUM:178",
+			"source": "CORUM"
+		},
+		"Abnormality of Krebs cycle metabolism": {
+			"description": "An abnormality of the tricarboxylic acid cycle.",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0000816",
+			"source": "HP"
+		},
+		"Leber optic atrophy": {
+			"description": "Degeneration of retinal ganglion cells and their axons.",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0001112",
+			"source": "HP"
+		},
+		"Reduced contrast sensitivity": {
+			"description": "An abnormality in perception of contrast. Spatial contrast is a physical dimension referring to the light-dark transition of a border or an edge in an image that delineates the existence of a pattern or an object. Contrast sensitivity refers to a measure of how much contrast a person requires to see a target. Contrast-sensitivity measurements differ from acuity measurements; acuity is a measure of the spatial-resolving ability of the visual system under conditions of very high contrast, whereas contrast sensitivity is a measure of the threshold contrast for seeing a target.",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0032036",
+			"source": "HP"
+		},
+		"Central retinal vessel vascular tortuosity": {
+			"description": "The presence of an increased number of twists and turns of retinal blood vessels (arteries, arterioles, veins, venules).",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0007768",
+			"source": "HP"
+		},
+		"Centrocecal scotoma": {
+			"description": "A scotoma (area of diminished vision within the visual field) located between the central point of fixation and the blind spot with a roughly horizontal oval shape.",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0000576",
+			"source": "HP"
+		},
+		"Retinal nerve fiber edema": {
+			"description": "Swelling (edema) of the retinal nerve fibers.",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0020120",
+			"source": "HP"
+		},
+		"Low plasma citrulline": {
+			"description": "A decreased concentration of citrulline in the blood.",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0003572",
+			"source": "HP"
+		},
+		"Retinal arterial tortuosity": {
+			"description": "The presence of an increased number of twists and turns of the retinal artery.",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0000631",
+			"source": "HP"
+		},
+		"Episodic respiratory distress": {
+			"description": "Episodic respiratory distress",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0004885",
+			"source": "HP"
+		},
+		"Segmental peripheral demyelination/remyelination": {
+			"description": "A segmental pattern of demyelination and regeneration (remyelination) affecting peripheral nerves.",
+			"intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0003481",
+			"source": "HP"
+		},
+		"Abnormal retinal nerve fiber layer morphology": {
+			"description": "A structural abnormality of the retinal nerve fiber layer",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0020119",
+			"source": "HP"
+		},
+		"Mitochondrial inheritance": {
+			"description": "A mode of inheritance that is observed for traits related to a gene encoded on the mitochondrial genome. Because the mitochondrial genome is essentially always maternally inherited, a mitochondrial condition can only be transmitted by females, although the condition can affect both sexes. The proportion of mutant mitochondria can vary (heteroplasmy).",
+			"intersections": "MT-ND2, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+			"native": "HP:0001427",
+			"source": "HP"
+		},
+		"Respiratory chain complex I (gamma subunit) mitochondrial": {
+			"description": "Respiratory chain complex I (gamma subunit) mitochondrial",
+			"intersections": "MT-ND2, MT-ND3, MT-ND4L, MT-ND1",
+			"native": "CORUM:2919",
+			"source": "CORUM"
+		},
+		"Factor: MYBL1; motif: ACCGTTAACSGY": {
+			"description": "Factor: MYBL1; motif: ACCGTTAACSGY",
+			"intersections": "MT-ND3, PMAIP1, MT-ND4L, MT-ND4",
+			"native": "TF:M04043",
+			"source": "TF"
+		},
+		"Basal ganglia calcification": {
+			"description": "The presence of calcium deposition affecting one or more structures of the basal ganglia.",
+			"intersections": "MT-ND5, MT-ND4, GATA3, MT-ND1",
+			"native": "HP:0002135",
+			"source": "HP"
+		},
+		"Hypoparathyroidism": {
+			"description": "A condition caused by a deficiency of parathyroid hormone characterized by hypocalcemia and hyperphosphatemia.",
+			"intersections": "MT-ND5, MT-ND4, GATA3, MT-ND1",
+			"native": "HP:0000829",
+			"source": "HP"
+		},
+		"Recurrent pancreatitis": {
+			"description": "A recurrent form of pancreatitis.",
+			"intersections": "MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0100027",
+			"source": "HP"
+		},
+		"Fluctuations in consciousness": {
+			"description": "Changes in one's level of awareness and responsiveness to their environment.",
+			"intersections": "MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0007159",
+			"source": "HP"
+		},
+		"Concentric hypertrophic cardiomyopathy": {
+			"description": "Hypertrophic cardiomyopathy with an symmetrical and concentric pattern of hypertrophy.",
+			"intersections": "MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0005157",
+			"source": "HP"
+		},
+		"positive T cell selection": {
+			"description": "The process of sparing immature T cells which react with self-MHC protein complexes with low affinity levels from apoptotic death. [ISBN:0781735149, PMID:12414722]",
+			"intersections": "PTPRC, BCL2, CD3G",
+			"native": "GO:0043368",
+			"source": "GO:BP"
+		},
+		"Aplasia/Hypoplasia of the cerebral white matter": {
+			"description": "Absence or underdevelopment of the cerebral white matter.",
+			"intersections": "MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0012429",
+			"source": "HP"
+		},
+		"mammary gland morphogenesis": {
+			"description": "The process in which anatomical structures of the mammary gland are generated and organized. Morphogenesis refers to the creation of shape. The mammary gland is a large compound sebaceous gland that in female mammals is modified to secrete milk. [GOC:dph]",
+			"intersections": "ESR1, PGR, TBX3",
+			"native": "GO:0060443",
+			"source": "GO:BP"
+		},
+		"Stuttering": {
+			"description": "Disruptions in the production of speech sounds, with involuntary repetitions of words or parts of words, prolongations of speech sounds, or complete blockage of speech production for several seconds.",
+			"intersections": "MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0025268",
+			"source": "HP"
+		},
+		"Widened cerebral subarachnoid space": {
+			"description": "An increase in size of the anatomic space between the arachnoid membrane and pia mater in the region surrounding the cerebrum.",
+			"intersections": "MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0012766",
+			"source": "HP"
+		},
+		"Distal peripheral sensory neuropathy": {
+			"description": "Peripheral sensory neuropathy affecting primarily distal sensation.",
+			"intersections": "MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0007067",
+			"source": "HP"
+		},
+		"endometrium; stromal fibroblasts[≥Low]": {
+			"description": "endometrium; stromal fibroblasts[≥Low]",
+			"intersections": "ESR1, DCN, PGR",
+			"native": "HPA:0641531",
+			"source": "HPA"
+		},
+		"Mixed demyelinating and axonal polyneuropathy": {
+			"description": "Mixed demyelinating and axonal polyneuropathy",
+			"intersections": "MT-ND5, MT-ND4, MT-ND1",
+			"native": "HP:0007327",
+			"source": "HP"
+		},
+		"transcription coactivator binding": {
+			"description": "Binding to a transcription coactivator, a protein involved in positive regulation of transcription via protein-protein interactions with transcription factors and other proteins that positively regulate transcription. Transcription coactivators do not bind DNA directly, but rather mediate protein-protein interactions between activating transcription factors and the basal transcription machinery. [GOC:krc]",
+			"intersections": "ESR1, PGR, GATA3",
+			"native": "GO:0001223",
+			"source": "GO:MF"
+		},
+		"NADH dehydrogenase activity": {
+			"description": "Catalysis of the reaction: NADH + H+ + acceptor = NAD+ + reduced acceptor. [RHEA:11356]",
+			"intersections": "MT-ND5, MT-ND4, MT-ND1",
+			"native": "GO:0003954",
+			"source": "GO:MF"
+		},
+		"endometrium; stromal fibroblasts[High]": {
+			"description": "endometrium; stromal fibroblasts[High]",
+			"intersections": "ESR1, DCN, PGR",
+			"native": "HPA:0641533",
+			"source": "HPA"
+		},
+		"branching involved in mammary gland duct morphogenesis": {
+			"description": "The process in which the branching structure of the mammary gland duct is generated and organized. The mammary gland is a large compound sebaceous gland that in female mammals is modified to secrete milk. [GOC:dph]",
+			"intersections": "ESR1, PGR, TBX3",
+			"native": "GO:0060444",
+			"source": "GO:BP"
+		},
+		"thymic T cell selection": {
+			"description": "The process of T cell selection that occurs in the thymus. [ISBN:0781735149, PMID:12414722]",
+			"intersections": "PTPRC, CD3G, GATA3",
+			"native": "GO:0045061",
+			"source": "GO:BP"
+		},
+		"endometrium; stromal fibroblasts[≥Medium]": {
+			"description": "endometrium; stromal fibroblasts[≥Medium]",
+			"intersections": "ESR1, DCN, PGR",
+			"native": "HPA:0641532",
+			"source": "HPA"
+		},
+		"Respiratory chain complex I (incomplete intermediate ND1, ND2, ND3, CIA30 assembly), mitochondrial": {
+			"description": "Respiratory chain complex I (incomplete intermediate ND1, ND2, ND3, CIA30 assembly), mitochondrial",
+			"intersections": "MT-ND2, MT-ND3, MT-ND1",
+			"native": "CORUM:2886",
+			"source": "CORUM"
+		},
+		"mammary gland duct morphogenesis": {
+			"description": "The process in which anatomical structures of the mammary ducts are generated and organized. Mammary ducts are epithelial tubes that transport milk. [GOC:dph, PMID:17120154]",
+			"intersections": "ESR1, PGR, TBX3",
+			"native": "GO:0060603",
+			"source": "GO:BP"
+		},
+		"estrogen response element binding": {
+			"description": "Binding to an estrogen response element (ERE), a conserved sequence found in the promoters of genes whose expression is regulated in response to estrogen. [GOC:ecd, PMID:15036253, PMID:17975005]",
+			"intersections": "ESR1, PGR",
+			"native": "GO:0034056",
+			"source": "GO:MF"
+		},
+		"endometrium; lymphocytes[High]": {
+			"description": "endometrium; lymphocytes[High]",
+			"intersections": "ESR1, PGR",
+			"native": "HPA:0641473",
+			"source": "HPA"
+		},
+		"Bcl-2 family protein complex": {
+			"description": "A protein complex that consists of members of the Bcl-2 family of anti- and proapoptotic regulators. Bcl-2 proteins respond to cues from various forms of intracellular stress, such as DNA damage or cytokine deprivation, and interact with opposing family members to determine whether or not the caspase proteolytic cascade should be unleashed. [GOC:so, PMID:14634621]",
+			"intersections": "BCL2, PMAIP1",
+			"native": "GO:0097136",
+			"source": "GO:CC"
+		},
+		"energy coupled proton transmembrane transport, against electrochemical gradient": {
+			"description": "The transport of protons across a membrane and against an electrochemical gradient, using energy from a source such as ATP hydrolysis, light, or electron transport. [GOC:mah]",
+			"intersections": "MT-ND5, MT-ND4",
+			"native": "GO:0015988",
+			"source": "GO:BP"
+		},
+		"mammary gland branching involved in pregnancy": {
+			"description": "The process in which the branching structure of the mammary gland duct is generated and organized as a part of pregnancy. [GOC:dph, PMID:19261859]",
+			"intersections": "ESR1, PGR",
+			"native": "GO:0060745",
+			"source": "GO:BP"
+		},
+		"BH3-only proteins associate with and inactivate anti-apoptotic BCL-2 members": {
+			"description": "BH3-only proteins associate with and inactivate anti-apoptotic BCL-2 members",
+			"intersections": "BCL2, PMAIP1",
+			"native": "REAC:R-HSA-111453",
+			"source": "REAC"
+		},
+		"electron transport coupled proton transport": {
+			"description": "The transport of protons against an electrochemical gradient, using energy from electron transport. [GOC:mah]",
+			"intersections": "MT-ND5, MT-ND4",
+			"native": "GO:0015990",
+			"source": "GO:BP"
+		},
+		"Regulation of cytotoxic T cell responses by Malat1 miR 15 16 circuit ": {
+			"description": "Regulation of cytotoxic T cell responses by Malat1 miR 15 16 circuit ",
+			"intersections": "BCL2, CD3G",
+			"native": "WP:WP5489",
+			"source": "WP"
+		},
+		"Shc-ERalpha-IGF-1R complex": {
+			"description": "Shc-ERalpha-IGF-1R complex",
+			"intersections": "ESR1, IGF1R",
+			"native": "CORUM:6251",
+			"source": "CORUM"
+		},
+		"Mammary gland development puberty stage 2 of 4": {
+			"description": "Mammary gland development puberty stage 2 of 4",
+			"intersections": "ESR1, PGR",
+			"native": "WP:WP2814",
+			"source": "WP"
+		}
+	},
+	"Community Enrichment": {
+		"1": {
+			"NADH dehydrogenase (ubiquinone) activity": {
+				"description": "Catalysis of the reaction: NADH + ubiquinone + 5 H+(in) = NAD+ + ubiquinol + 4 H+(out). [RHEA:29091]",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "GO:0008137",
+				"source": "GO:MF"
+			},
+			"Focal T2 hyperintense basal ganglia lesion": {
+				"description": "A lighter than expected T2 signal on magnetic resonance imaging (MRI) of the basal ganglia. This term refers to a localized hyperintensity affecting a particular region of the basal ganglia.",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0007183",
+				"source": "HP"
+			},
+			"Leber optic atrophy": {
+				"description": "Degeneration of retinal ganglion cells and their axons.",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0001112",
+				"source": "HP"
+			},
+			"Blurred vision": {
+				"description": "Lack of sharpness of vision resulting in the inability to see fine detail.",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0000622",
+				"source": "HP"
+			},
+			"Abnormal mitochondria in muscle tissue": {
+				"description": "An abnormality of the mitochondria in muscle tissue.",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0008316",
+				"source": "HP"
+			},
+			"Bulbar signs": {
+				"description": "Bulbar signs",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0002483",
+				"source": "HP"
+			},
+			"Hyperventilation": {
+				"description": "Hyperventilation refers to an increased pulmonary ventilation rate that is faster than necessary for the exchange of gases. Hyperventilation can result from increased frequency of breathing, an increased tidal volume, or both, and leads to an excess intake of oxygen and the blowing off of carbon dioxide.",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0002883",
+				"source": "HP"
+			},
+			"Abnormal basal ganglia MRI signal intensity": {
+				"description": "A deviation from normal signal on magnetic resonance imaging (MRI) of the basal ganglia.",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0012751",
+				"source": "HP"
+			},
+			"Slow decrease in visual acuity": {
+				"description": "Slow decrease in visual acuity",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0007924",
+				"source": "HP"
+			},
+			"Respiratory chain complex I (holoenzyme), mitochondrial": {
+				"description": "Respiratory chain complex I (holoenzyme), mitochondrial",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND3, MT-ND5, MT-ND1",
+				"native": "CORUM:178",
+				"source": "CORUM"
+			},
+			"Abnormal circulating non-proteinogenic amino acid concentration": {
+				"description": "Any deviation from the normal concentration in the blood circulation of an alpha-amino acid which is not a member of the group of 23 proteinogenic amino acids.",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0033109",
+				"source": "HP"
+			},
+			"Lacticaciduria": {
+				"description": "An increased concentration of lactic acid in the urine.",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0003648",
+				"source": "HP"
+			},
+			"Ventricular preexcitation": {
+				"description": "An abnormality in which the cardiac ventricles depolarize too early as a result of an abnormality of cardiac conduction pathways such as an accessory pathway.",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0004309",
+				"source": "HP"
+			},
+			"Arterial tortuosity": {
+				"description": "Abnormal tortuous (i.e., twisted) form of arteries.",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0005116",
+				"source": "HP"
+			},
+			"Retinal telangiectasia": {
+				"description": "Dilatation of small blood vessels of the retina.",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0007763",
+				"source": "HP"
+			},
+			"Vascular tortuosity": {
+				"description": "Abnormal twisting of arteries or veins.",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0004948",
+				"source": "HP"
+			},
+			"Abnormal circulating citrulline concentration": {
+				"description": "Any deviation from the normal concentration of citrulline in the blood circulation.",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0011965",
+				"source": "HP"
+			},
+			"Low plasma citrulline": {
+				"description": "A decreased concentration of citrulline in the blood.",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0003572",
+				"source": "HP"
+			},
+			"Multiple glomerular cysts": {
+				"description": "The presence of many cysts in the glomerulus of the kidney related to dilatation of the Bowman's capsule.",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0100611",
+				"source": "HP"
+			},
+			"Mitochondrial respiratory chain defects": {
+				"description": "Mitochondrial respiratory chain defects",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0200125",
+				"source": "HP"
+			},
+			"Reduced contrast sensitivity": {
+				"description": "An abnormality in perception of contrast. Spatial contrast is a physical dimension referring to the light-dark transition of a border or an edge in an image that delineates the existence of a pattern or an object. Contrast sensitivity refers to a measure of how much contrast a person requires to see a target. Contrast-sensitivity measurements differ from acuity measurements; acuity is a measure of the spatial-resolving ability of the visual system under conditions of very high contrast, whereas contrast sensitivity is a measure of the threshold contrast for seeing a target.",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0032036",
+				"source": "HP"
+			},
+			"Central retinal vessel vascular tortuosity": {
+				"description": "The presence of an increased number of twists and turns of retinal blood vessels (arteries, arterioles, veins, venules).",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0007768",
+				"source": "HP"
+			},
+			"Retinal arterial tortuosity": {
+				"description": "The presence of an increased number of twists and turns of the retinal artery.",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0000631",
+				"source": "HP"
+			},
+			"Retinal nerve fiber edema": {
+				"description": "Swelling (edema) of the retinal nerve fibers.",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0020120",
+				"source": "HP"
+			},
+			"Centrocecal scotoma": {
+				"description": "A scotoma (area of diminished vision within the visual field) located between the central point of fixation and the blind spot with a roughly horizontal oval shape.",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0000576",
+				"source": "HP"
+			},
+			"Abnormality of Krebs cycle metabolism": {
+				"description": "An abnormality of the tricarboxylic acid cycle.",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0000816",
+				"source": "HP"
+			},
+			"Mitochondrial inheritance": {
+				"description": "A mode of inheritance that is observed for traits related to a gene encoded on the mitochondrial genome. Because the mitochondrial genome is essentially always maternally inherited, a mitochondrial condition can only be transmitted by females, although the condition can affect both sexes. The proportion of mutant mitochondria can vary (heteroplasmy).",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0001427",
+				"source": "HP"
+			},
+			"Episodic respiratory distress": {
+				"description": "Episodic respiratory distress",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0004885",
+				"source": "HP"
+			},
+			"Abnormal retinal nerve fiber layer morphology": {
+				"description": "A structural abnormality of the retinal nerve fiber layer",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0020119",
+				"source": "HP"
+			},
+			"Segmental peripheral demyelination/remyelination": {
+				"description": "A segmental pattern of demyelination and regeneration (remyelination) affecting peripheral nerves.",
+				"intersections": "MT-ND2, MT-ND4, MT-ND3, MT-ND5, MT-ND1",
+				"native": "HP:0003481",
+				"source": "HP"
+			},
+			"Respiratory chain complex I (gamma subunit) mitochondrial": {
+				"description": "Respiratory chain complex I (gamma subunit) mitochondrial",
+				"intersections": "MT-ND2, MT-ND4L, MT-ND3, MT-ND1",
+				"native": "CORUM:2919",
+				"source": "CORUM"
+			},
+			"Intestinal pseudo-obstruction": {
+				"description": "A functional rather than mechanical obstruction of the intestines, associated with manifestations that resemble those caused by an intestinal obstruction, including distension, abdominal pain, nausea, vomiting, constipation or diarrhea, in an individual in whom a mechanical blockage has been excluded.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0004389",
+				"source": "HP"
+			},
+			"Paroxysmal involuntary eye movements": {
+				"description": "Sudden-onset episode of abnormal, involuntary eye movements.",
+				"intersections": "MT-ND2, MT-ND3, MT-ND1",
+				"native": "HP:0007704",
+				"source": "HP"
+			},
+			"Impaired visuospatial constructive cognition": {
+				"description": "Reduced ability affecting mainly visuospatial cognition which may be tested using pattern construction (for example by Differential Ability Scales, which test a person's strengths and weaknesses across a range of intellectual abilities).",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0010794",
+				"source": "HP"
+			},
+			"Progressive external ophthalmoplegia": {
+				"description": "Initial bilateral ptosis followed by limitation of eye movements in all directions and slowing of saccades.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0000590",
+				"source": "HP"
+			},
+			"Focal T2 hyperintense brainstem lesion": {
+				"description": "A lighter than expected T2 signal on magnetic resonance imaging (MRI) of the brainstem. This term refers to a localized hyperintensity affecting a particular region of the brainstem.",
+				"intersections": "MT-ND2, MT-ND3, MT-ND1",
+				"native": "HP:0012748",
+				"source": "HP"
+			},
+			"Increased circulating pyruvate concentration": {
+				"description": "The concentration of pyruvate in the blood circulation is above the upper limit of normal.",
+				"intersections": "MT-ND2, MT-ND3, MT-ND1",
+				"native": "HP:0003542",
+				"source": "HP"
+			},
+			"Bipolar affective disorder": {
+				"description": "Bipolar disorder is an illness of mood characterized by alternating episodes of elevated and depressed moods, which are interspersed with euthymic periods.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0007302",
+				"source": "HP"
+			},
+			"Hypoparathyroidism": {
+				"description": "A condition caused by a deficiency of parathyroid hormone characterized by hypocalcemia and hyperphosphatemia.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0000829",
+				"source": "HP"
+			},
+			"Elevated brain lactate level by MRS": {
+				"description": "An increase in the level of lactate in the brain identified by magnetic resonance spectroscopy (MRS).",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0012707",
+				"source": "HP"
+			},
+			"Abnormal brain lactate level by MRS": {
+				"description": "A deviation from normal of the level of lactate in the brain identified by magnetic resonance spectroscopy (MRS).",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0025045",
+				"source": "HP"
+			},
+			"Widened subarachnoid space": {
+				"description": "An increase in size of the anatomic space between the arachnoid membrane and pia mater.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0012704",
+				"source": "HP"
+			},
+			"Abnormal brainstem MRI signal intensity": {
+				"description": "A deviation from normal signal on magnetic resonance imaging (MRI) of the brainstem.",
+				"intersections": "MT-ND2, MT-ND3, MT-ND1",
+				"native": "HP:0012747",
+				"source": "HP"
+			},
+			"Personality changes": {
+				"description": "An abnormal shift in patterns of thinking, acting, or feeling.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0000751",
+				"source": "HP"
+			},
+			"Recurrent paroxysmal headache": {
+				"description": "Repeated episodes of headache with rapid onset, reaching a peak within minutes and of short duration (less than one hour) with pain that is throbbing, pulsating, or bursting in quality.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0002331",
+				"source": "HP"
+			},
+			"Vitiligo": {
+				"description": "Vitiligo",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0001045",
+				"source": "HP"
+			},
+			"NADH dehydrogenase activity": {
+				"description": "Catalysis of the reaction: NADH + H+ + acceptor = NAD+ + reduced acceptor. [RHEA:11356]",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "GO:0003954",
+				"source": "GO:MF"
+			},
+			"Wolff-Parkinson-White syndrome": {
+				"description": "A disorder of the cardiac conduction system of the heart characterized by ventricular preexcitation due to the presence of an abnormal accessory atrioventricular electrical conduction pathway.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0001716",
+				"source": "HP"
+			},
+			"Stroke-like episode": {
+				"description": "No consensus exists on what a stroke-like episode is, but these episodes can be functionally defined as a new neurological deficit, occurring with or without the context of seizures, which last longer than 24 hours.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0002401",
+				"source": "HP"
+			},
+			"Respiratory chain complex I (incomplete intermediate ND1, ND2, ND3, CIA30 assembly), mitochondrial": {
+				"description": "Respiratory chain complex I (incomplete intermediate ND1, ND2, ND3, CIA30 assembly), mitochondrial",
+				"intersections": "MT-ND2, MT-ND3, MT-ND1",
+				"native": "CORUM:2886",
+				"source": "CORUM"
+			},
+			"Factor: MYBL1; motif: ACCGTTAACSGY": {
+				"description": "Factor: MYBL1; motif: ACCGTTAACSGY",
+				"intersections": "MT-ND4L, MT-ND4, MT-ND3",
+				"native": "TF:M04043",
+				"source": "TF"
+			},
+			"Mixed demyelinating and axonal polyneuropathy": {
+				"description": "Mixed demyelinating and axonal polyneuropathy",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0007327",
+				"source": "HP"
+			},
+			"Widened cerebral subarachnoid space": {
+				"description": "An increase in size of the anatomic space between the arachnoid membrane and pia mater in the region surrounding the cerebrum.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0012766",
+				"source": "HP"
+			},
+			"Distal peripheral sensory neuropathy": {
+				"description": "Peripheral sensory neuropathy affecting primarily distal sensation.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0007067",
+				"source": "HP"
+			},
+			"Concentric hypertrophic cardiomyopathy": {
+				"description": "Hypertrophic cardiomyopathy with an symmetrical and concentric pattern of hypertrophy.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0005157",
+				"source": "HP"
+			},
+			"Fluctuations in consciousness": {
+				"description": "Changes in one's level of awareness and responsiveness to their environment.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0007159",
+				"source": "HP"
+			},
+			"Stuttering": {
+				"description": "Disruptions in the production of speech sounds, with involuntary repetitions of words or parts of words, prolongations of speech sounds, or complete blockage of speech production for several seconds.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0025268",
+				"source": "HP"
+			},
+			"Aplasia/Hypoplasia of the cerebral white matter": {
+				"description": "Absence or underdevelopment of the cerebral white matter.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0012429",
+				"source": "HP"
+			},
+			"Recurrent pancreatitis": {
+				"description": "A recurrent form of pancreatitis.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0100027",
+				"source": "HP"
+			},
+			"Psychotic mentation": {
+				"description": "A pattern of thinking and perceiving characterized by a loss of contact with reality, leading to significant changes in thoughts, perceptions, and behaviors.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0001345",
+				"source": "HP"
+			},
+			"Basal ganglia calcification": {
+				"description": "The presence of calcium deposition affecting one or more structures of the basal ganglia.",
+				"intersections": "MT-ND4, MT-ND5, MT-ND1",
+				"native": "HP:0002135",
+				"source": "HP"
+			},
+			"electron transport coupled proton transport": {
+				"description": "The transport of protons against an electrochemical gradient, using energy from electron transport. [GOC:mah]",
+				"intersections": "MT-ND4, MT-ND5",
+				"native": "GO:0015990",
+				"source": "GO:BP"
+			},
+			"Respiratory chain complex I (beta subunit) mitochondrial": {
+				"description": "Respiratory chain complex I (beta subunit) mitochondrial",
+				"intersections": "MT-ND4, MT-ND5",
+				"native": "CORUM:2914",
+				"source": "CORUM"
+			},
+			"energy coupled proton transmembrane transport, against electrochemical gradient": {
+				"description": "The transport of protons across a membrane and against an electrochemical gradient, using energy from a source such as ATP hydrolysis, light, or electron transport. [GOC:mah]",
+				"intersections": "MT-ND4, MT-ND5",
+				"native": "GO:0015988",
+				"source": "GO:BP"
+			},
+			"gene_list": "MT-ND2, MT-ND4L, MT-ND4, MT-ND3, MT-ND5, MT-ND1"
+		},
+		"2": {
+			"Bcl-2 family protein complex": {
+				"description": "A protein complex that consists of members of the Bcl-2 family of anti- and proapoptotic regulators. Bcl-2 proteins respond to cues from various forms of intracellular stress, such as DNA damage or cytokine deprivation, and interact with opposing family members to determine whether or not the caspase proteolytic cascade should be unleashed. [GOC:so, PMID:14634621]",
+				"intersections": "BCL2, PMAIP1",
+				"native": "GO:0097136",
+				"source": "GO:CC"
+			},
+			"transcription coactivator binding": {
+				"description": "Binding to a transcription coactivator, a protein involved in positive regulation of transcription via protein-protein interactions with transcription factors and other proteins that positively regulate transcription. Transcription coactivators do not bind DNA directly, but rather mediate protein-protein interactions between activating transcription factors and the basal transcription machinery. [GOC:krc]",
+				"intersections": "ESR1, GATA3",
+				"native": "GO:0001223",
+				"source": "GO:MF"
+			},
+			"genitalia development": {
+				"description": "The process whose specific outcome is the progression of the genitalia over time, from its formation to the mature structure. [GOC:jid]",
+				"intersections": "ESR1, TBX3",
+				"native": "GO:0048806",
+				"source": "GO:BP"
+			},
+			"T cell homeostasis": {
+				"description": "The process of regulating the proliferation and elimination of T cells such that the total number of T cells within a whole or part of an organism is stable over time in the absence of an outside stimulus. [GOC:mgi_curators, ISBN:0781735149]",
+				"intersections": "BCL2, PMAIP1",
+				"native": "GO:0043029",
+				"source": "GO:BP"
+			},
+			"mammary gland morphogenesis": {
+				"description": "The process in which anatomical structures of the mammary gland are generated and organized. Morphogenesis refers to the creation of shape. The mammary gland is a large compound sebaceous gland that in female mammals is modified to secrete milk. [GOC:dph]",
+				"intersections": "ESR1, TBX3",
+				"native": "GO:0060443",
+				"source": "GO:BP"
+			},
+			"BH3-only proteins associate with and inactivate anti-apoptotic BCL-2 members": {
+				"description": "BH3-only proteins associate with and inactivate anti-apoptotic BCL-2 members",
+				"intersections": "BCL2, PMAIP1",
+				"native": "REAC:R-HSA-111453",
+				"source": "REAC"
+			},
+			"mammary gland duct morphogenesis": {
+				"description": "The process in which anatomical structures of the mammary ducts are generated and organized. Mammary ducts are epithelial tubes that transport milk. [GOC:dph, PMID:17120154]",
+				"intersections": "ESR1, TBX3",
+				"native": "GO:0060603",
+				"source": "GO:BP"
+			},
+			"mammary gland epithelial cell proliferation": {
+				"description": "The multiplication or reproduction of mammary gland epithelial cells, resulting in the expansion of a cell population. Mammary gland epithelial cells make up the covering of surfaces of the mammary gland. The mammary gland is a large compound sebaceous gland that in female mammals is modified to secrete milk. [GOC:dph, GOC:mah]",
+				"intersections": "ESR1, GATA3",
+				"native": "GO:0033598",
+				"source": "GO:BP"
+			},
+			"uterus development": {
+				"description": "The reproductive developmental process whose specific outcome is the progression of the uterus over time, from its formation to the mature structure. [GOC:dph, GOC:ebc]",
+				"intersections": "ESR1, GATA3",
+				"native": "GO:0060065",
+				"source": "GO:BP"
+			},
+			"hsa-miR-1284": {
+				"description": "hsa-miR-1284",
+				"intersections": "BCL2, PMAIP1",
+				"native": "MIRNA:hsa-miR-1284",
+				"source": "MIRNA"
+			},
+			"lymphoid progenitor cell differentiation": {
+				"description": "The process in which a precursor cell type acquires the specialized features of a lymphoid progenitor cell. Lymphoid progenitor cells include progenitor cells for any of the lymphoid lineages. [GOC:add, PMID:16551251, PMID:16551264]",
+				"intersections": "BCL2, GATA3",
+				"native": "GO:0002320",
+				"source": "GO:BP"
+			},
+			"Activation of BH3-only proteins": {
+				"description": "Activation of BH3-only proteins",
+				"intersections": "BCL2, PMAIP1",
+				"native": "REAC:R-HSA-114452",
+				"source": "REAC"
+			},
+			"Apoptosis - multiple species": {
+				"description": "Apoptosis - multiple species",
+				"intersections": "BCL2, PMAIP1",
+				"native": "KEGG:04215",
+				"source": "KEGG"
+			},
+			"Estrogen signaling": {
+				"description": "Estrogen signaling",
+				"intersections": "BCL2, ESR1",
+				"native": "WP:WP712",
+				"source": "WP"
+			},
+			"Unfolded protein response": {
+				"description": "Unfolded protein response",
+				"intersections": "BCL2, PMAIP1",
+				"native": "WP:WP4925",
+				"source": "WP"
+			},
+			"female genitalia development": {
+				"description": "The process whose specific outcome is the progression of the female genitalia over time, from formation to the mature structure. [GOC:mah]",
+				"intersections": "ESR1, TBX3",
+				"native": "GO:0030540",
+				"source": "GO:BP"
+			},
+			"TP53 network": {
+				"description": "TP53 network",
+				"intersections": "BCL2, PMAIP1",
+				"native": "WP:WP1742",
+				"source": "WP"
+			},
+			"branching involved in mammary gland duct morphogenesis": {
+				"description": "The process in which the branching structure of the mammary gland duct is generated and organized. The mammary gland is a large compound sebaceous gland that in female mammals is modified to secrete milk. [GOC:dph]",
+				"intersections": "ESR1, TBX3",
+				"native": "GO:0060444",
+				"source": "GO:BP"
+			},
+			"FOXO1-ESR1 complex": {
+				"description": "FOXO1-ESR1 complex",
+				"intersections": "ESR1",
+				"native": "CORUM:7586",
+				"source": "CORUM"
+			},
+			"ESR1-SP1 complex": {
+				"description": "ESR1-SP1 complex",
+				"intersections": "ESR1",
+				"native": "CORUM:6067",
+				"source": "CORUM"
+			},
+			"ESR1-JUN complex": {
+				"description": "ESR1-JUN complex",
+				"intersections": "ESR1",
+				"native": "CORUM:2700",
+				"source": "CORUM"
+			},
+			"CAV1-VDAC1-ESR1 complex": {
+				"description": "CAV1-VDAC1-ESR1 complex",
+				"intersections": "ESR1",
+				"native": "CORUM:5862",
+				"source": "CORUM"
+			},
+			"Shc-ERalpha-IGF-1R complex": {
+				"description": "Shc-ERalpha-IGF-1R complex",
+				"intersections": "ESR1",
+				"native": "CORUM:6251",
+				"source": "CORUM"
+			},
+			"CTNNB1-ESR1 complex": {
+				"description": "CTNNB1-ESR1 complex",
+				"intersections": "ESR1",
+				"native": "CORUM:7312",
+				"source": "CORUM"
+			},
+			"ESR1-MDM4 complex": {
+				"description": "ESR1-MDM4 complex",
+				"intersections": "ESR1",
+				"native": "CORUM:7250",
+				"source": "CORUM"
+			},
+			"ERS1-MDM2 complex": {
+				"description": "ERS1-MDM2 complex",
+				"intersections": "ESR1",
+				"native": "CORUM:7249",
+				"source": "CORUM"
+			},
+			"ESR1-GRIP1 complex": {
+				"description": "ESR1-GRIP1 complex",
+				"intersections": "ESR1",
+				"native": "CORUM:6069",
+				"source": "CORUM"
+			},
+			"ESR1-CEBPB complex": {
+				"description": "ESR1-CEBPB complex",
+				"intersections": "ESR1",
+				"native": "CORUM:6068",
+				"source": "CORUM"
+			},
+			"gene_list": "BCL2, ESR1, GATA3, PMAIP1, TBX3"
+		},
+		"3": {
+			"cholangiocyte apoptotic process": {
+				"description": "Any apoptotic process in a cholangiocyte. [GOC:TermGenie, PMID:22961800]",
+				"intersections": "IGF1R",
+				"native": "GO:1902488",
+				"source": "GO:BP"
+			},
+			"regulation of cholangiocyte apoptotic process": {
+				"description": "Any process that modulates the frequency, rate or extent of cholangiocyte apoptotic process. [GO_REF:0000058, GOC:TermGenie, PMID:24498161]",
+				"intersections": "IGF1R",
+				"native": "GO:1904192",
+				"source": "GO:BP"
+			},
+			"negative regulation of cholangiocyte apoptotic process": {
+				"description": "Any process that stops, prevents or reduces the frequency, rate or extent of cholangiocyte apoptotic process. [GO_REF:0000058, GOC:TermGenie, PMID:24498161]",
+				"intersections": "IGF1R",
+				"native": "GO:1904193",
+				"source": "GO:BP"
+			},
+			"Shc-ERalpha-IGF-1R complex": {
+				"description": "Shc-ERalpha-IGF-1R complex",
+				"intersections": "IGF1R",
+				"native": "CORUM:6251",
+				"source": "CORUM"
+			},
+			"gene_list": "IGF1R, PGR"
+		},
+		"4": {
+			"cyclin B1-CDK1 complex": {
+				"description": "A protein complex consisting of cyclin B1 and cyclin-dependent kinase 1 (CDK1). Cyclins are characterized by periodicity in protein abundance throughout the cell cycle. Cyclin-dependent kinases represent a family of serine/threonine protein kinases that become active upon binding to a cyclin regulatory partner. [GOC:so, PMID:15935619]",
+				"intersections": "CCNB1",
+				"native": "GO:0097125",
+				"source": "GO:CC"
+			},
+			"gene_list": "TPX2, CCNB1"
+		},
+		"5": {
+			"gene_list": "DCN, CNTN1"
+		},
+		"6": {
+			"positive thymic T cell selection": {
+				"description": "The process of sparing immature T cells in the thymus which react with self-MHC protein complexes with low affinity levels from apoptotic death. [ISBN:0781735149, PMID:12414722]",
+				"intersections": "CD3G, PTPRC",
+				"native": "GO:0045059",
+				"source": "GO:BP"
+			},
+			"gamma-delta T cell activation": {
+				"description": "The change in morphology and behavior of a gamma-delta T cell resulting from exposure to a mitogen, cytokine, chemokine, cellular ligand, or an antigen for which it is specific. [GOC:add]",
+				"intersections": "CD3G, PTPRC",
+				"native": "GO:0046629",
+				"source": "GO:BP"
+			},
+			"thymic T cell selection": {
+				"description": "The process of T cell selection that occurs in the thymus. [ISBN:0781735149, PMID:12414722]",
+				"intersections": "CD3G, PTPRC",
+				"native": "GO:0045061",
+				"source": "GO:BP"
+			},
+			"Phosphorylation of CD3 and TCR zeta chains": {
+				"description": "Phosphorylation of CD3 and TCR zeta chains",
+				"intersections": "CD3G, PTPRC",
+				"native": "REAC:R-HSA-202427",
+				"source": "REAC"
+			},
+			"positive T cell selection": {
+				"description": "The process of sparing immature T cells which react with self-MHC protein complexes with low affinity levels from apoptotic death. [ISBN:0781735149, PMID:12414722]",
+				"intersections": "CD3G, PTPRC",
+				"native": "GO:0043368",
+				"source": "GO:BP"
+			},
+			"gamma-delta T cell receptor complex": {
+				"description": "A T cell receptor complex in which the TCR heterodimer comprises gamma and delta chains, associated with the CD3 complex; recognizes antigen directly, without a requirement for processing and presentation by an MHC protein. [GOC:mah, ISBN:0781735149]",
+				"intersections": "CD3G",
+				"native": "GO:0042106",
+				"source": "GO:CC"
+			},
+			"gene_list": "CD3G, PTPRC"
+		}
+	},
+	"CIVIC Evidence": {
+		"BCL2": {
+			"Description": null,
+			"Summary": "This gene encodes an integral outer mitochondrial membrane protein that blocks the apoptotic death of some cells such as lymphocytes. Constitutive expression of BCL2, such as in the case of translocation of BCL2 to Ig heavy chain locus, is thought to be the cause of follicular lymphoma. Alternative splicing results in multiple transcript variants. [provided by RefSeq, Feb 2016].",
+			"Molecular_profiles": [
+				"The typically reciprocal t(14;18)(q32;q21) translocation involves rearrangement between the immunoglobulin heavy chain locus on chromosome 14 and the 3' UTR of BCL2 on chromosome 18, leading to the overexpression of BCL2. This rearrangment is observed in >80% of patients with follicular lymphoma."
+			],
+			"Evidence": [
+				{
+					"statement": "The t(14;18) transloaction of BCL2 is shown to be associated with germinal-center B-cell–like diffuse large-B-cell lymphomas.",
+					"evidence_level": "B",
+					"rating": 4,
+					"evidence_type": "DIAGNOSTIC",
+					"evidence_direction": "SUPPORTS",
+					"significance": "POSITIVE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID407",
+					"source": "Rosenwald et al., 2002 ",
+					"pmid": 12075054
+				},
+				{
+					"statement": "In a multivariate analysis, BCL2 mutations and high FL international prognostic index were independent risk factors for transformation and death due to lymphoma. Some mutant Bcl-2 proteins exhibited enhanced antiapoptotic capacity in vitro.",
+					"evidence_level": "B",
+					"rating": 3,
+					"evidence_type": "PROGNOSTIC",
+					"evidence_direction": "SUPPORTS",
+					"significance": "POOR_OUTCOME",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID5992",
+					"source": "Correia et al., 2015 ",
+					"pmid": 25452615
+				},
+				{
+					"statement": "Four of six heavily pretreated, high-risk CLL patients with a 17p deletion from the phase 2 trial M13-9824 with continuous venetoclax treatment, who were treated with venetoclax for a period longer than 3 years, developed progressive CLL.\n\n\n\n\nTargeted sequencing found G101V in refractory CLL tissues in 3 out of 4 of the patients, but not in sequencing performed before venetoclax treatment. \n\nIndepth sequencing performed on one of the patients showed the variant allele fraction of G101V increasing from 9% to 16% during disease progression.\n\nSequencing of 546 venetoclax-naive CLL patients was reported, and none had BCL2 G101V. The variant was also not observed in four patients who relapsed after time-limited venetoclax therapy. The authors suggest that time-restricted venetoclax treatment in combination with a second drug may lower risk of developing resistance variants.",
+					"evidence_level": "C",
+					"rating": 4,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID7970",
+					"source": "Tausch et al., 2019 ",
+					"pmid": 31004028
+				},
+				{
+					"statement": "This study identified G101V mutation in BCL2 emerged in 7 out of 15 patients with CLL progression treated with Venetoclax. In addition, this study demonstrated that the G101V mutation impairs binding of venetoclax to BCL2, confers resistance to venetoclax in both patient leukemia cells and engineered cell lines, thus provides a selective growth advantage over WT cells when maintained in the presence of the drug in vitro.",
+					"evidence_level": "B",
+					"rating": 4,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8174",
+					"source": "Blombery et al., 2019 ",
+					"pmid": 30514704
+				},
+				{
+					"statement": "Associated with venetoclax resistance in high-risk CLL post ibrutinib in \"progressive CLL\"",
+					"evidence_level": "B",
+					"rating": 4,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8184",
+					"source": "Lucas et al., 2020 ",
+					"pmid": 32232486
+				},
+				{
+					"statement": "The effective cohort in this study was 11 CLL patients who were first treated with ibrutinib and then on progression treated with venetoclax until progression. Patient samples were sequenced before and after progression on venetoclax. The previously described BCL2 G101V mutation was observed in 1 patient at progression",
+					"evidence_level": "C",
+					"rating": 2,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8185",
+					"source": "Lucas et al., 2020 ",
+					"pmid": 32232486
+				},
+				{
+					"statement": "Associated with venetoclax resistance in high-risk CLL post ibrutinib in \"progressive CLL\"",
+					"evidence_level": "B",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8186",
+					"source": "Lucas et al., 2020 ",
+					"pmid": 32232486
+				},
+				{
+					"statement": "Associated with venetoclax resistance in 2 high-risk CLL patients post ibrutinib in \"progressive CLL\"",
+					"evidence_level": "B",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8187",
+					"source": "Lucas et al., 2020 ",
+					"pmid": 32232486
+				},
+				{
+					"statement": "Associated with venetoclax resistance in high-risk CLL patients post ibrutinib in 2 cases of \"progressive CLL\" and 1 case of Richter transformation",
+					"evidence_level": "B",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8188",
+					"source": "Lucas et al., 2020 ",
+					"pmid": 32232486
+				},
+				{
+					"statement": "Associated with venetoclax resistance in high-risk CLL post ibrutinib in \"progressive CLL\"",
+					"evidence_level": "B",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8189",
+					"source": "Lucas et al., 2020 ",
+					"pmid": 32232486
+				},
+				{
+					"statement": "Associated with venetoclax resistance in high-risk CLL post ibrutinib in \"progressive CLL\"",
+					"evidence_level": "B",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8190",
+					"source": "Lucas et al., 2020 ",
+					"pmid": 32232486
+				},
+				{
+					"statement": "Previous work by this group used WES and was unable to identify BCL2 G101V mutation in 9 CLL patients with resistance to venetoclax (PMID 29463802). Based on Tausch et al work (PMID 31004028), this group re-investigated the presence of BCL2 G101V mutation in their cohort using the method reported by Blombery et al (PMID 30517404). BCL2 G101V mutation was identified at very low allele frequency (from <1% to 1.4%) in three out of these 9 patients. In one of the patients, BCL2 G101V mutation is only present in two sites (BM and LN) but not in peripheral blood. This study argues against the hypothesis that the resistance to venetoclax can be explained by the BCL2 G101V mutation alone. Instead, this study propose that the BCL2 G101V mutation is a rather late, subclonal event that may mediate some resistance against CLL cells, but the mechanism of resistance to venetoclax remains far from being understood.",
+					"evidence_level": "C",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "DOES_NOT_SUPPORT",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8303",
+					"source": "Weiss et al., 2019 ",
+					"pmid": 31666345
+				},
+				{
+					"statement": "This study identified D103Y in one CLL patient with resistance to venetoclax. D103Y was presented in this patient after 39 months of venetoclax treatment in peripheral blood with a VAF of 7% which increased to 18 % at month 44. Patient cells from a later timepoint displayed the BCL2 G101V mutation in addition to D103Y. Of note the BCL2 G101V variant was not detectable at 39 months and only present at the latest time point with a VAF of 14%. Importantly, both BCL2 variants are on different reads, suggesting that they occur within two distinct subclones at different time points of onset and with different growth rates, possibly pointing to different degrees of clonal fitness.",
+					"evidence_level": "C",
+					"rating": 2,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8304",
+					"source": "Tausch et al., 2019 ",
+					"pmid": 31004028
+				},
+				{
+					"statement": "This study is a follow-up report after the original publication (PMID 30514704). The authors described multiple acquired resistance mutations including G101V in BCL-2 that occur in different CLL cells. The proportion of CLL cells harboring BCL2 G101V mutation ranged from a very minor subclone (0.1%) through to the majority of the CLL compartment (68.4%).",
+					"evidence_level": "C",
+					"rating": 4,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8305",
+					"source": "Blombery et al., 2020 ",
+					"pmid": 31951646
+				},
+				{
+					"statement": "This study is a follow-up report after the original publication (PMID 30514704). V156D mutation was identified in combination with other BCL2 mutations including G101V in 6 CLL patients with venetoclax resistance. V156D was not observed in CLL patients without venetoclax treatment.",
+					"evidence_level": "B",
+					"rating": 4,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8306",
+					"source": "Blombery et al., 2020 ",
+					"pmid": 31951646
+				},
+				{
+					"statement": "This study is a follow-up report after the original publication (PMID 30514704). R129L mutation was identified in combination with other BCL2 mutations including G101V in 2 CLL patients with venetoclax resistance. R129L was not observed in CLL patients without venetoclax treatment.",
+					"evidence_level": "C",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8307",
+					"source": "Blombery et al., 2020 ",
+					"pmid": 31951646
+				},
+				{
+					"statement": "This study is a follow-up report after the original publication (PMID 30514704). A113G mutation was identified in combination with other BCL2 mutations including G101V in 3 CLL patients with venetoclax resistance. A113G was not observed in CLL patients without venetoclax treatment.",
+					"evidence_level": "C",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8308",
+					"source": "Blombery et al., 2020 ",
+					"pmid": 31951646
+				},
+				{
+					"statement": "This study is a follow-up report after the original publication (PMID 30514704). R107_R110dup mutation was identified in combination with other BCL2 mutations including G101V in 5 CLL patients with venetoclax resistance. R107_R110dup was not observed in CLL patients without venetoclax treatment.",
+					"evidence_level": "B",
+					"rating": 4,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8309",
+					"source": "Blombery et al., 2020 ",
+					"pmid": 31951646
+				},
+				{
+					"statement": "This study is a follow-up report after the original publication (PMID 30514704). D103V mutation was identified in combination with other BCL2 mutations including G101V in 2 CLL patients with venetoclax resistance. D103V was not observed in CLL patients without venetoclax treatment.",
+					"evidence_level": "C",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8310",
+					"source": "Blombery et al., 2020 ",
+					"pmid": 31951646
+				},
+				{
+					"statement": "This study is a follow-up report after the original publication (PMID 30514704). D103E mutation was identified in combination with other BCL2 mutations including G101V in 4 CLL patients with venetoclax resistance. D103E was not observed in CLL patients without venetoclax treatment.",
+					"evidence_level": "C",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8311",
+					"source": "Blombery et al., 2020 ",
+					"pmid": 31951646
+				},
+				{
+					"statement": "This study is a follow-up report after the original publication (PMID 30514704). D103Y mutation was identified in combination with other BCL2 mutations including G101V in 5 CLL patients with venetoclax resistance. D103Y was not observed in CLL patients without venetoclax treatment.",
+					"evidence_level": "B",
+					"rating": 4,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8312",
+					"source": "Blombery et al., 2020 ",
+					"pmid": 31951646
+				},
+				{
+					"statement": "This study demonstrated that the G101V mutation impairs binding of venetoclax to BCL2, confers resistance to venetoclax in both patient leukemia cells and engineered cell lines, thus provides a selective growth advantage over WT cells when maintained in the presence of the drug in vitro.",
+					"evidence_level": "D",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8334",
+					"source": "Blombery et al., 2019 ",
+					"pmid": 30514704
+				},
+				{
+					"statement": "The authors demonstrated that BCL2 Asp103Glu imparts resistance to venetoclax in vitro by investigating the in vitro binding profile of the Asp103Glu to both venetoclax and proapoptotic proteins in competition surface plasmon resonance binding experiments. BCL2 Asp103Glu was associated with a decrease in affinity for venetoclax of approximately 20-fold compared with the wild-type aspartic acid (Gly101Val showed an ~ 180-fold reduction).",
+					"evidence_level": "D",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8335",
+					"source": "Blombery et al., 2020 ",
+					"pmid": 31951646
+				},
+				{
+					"statement": "This study identified BCL2 F104I mutation in one Follicular Lymphoma patient who developed resistance to venetoclax. Codon 104 is located at the venetoclax binding site of BCL2.",
+					"evidence_level": "C",
+					"rating": 2,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8375",
+					"source": "Blombery et al., 2019 ",
+					"pmid": 31234236
+				},
+				{
+					"statement": "Rs4;11 cells overexpressing BCL2 F104I exhibited >40-fold greater resistance to venetoclax after 24-hour treatment (IC50 not reached) than Rs4;11 overexpressing BCL2 WT cells as determined by cell titer glo measured cytotoxicity assays. Plasmon resonance protein binding assays demonstrated marked impairment (300 fold) of venetoclax binding to F104I (Ki=5.9 nM) veresus WT (Ki=.018nM). The authors pointed out reduction in binding was a similar magnitude as that observed previously with the BCL2 G101V and F104L.",
+					"evidence_level": "D",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8376",
+					"source": "Blombery et al., 2019 ",
+					"pmid": 31234236
+				},
+				{
+					"statement": "This study described the similar crystal structures of BCL-2 wild-type and G101V when bound to venetoclax. Steady state competition surface plasmon resonance experiments demonstrated a ~177 fold decrease in venetoclax affinity for G101V (Ki=3.2nM) versus WT (Ki=.018nM). Resistance is acquired by a knock-on effect in the P2 pocket of V101 on an adjacent residue, E152 as affinity for venetoclax was restored in BCL2 G101V through the introduction of an E152A mutation (Ki =.002nM). Additionally, BCL2 G101V maintains similar affinity for apoptotic BH3 peptides, which assists in the prevention of apoptosis.",
+					"evidence_level": "D",
+					"rating": 3,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "RESISTANCE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID8841",
+					"source": "Birkinshaw et al., 2019 ",
+					"pmid": 31160589
+				},
+				{
+					"statement": "In 2016 the WHO added a new category of lymphoma, separate from diffuse large B-cell lymphoma, termed high-grade B-cell lymphoma with MYC AND [BCL2 OR BCL6] translocations. These represent less than 10% of cases of diffuse large B-cell lymphoma. They may be referred to as double or triple hit lymphomas. Patients with these combination of somatic translocation variant have a poor prognosis when treated with standard therapy and increased risk of central nervous system involvement and progression. This variant specifically refers to somatic mutations in the genome typically detected by FISH or genomic assays and are distinct from expression biomarkers involving these same genes (typically defined by IHC).",
+					"evidence_level": "C",
+					"rating": 2,
+					"evidence_type": "PROGNOSTIC",
+					"evidence_direction": "SUPPORTS",
+					"significance": "POOR_OUTCOME",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID9813",
+					"source": "Friedberg, 2017 ",
+					"pmid": 28600333
+				},
+				{
+					"statement": "This translocation is a hallmark feature of follicular lymphoma. Although it is not present in every case, it is one of the most common genetic features of FL. FISH or IHC staining for BCL2 is part of standard clinical diagnostic practice for differential diagnosis.",
+					"evidence_level": "B",
+					"rating": 5,
+					"evidence_type": "DIAGNOSTIC",
+					"evidence_direction": "SUPPORTS",
+					"significance": "POSITIVE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID11808",
+					"source": "Yunis et al., 1987 ",
+					"pmid": 3537802
+				},
+				{
+					"statement": "The combination of these genetic features are diagnostic for this newly defined entity as per the latest ICC and WHO guidelines",
+					"evidence_level": "A",
+					"rating": 4,
+					"evidence_type": "DIAGNOSTIC",
+					"evidence_direction": "SUPPORTS",
+					"significance": "POSITIVE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID11810",
+					"source": "Campo et al., 2022 ",
+					"pmid": 35653592
+				},
+				{
+					"statement": "MYC and BCL2 rearrangements together are defining diagnostic features of this new entity",
+					"evidence_level": "A",
+					"rating": 4,
+					"evidence_type": "DIAGNOSTIC",
+					"evidence_direction": "SUPPORTS",
+					"significance": "POSITIVE",
+					"variant_origin": "SOMATIC",
+					"evidence_name": "EID11811",
+					"source": "Campo et al., 2022 ",
+					"pmid": 35653592
+				}
+			]
+		},
+		"PGR": {
+			"Description": null,
+			"Summary": "This gene encodes a member of the steroid receptor superfamily. The encoded protein mediates the physiological effects of progesterone, which plays a central role in reproductive events associated with the establishment and maintenance of pregnancy. This gene uses two distinct promotors and translation start sites in the first exon to produce several transcript variants, both protein coding and non-protein coding. Two of the isoforms (A and B) are identical except for an additional 165 amino acids found in the N-terminus of isoform B and mediate their own response genes and physiologic effects with little overlap. [provided by RefSeq, Sep 2015].",
+			"Molecular_profiles": [],
+			"Evidence": []
+		},
+		"GATA3": {
+			"Description": null,
+			"Summary": "This gene encodes a protein which belongs to the GATA family of transcription factors. The protein contains two GATA-type zinc fingers and is an important regulator of T-cell development and plays an important role in endothelial cell biology. Defects in this gene are the cause of hypoparathyroidism with sensorineural deafness and renal dysplasia. [provided by RefSeq, Nov 2009].",
+			"Molecular_profiles": [],
+			"Evidence": [
+				{
+					"statement": "This case study is on a 60-year-old man with a 7-year history of fatigue that was noted to have a palpable abdominal mass while being seen for gastroesophageal reflux disease. A CT scan of the abdomen and pelvis showed a perirenal soft-tissue mass on the left side and similar soft tissue in the perinephric region surrounding the renal pelvis on the right side. A core-needle biopsy of the renal mass on the left side revealed infiltration of fibroadipose tissue with sheets of large histiocytic forms that were positive for S100 but negative for factor XIIIa. The immunophenotype and the presence of emperipolesis were consistent with Rosai–Dorfman disease. The patient received prednisone but had no response. This was followed by targeted next-generation sequencing of DNA from the renal mass with a 447-gene panel which identified a hotspot activating mutation in codon 12 of KRAS (p.G12R) at a variant-allele frequency of 8% (of 456 reads) within overall tumour cellularity of 20% (determined by a morphologic assessment); mutations were also found in GATA3 and GNAS that were of unknown clinical significance but thought to be germline in origin. KRAS-activating mutations result in constitutive activation of the mitogen-activated protein kinase (MAPK) pathway that may be blocked by MAPK kinase (MEK) inhibitors. Therefore, we initiated treatment with cobimetinib (60 mg daily) for days 1 through 21 of a 28-day cycle. A repeat CT scan after 2 months of treatment with cobimetinib showed a substantial response.",
+					"evidence_level": "C",
+					"rating": 2,
+					"evidence_type": "PREDICTIVE",
+					"evidence_direction": "SUPPORTS",
+					"significance": "SENSITIVITYRESPONSE",
+					"variant_origin": "COMBINED",
+					"evidence_name": "EID11330",
+					"source": "Jacobsen et al., 2017 ",
+					"pmid": 29236635
+				}
+			]
+		},
+		"IGF1R": {
+			"Description": null,
+			"Summary": "This receptor binds insulin-like growth factor with a high affinity. It has tyrosine kinase activity. The insulin-like growth factor I receptor plays a critical role in transformation events. Cleavage of the precursor generates alpha and beta subunits. It is highly overexpressed in most malignant tissues where it functions as an anti-apoptotic agent by enhancing cell survival. Alternatively spliced transcript variants encoding distinct isoforms have been found for this gene. [provided by RefSeq, May 2014].",
+			"Molecular_profiles": [],
+			"Evidence": []
+		}
+	},
+	"pharmGKB Analysis": {
+		"BCL2": [
+			{
+				"Drug(s)": "carboplatin, docetaxel, paclitaxel",
+				"Sentence": "Genotype CC is not associated with overall or progression-free survival when treated with carboplatin, docetaxel and paclitaxel in women with Ovarian Neoplasms as compared to genotypes CT + TT.",
+				"Notes": "No association was seen between SNP and overall or progression-free survival. Please note alleles have been complemented to the plus chromosomal strand.",
+				"PMID": 23963862
+			},
+			{
+				"Drug(s)": "interferons, ribavirin",
+				"Sentence": "Allele T is associated with increased frequency (about double) in non-responder patients compared with responder patients (HCV genotype 4) when treated with interferons and ribavirin in people with Hepatitis C, Chronic as compared to allele C.",
+				"Notes": "The BCL-2 gene polymorphism at codon 43 (rs1800477 C/T) is a new biological marker to potentially identify responders and non-responders of HCV genotype 4 patients to achieving a sustained virological response to treatment with IFN in combination with ribavirin.",
+				"PMID": 21159314
+			},
+			{
+				"Drug(s)": "carboplatin, docetaxel, paclitaxel",
+				"Sentence": "Genotype TT is associated with increased risk of Neurotoxicity Syndromes when treated with carboplatin, docetaxel and paclitaxel in women with Ovarian Neoplasms as compared to genotypes CC + CT.",
+				"Notes": "Patients with the TT genotype were more likely to experience moderate to severe neurotoxicity (grade 2-4 on the NCI-CTC ordinal assessment system) than those with the CC or CT genotypes. The study included a test cohort and a replication cohort - only SNPs that showed significant results in both cohorts were considered statistically significant. The study was conducted under a case/control framework. Cases (n=182) were patients who experienced grade 2-4 neurotoxicity, controls (n=626) were those who experienced grade 0-1 neurotoxicity. Please note alleles have been complemented to the plus chromosomal strand.",
+				"PMID": 23963862
+			}
+		],
+		"ESR1": [
+			{
+				"Drug(s)": "tamoxifen",
+				"Sentence": "Genotype GG is associated with decreased in total cholesterol in postmenopausal woman and increase in triglycerides and decrease in high density lipoprotein in premenopausal women when treated with tamoxifen as compared to genotypes AA + AG.",
+				"Notes": "The decrease in total cholesterol in postmenopausal woman (P=0.03; GG vs GA/AA) and tamoxifen-induced increase in triglycerides (P=0.002; gene-dose effect) and decrease in high density lipoprotein (P=0.004; gene-dose effect) in premenopausal women.",
+				"PMID": 17713466
+			},
+			{
+				"Drug(s)": "methamphetamine",
+				"Sentence": "Genotype CC is associated with increased likelihood of Psychotic Disorders due to methamphetamine in men as compared to genotypes CT + TT.",
+				"Notes": "Patients on methamphetamine with psychosis were compared to healthy controls rather than to patients on methamphetamine with no psychosis.",
+				"PMID": 19386276
+			},
+			{
+				"Drug(s)": "Alkylating Agents, cisplatin",
+				"Sentence": "Allele A is associated with increased risk of Oligospermia when treated with Alkylating Agents and cisplatin in people with childhood cancer as compared to genotype GG.",
+				"Notes": null,
+				"PMID": 21430602
+			},
+			{
+				"Drug(s)": "tamoxifen",
+				"Sentence": "Genotype GG is not associated with tamoxifen-induced changes in levels of total cholesterol, triglycerides, and high-density lipoprotein (HDL) cholesterol when treated with tamoxifen as compared to genotypes AA + AG.",
+				"Notes": null,
+				"PMID": 20827267
+			},
+			{
+				"Drug(s)": "tamoxifen",
+				"Sentence": "Genotypes AG + GG are associated with increased risk of Venous thromboembolism when treated with tamoxifen in people with Breast Neoplasms.",
+				"Notes": "p value is given as 0.035, but that is prior to correction for testing of 4 SNPs.",
+				"PMID": 19082882
+			},
+			{
+				"Drug(s)": "dexamethasone",
+				"Sentence": "Genotypes CC + CT are not associated with increased risk of Osteonecrosis when treated with dexamethasone in children with Precursor Cell Lymphoblastic Leukemia-Lymphoma as compared to genotype TT.",
+				"Notes": "The number of patients who developed Osteonecrosis vs. number who did not is entered in cases vs. controls in the study parameter section.",
+				"PMID": 18285546
+			},
+			{
+				"Drug(s)": "exemestane",
+				"Sentence": "Genotype AA is associated with decreased bone density when treated with exemestane in women with Breast Neoplasms as compared to genotypes AG + GG.",
+				"Notes": "Measured as change in bone mineral density of the hip after 24 months.",
+				"PMID": 26536870
+			},
+			{
+				"Drug(s)": "letrozole",
+				"Sentence": "Genotype TT is associated with decreased bone density when treated with letrozole in women with Breast Neoplasms as compared to genotypes CC + CT.",
+				"Notes": "Measured as change in spine bone mineral density after 24 months treatment.",
+				"PMID": 26536870
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele T is not associated with risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early stage breast cancer as compared to allele C.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "exemestane, letrozole",
+				"Sentence": "Genotype TT is associated with decreased bone density when treated with exemestane or letrozole in women with Breast Neoplasms as compared to genotypes CC + CT.",
+				"Notes": "Measured as change in spine bone mineral density after 24 months treatment.",
+				"PMID": 26536870
+			},
+			{
+				"Drug(s)": "exemestane, letrozole",
+				"Sentence": "Genotypes CT + TT are associated with decreased bone density when treated with exemestane or letrozole in women with Breast Neoplasms as compared to genotype CC.",
+				"Notes": "Variant allele is associated with increased loss of bone density as both an additive (p = 5.2 E-5)and a recessive effect (p=3.2 E-7) after 2 years of treatment.",
+				"PMID": 26536870
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele C is associated with increased risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early breast cancer as compared to allele T.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele A is associated with increased risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early breast cancer as compared to allele G.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele T is not associated with risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early stage breast cancer as compared to allele C.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele T is not associated with risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early stage breast cancer as compared to allele C.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer, and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele G is not associated with risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early stage breast cancer as compared to allele A.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "exemestane",
+				"Sentence": "Genotype CC is associated with increased likelihood of musculoskeletal toxicity when treated with exemestane in women with Breast Neoplasms.",
+				"Notes": "Genotypes of patients who discontinued therapy with exemestane due to AIMSS (AI -associated musculoskeletal syndrome) are as follows:  TT: 27.5%;TC: 29.0%; CC: 66.7%.  Statistics listed are for recessive model.  After adjustment for covariates, authors describe this association as a trend(HR= 3.2; 95% CI 1.6-6.2; adjusted p = 0.082) .",
+				"PMID": 23546553
+			},
+			{
+				"Drug(s)": "conjugated estrogens, medroxyprogesterone",
+				"Sentence": "Genotype GG is associated with increased spine Bone Mineral Density when treated with conjugated estrogens and medroxyprogesterone as compared to genotype AA.",
+				"Notes": "Significantly larger increases in bone mass were found in GG individuals. Please note; here GG refers to genotype 'XX' and AA to 'xx'. In the placebo group, GG was associated with smaller decreases in spine bone mineral density.",
+				"PMID": 9860300
+			},
+			{
+				"Drug(s)": "letrozole",
+				"Sentence": "Genotype TT is associated with decreased bone density when treated with letrozole in women with Breast Neoplasms as compared to genotypes CC + CT.",
+				"Notes": "measured as change of hip bone mineral density after 24 months",
+				"PMID": 26536870
+			},
+			{
+				"Drug(s)": "raloxifene",
+				"Sentence": "Allele A is not associated with response to raloxifene in women Menopause and Schizophrenia as compared to allele G.",
+				"Notes": "Efficacy measured in group x time x genotype interaction, using general, positive, negative, and total PANSS score at baseline, 1, 3, and 6 months post-treatment.",
+				"PMID": 27546373
+			},
+			{
+				"Drug(s)": "raloxifene",
+				"Sentence": "Allele C is not associated with response to raloxifene in women Menopause and Schizophrenia as compared to allele G.",
+				"Notes": "Efficacy measured in group x time x genotype interaction, using general, positive, negative, and total PANSS score at baseline, 1, 3, and 6 months post-treatment.",
+				"PMID": 27546373
+			},
+			{
+				"Drug(s)": "raloxifene",
+				"Sentence": "Genotype CC is associated with decreased response to raloxifene in women Menopause and Schizophrenia as compared to genotypes CT + TT.",
+				"Notes": "This association was reported for rs2234693, which has been merged into rs11543791. Efficacy measured in group x time x genotype interaction, using general PANSS score.",
+				"PMID": 27546373
+			},
+			{
+				"Drug(s)": "morphine",
+				"Sentence": "Allele G is not associated with dose of morphine in people with Pain, Postoperative as compared to allele A.",
+				"Notes": "Haplotype of the three ESR1 variants studied in the paper was also not significantly associated with morphine dose requirements. A stepwise backward linear regression model of age, rs9340799, rs1799971, rs4986936, rs1319339, rs174696, rs677830, rs4680, rs4818, and rs540825 was found to explain 10.7% of variance in morphine dose requirements in the study cohort (p=0.001)",
+				"PMID": 26902643
+			},
+			{
+				"Drug(s)": "morphine",
+				"Sentence": "Allele G is not associated with dose of morphine in people with Pain, Postoperative as compared to allele A.",
+				"Notes": "Haplotype of the three ESR1 variants studied in the paper was also not significantly associated with morphine dose requirements. A stepwise backward linear regression model of age, rs9340799, rs1799971, rs4986936, rs1319339, rs174696, rs677830, rs4680, rs4818, and rs540825 was found to explain 10.7% of variance in morphine dose requirements in the study cohort (p=0.001)",
+				"PMID": 26902643
+			},
+			{
+				"Drug(s)": "morphine",
+				"Sentence": "Allele C is not associated with dose of morphine in people with Pain, Postoperative as compared to allele T.",
+				"Notes": "Haplotype of the three ESR1 variants studied in the paper was also not significantly associated with morphine dose requirements.",
+				"PMID": 26902643
+			},
+			{
+				"Drug(s)": "atorvastatin",
+				"Sentence": "Allele C is not associated with response to atorvastatin in people with Hypercholesterolemia as compared to allele T.",
+				"Notes": "Genotypes of this polymorphism (described as ESR1 PvuII) were not associated with change in total cholesterol, LDLC, HDLC, or triglyceride levels after treatment. A haplotype described as PvuII(-)XbaI(+) was significantly associated with greater increases of HDL cholesterol which remained significant only in women, however it was not clear which alleles in the two SNPs this haplotype referred to (rs2234693 and rs9340799).",
+				"PMID": 15694942
+			},
+			{
+				"Drug(s)": "atorvastatin",
+				"Sentence": "Allele G is not associated with response to atorvastatin in people with Hypercholesterolemia as compared to allele A.",
+				"Notes": "Genotypes of this polymorphism (described as ESR1 XbaI) were not associated with change in total cholesterol, LDLC, HDLC, or triglyceride levels after treatment. A haplotype described as PvuII(-)XbaI(+) was significantly associated with greater increases of HDL cholesterol which remained significant only in women, however it was not clear which alleles in the two SNPs this haplotype referred to (rs2234693 and rs9340799).",
+				"PMID": 15694942
+			},
+			{
+				"Drug(s)": "leflunomide",
+				"Sentence": "Genotype AA is associated with increased response to leflunomide in women with Arthritis, Rheumatoid as compared to genotypes AG + GG.",
+				"Notes": "rs9340799 and rs2234693 were in linkage disequilibrium: haplotype A-T was associated with better response and haplotype G-C with worse response.",
+				"PMID": 21174621
+			},
+			{
+				"Drug(s)": "glyburide",
+				"Sentence": "Allele T is associated with increased response to glibenclamide in people with as compared to allele C.",
+				"Notes": "No allele was given for the association, so the minor allele from dbSNP at this location was used. Response to treatment was measured as reduction of HbA1c below 6.5% at 1-year of treatment.",
+				"PMID": 27403931
+			},
+			{
+				"Drug(s)": "leflunomide",
+				"Sentence": "Genotype TT is associated with increased response to leflunomide in women with Arthritis, Rheumatoid as compared to genotype CC.",
+				"Notes": "rs9340799 and rs2234693 were in linkage disequilibrium: haplotype A-T was associated with better response and haplotype G-C with worse response.",
+				"PMID": 21174621
+			},
+			{
+				"Drug(s)": "raloxifene",
+				"Sentence": "Genotype TT is associated with increased clinical benefit to raloxifene in people with Schizophrenia or Schizoaffective disorder as compared to genotypes CC + CT.",
+				"Notes": "\"The mean change in PANSS general score was nominally significantly greater with raloxifene versus placebo in TT-carriers (LSM −3.19; 95 % CI −6.38–0.00; p = 0.050, Cohen’s d = 1.02), but not in CC or CT-carriers (Fig. 1, Table 2).\"",
+				"PMID": 39799793
+			}
+		],
+		"GATA3": [
+			{
+				"Drug(s)": "asparaginase, cyclophosphamide, cytarabine, daunorubicin, dexamethasone, doxorubicin, leucovorin, mercaptopurine, methotrexate, pegaspargase, prednisone, thioguanine, vincristine",
+				"Sentence": "Allele A is associated with increased minimal residual disease when treated with asparaginase, cyclophosphamide, cytarabine, daunorubicin, dexamethasone, doxorubicin, leucovorin, mercaptopurine, methotrexate, pegaspargase, prednisone, thioguanine and vincristine in children with Precursor Cell Lymphoblastic Leukemia-Lymphoma as compared to allele C.",
+				"Notes": "The A allele was associated with higher MRD level at the end of induction therapy. The A allele of this SNP was also associated with susceptibility to Philadelphia chromosome-like ALL and increased risk of relapse.",
+				"PMID": 24141364
+			},
+			{
+				"Drug(s)": "asparaginase, cyclophosphamide, cytarabine, daunorubicin, dexamethasone, doxorubicin, leucovorin, mercaptopurine, methotrexate, pegaspargase, prednisone, thioguanine, vincristine",
+				"Sentence": "Allele A is associated with increased likelihood of relapse when treated with asparaginase, cyclophosphamide, cytarabine, daunorubicin, dexamethasone, doxorubicin, leucovorin, mercaptopurine, methotrexate, pegaspargase, prednisone, thioguanine and vincristine in children with Precursor Cell Lymphoblastic Leukemia-Lymphoma as compared to allele C.",
+				"Notes": "The A allele of this SNP was also associated with susceptibility to Philadelphia chromosome-like ALL (statistics were adjusted for genetic ancestry).",
+				"PMID": 24141364
+			},
+			{
+				"Drug(s)": "Glucarpidase",
+				"Sentence": "Genotypes AA + AC are associated with increased risk of nephrotoxicity requiring treatment with Glucarpidase in children with Precursor Cell Lymphoblastic Leukemia-Lymphoma as compared to genotype CC.",
+				"Notes": "Patients were receiving methotrexate treatment for ALL. Each A allele increases the odds of the patient requiring glucarpidase treatment for kidney injury.",
+				"PMID": 33788417
+			},
+			{
+				"Drug(s)": "prednisolone",
+				"Sentence": "Genotype AA is associated with increased risk of Sepsis when treated with prednisolone in children with Precursor Cell Lymphoblastic Leukemia-Lymphoma as compared to genotypes AC + CC.",
+				"Notes": "\"AA genotype had more episodes of sepsis than those with the CC or CA genotype (P = 0.019). However, we did not identify a significant association between the rs3824662 genotype and other side effects, such as myelosuppression,\" \"AA genotype remained statistically significantly associated with sepsis after adjusting clinical variables (i.e., age, white blood cell count, and risk group)\"",
+				"PMID": 36714653
+			},
+			{
+				"Drug(s)": "prednisolone",
+				"Sentence": "Genotype AA is associated with decreased clinical benefit to prednisolone in children with Precursor Cell Lymphoblastic Leukemia-Lymphoma as compared to genotypes AC + CC.",
+				"Notes": null,
+				"PMID": 36714653
+			}
+		],
+		"IGF1R": [
+			{
+				"Drug(s)": "tamoxifen",
+				"Sentence": "Genotype GG is associated with increased risk of Recurrence when treated with tamoxifen in women with Breast Neoplasms as compared to genotypes GT + TT.",
+				"Notes": null,
+				"PMID": 23459444
+			}
+		],
+		"PGR": [
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele G is not associated with risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early stage breast cancer as compared to allele A.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele G is not associated with risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early stage breast cancer as compared to allele A.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele A is not associated with risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early stage breast cancer as compared to allele G.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele T is not associated with risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early stage breast cancer as compared to allele C.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele G is not associated with risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early stage breast cancer as compared to allele A.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele G is not associated with risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early stage breast cancer as compared to allele A.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "anastrozole, letrozole",
+				"Sentence": "Allele T is not associated with risk of musculoskeletal pain when exposed to anastrozole and letrozole in women with early stage breast cancer as compared to allele C.",
+				"Notes": "Incidence of muscoloskeletal adverse events (MS-AE) including joint pain, muscle pain, bone pain, arthritis, diminished joint function, or other musculoskeletal problems were assessed by a questionnaire. All patients included in the study were post-menopausal, and had resected stage I to stage III breast cancer and all were estrogen or progesterone (or both) receptor positive. Some patients had previous tamoxifen, or taxane therapy.",
+				"PMID": 23894347
+			},
+			{
+				"Drug(s)": "etonogestrel",
+				"Sentence": "Genotypes CT + TT is associated with decreased steady-state concentration of etonogestrel in women as compared to genotype CC.",
+				"Notes": "\"11.7% (31/266) of carriers for rs537681 had serum etonogestrel concentrations that fell below 90 pg/mL\" (the level for suppression of ovulation) in contraceptive implant users which may theoretically put them at risk for contraceptive failure. Corrected P-value cutoff of 5.0E-4 was not met.",
+				"PMID": 30870275
+			}
+		],
+		"PTPRC": [
+			{
+				"Drug(s)": "Tumor necrosis factor alpha (TNF-alpha) inhibitors",
+				"Sentence": "Allele A is not associated with decreased response to Tumor necrosis factor alpha (TNF-alpha) inhibitors in people with Arthritis, Rheumatoid as compared to allele G.",
+				"Notes": "using either the absolute change in DAS28 or the proportion of good responders and non-responders as outcomes.",
+				"PMID": 25834819
+			},
+			{
+				"Drug(s)": "adalimumab, etanercept, infliximab",
+				"Sentence": "Allele G is associated with increased response to adalimumab, etanercept or infliximab in people with Arthritis, Rheumatoid as compared to allele A.",
+				"Notes": null,
+				"PMID": 20309874
+			},
+			{
+				"Drug(s)": "adalimumab, etanercept, infliximab, Tumor necrosis factor alpha (TNF-alpha) inhibitors",
+				"Sentence": "Allele A is not associated with response to adalimumab, etanercept, infliximab or Tumor necrosis factor alpha (TNF-alpha) inhibitors in people with Arthritis, Rheumatoid as compared to allele G.",
+				"Notes": null,
+				"PMID": 23007924
+			}
+		]
+	}
+}
