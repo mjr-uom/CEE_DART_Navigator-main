@@ -14,6 +14,7 @@ import importlib
 import sys
 import matplotlib.pyplot as plt
 from len_gen import generate_legend_table, generate_legend_table_community
+from datetime import datetime
 
 # Add source directory to sys.path if not already present
 path_to_functions_directory = r'./source'
@@ -1194,7 +1195,7 @@ if __name__ == '__main__':
         with st.expander("What does the public MISP analyses provide?"):
             st.markdown("""
                 **What does the public MISP support as input?**
-                The public version of the MISP supports the analysis of multiomics data—including gene expression levels, mutations, copy number alterations (such as amplifications and deletions), gene fusions, and protein expression data. These data can be uploaded in CSV format. For additional details on input formats and requirements, please refer to the tooltips available in the ‘Analyse’ interface.
+                The public version of the MISP supports the analysis of multiomics data—including gene expression levels, mutations, copy number alterations (such as amplifications and deletions), gene fusions, and protein expression data. These data can be uploaded in CSV format. For additional details on input formats and requirements, please refer to the tooltips available in the 'Analyse' interface.
                 
                 **How are the public MISP reports structured?** 
                 The public MISP generates an HTML report that classifies the uploaded samples into three distinct tables based on the type of analysis and the relevance of evidence. Each table is accompanied by multiple sources of evidence that support the classification. The HTML report also features interactive elements that allow users to: 1) Open pop-up windows providing further information and detailed gene annotations. 2) Access external resources with the original evidence.
@@ -1207,7 +1208,7 @@ if __name__ == '__main__':
                 The MISP harnesses a diverse array of resources to annotate the genes under analysis. These resources include sequencing data from previous cohorts, a variety of bioinformatics tools, and public databases. While some resources are developed internally, many are community-based—in these cases, the specific version used in an analysis is displayed in the upper right corner of the report. Notably, the public portal integrates several knowledge bases created by international initiatives, which are open for academic research. Data models and gene nomenclature are first harmonized to ensure accurate aggregation, and additional filtering can be applied (for instance, to differentiate weaker supporting evidence as indicated by proprietary knowledgebase metadata) as needed. Currently, the knowledge bases harmonized in the public portal include ClinVar, BRCA-Exchange, OncoKB, and CIViC.
                 
                 **Are the knowledgebase contents updated?** 
-                Because the harmonization of the knowledgebase data cannot be fully automated, the content is downloaded and then manually processed to reformat it. This updating process is performed periodically. For further details, please note that every MISP report lists the version, reference, and access information for all resources used to annotate the genes, along with the original evidence assertions. Additionally, the “News” section on the public MISP website provides updates and relevant information for users.
+                Because the harmonization of the knowledgebase data cannot be fully automated, the content is downloaded and then manually processed to reformat it. This updating process is performed periodically. For further details, please note that every MISP report lists the version, reference, and access information for all resources used to annotate the genes, along with the original evidence assertions. Additionally, the "News" section on the public MISP website provides updates and relevant information for users.
             """, unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1238,7 +1239,7 @@ if __name__ == '__main__':
                 <br><br>
                 The MIS Portal is developed by members of <strong>the Digital Cancer Research AI Team</strong> at the CRUK National Biomarker Centre and members of <strong>the Neuro-symbolic AI Group</strong> at the Idiap Research Institute. Our group conducts research at the interface of neural and symbolic methods, aiming to build the next generation of explainable, data-efficient, and safe AI systems. We focus on integrating latent and explicit data representations to enhance learning and reasoning capabilities in complex domains.
                 <br>
-                The development of the MIS Portal reflects our group’s broader mission: enabling transparent and robust AI applications in critical domains such as healthcare and life sciences.
+                The development of the MIS Portal reflects our group's broader mission: enabling transparent and robust AI applications in critical domains such as healthcare and life sciences.
                 <br><br>
                 <strong>Contact Us:</strong><br>
                 For more information, please visit our website or contact us at info@misportal.org.
@@ -1360,7 +1361,7 @@ if __name__ == '__main__':
             <strong>A systematic review of biologically-informed deep learning models for cancer: fundamental trends for encoding and interpreting oncology data.</strong> Wysocka M, Wysocki O, Zufferey M, Landers D, Freitas A. BMC Bioinformatics, 2023 –  
             <a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-023-05262-8" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
             <br><br>
-            <strong>Transformers and the Representation of Biomedical Background Knowledge.</strong> Wysocki O, Zhou Z, O’Regan P, Ferreira D, Wysocka M, Landers D, Freitas A. Computational Linguistics, 2022 –  
+            <strong>Transformers and the Representation of Biomedical Background Knowledge.</strong> Wysocki O, Zhou Z, O'Regan P, Ferreira D, Wysocka M, Landers D, Freitas A. Computational Linguistics, 2022 –  
             <a href="https://direct.mit.edu/coli/article/49/1/73/113017/Transformers-and-the-Representation-of-Biomedical" target="_blank" style="color: black; text-decoration: underline;">Read More</a>
             <br><br>
             <strong>Assessing the communication gap between AI models and healthcare professionals: Explainability, utility and trust in AI-driven clinical decision-making.</strong> Wysocki O, Davies JK, Vigo M, Armstrong AC, Landers D, Lee R, Freitas A. Artificial Intelligence, 2022 –   
@@ -2184,11 +2185,106 @@ if st.session_state.page == "AI Assistant":
     print("Retrieved text areas; Context:", st.session_state.get("ai_context"),
             "Question/Prompt:", st.session_state.get("ai_prompt"))
 
+    # JSON Upload Section
+    st.markdown("---")
+    st.markdown("### Data Source Options")
+    
+    # Radio button to choose data source
+    data_source = st.radio(
+        "Choose your data source:",
+        ["Use current session data", "Upload JSON file"],
+        key="data_source_choice",
+        help="Choose whether to use data from your current analysis session or upload a JSON file with data"
+    )
+    
+    uploaded_json_data = None
+    if data_source == "Upload JSON file":
+        st.markdown("""
+        **Expected JSON file format:**
+        ```json
+        {
+            "Gene Enrichment": {...},
+            "Community Enrichment": {...},
+            "CIVIC Evidence": {...},
+            "pharmGKB Analysis": {...}
+        }
+        ```
+        You can download this format using the "Download Input JSON" button below after running an analysis.
+        """)
+        
+        uploaded_file = st.file_uploader(
+            "Upload JSON file with analysis data",
+            type=['json'],
+            key="json_upload",
+            help="Upload a JSON file containing Gene Enrichment, Community Enrichment, CIVIC Evidence, and pharmGKB Analysis data. Context and Question will be taken from the input fields above."
+        )
+        
+        if uploaded_file is not None:
+            try:
+                uploaded_json_data = json.load(uploaded_file)
+                st.success(f"✅ JSON file uploaded successfully! File: {uploaded_file.name}")
+                
+                # Show what data is available in the uploaded file
+                available_data = []
+                if uploaded_json_data.get('Gene Enrichment'):
+                    available_data.append("Gene Enrichment")
+                if uploaded_json_data.get('Community Enrichment'):
+                    available_data.append("Community Enrichment")
+                if uploaded_json_data.get('CIVIC Evidence'):
+                    available_data.append("CIVIC Evidence")
+                if uploaded_json_data.get('pharmGKB Analysis'):
+                    available_data.append("pharmGKB Analysis")
+                
+                if available_data:
+                    st.info(f"Available data types: {', '.join(available_data)}")
+                else:
+                    st.warning("No recognized data types found in the uploaded file.")
+                
+                # Show preview of uploaded data
+                with st.expander("Preview uploaded data", expanded=False):
+                    st.json(uploaded_json_data)
+                    
+            except json.JSONDecodeError as e:
+                st.error(f"❌ Error reading JSON file: {e}")
+                uploaded_json_data = None
+            except Exception as e:
+                st.error(f"❌ Error processing file: {e}")
+                uploaded_json_data = None
+    else:
+        # Show what data is available in current session
+        session_data_status = []
+        if st.session_state.get('gene_enrichment'):
+            session_data_status.append("Gene Enrichment")
+        if st.session_state.get('community_enrichment'):
+            session_data_status.append("Community Enrichment")
+        if st.session_state.get('civic_evidence'):
+            session_data_status.append("CIVIC Evidence")
+        if st.session_state.get('pharmGKB_analysis'):
+            session_data_status.append("pharmGKB Analysis")
+        
+        if session_data_status:
+            st.info(f"Available session data: {', '.join(session_data_status)}")
+        else:
+            st.warning("⚠️ No analysis data found in current session. Please run an analysis first or upload a JSON file.")
 
-    gene_enrichment = st.session_state.get('gene_enrichment')
-    community_enrichment = st.session_state.get('community_enrichment')
-    civic_evidence = st.session_state.get('civic_evidence')
-    pharmGKB_analysis = st.session_state.get('pharmGKB_analysis')
+    # Get data based on user choice
+    if data_source == "Upload JSON file" and uploaded_json_data is not None:
+        # Use uploaded JSON data, but override Context and Prompt with input fields
+        gene_enrichment = uploaded_json_data.get('Gene Enrichment')
+        community_enrichment = uploaded_json_data.get('Community Enrichment')
+        civic_evidence = uploaded_json_data.get('CIVIC Evidence')
+        pharmGKB_analysis = uploaded_json_data.get('pharmGKB Analysis')
+        
+        st.info("Using uploaded JSON data with Context and Question from input fields above.")
+    else:
+        # Use session state data
+        gene_enrichment = st.session_state.get('gene_enrichment')
+        community_enrichment = st.session_state.get('community_enrichment')
+        civic_evidence = st.session_state.get('civic_evidence')
+        pharmGKB_analysis = st.session_state.get('pharmGKB_analysis')
+        
+        if data_source == "Use current session data":
+            st.info("Using data from current analysis session.")
 
     print("Gene Enrichment:", gene_enrichment)
     print("Community Enrichment:", community_enrichment)
@@ -2203,8 +2299,7 @@ if st.session_state.page == "AI Assistant":
                     'pharmGKB Analysis': pharmGKB_analysis}
 
     print("Output dictionary:", output_dict)
-    # Display the output dictionary in the dashboard in a readable format
-    #st.markdown("### AI Assistant Input (Dictionary View):")
+    
     def convert_np(obj):
         if isinstance(obj, dict):
             return {k: convert_np(v) for k, v in obj.items()}
@@ -2219,136 +2314,337 @@ if st.session_state.page == "AI Assistant":
         else:
             return obj
 
-    
-    #########################################################################################################
-    # Send the output_dict to n8n webhook
-
-    # Add a button to send the JSON payload to the n8n webhook endpoint
-    send_to_n8n = st.button("Analyse with AI", key="send_to_n8n_button")
-
+    # Convert payload for JSON serialization
     payload = convert_np(output_dict)
+    
+    # Show JSON payload that will be sent to AI
     with st.expander("See json sent to AI", expanded=False):
         st.json(payload)
 
-    #
-    # Add a button to download the payload as a JSON file
+    
 
-    payload_json = json.dumps(payload, indent=2)
-    st.download_button(
-        label="Download JSON",
-        data=io.BytesIO(payload_json.encode("utf-8")),
-        file_name="analysis_output.json",
-        mime="application/json"
-    )
-
-
-    if send_to_n8n:
-        print('Sending JSON to AI')
+    # Add workflow execution
+    if st.button("Analyse with AI", key="analyze_with_ai_button"):
+        # Validate that we have the required data
+        has_civic_evidence = output_dict.get('CIVIC Evidence')
+        has_pharmgkb_evidence = output_dict.get('pharmGKB Analysis')
+        has_context = st.session_state.get("ai_context", "").strip()
+        has_prompt = st.session_state.get("ai_prompt", "").strip()
         
-
-        # Define the n8n webhook endpoint URL (replace with your actual endpoint)
-        n8n_webhook_url = "http://localhost:5678/webhook-test/ac8a4b13-ca15-4511-9663-39ab520132ca"
-
-
-        # Send the JSON payload to the n8n webhook endpoint
-        try:
-            response = requests.post(
-                n8n_webhook_url,
-                data=json.dumps(payload),
-                headers={"Content-Type": "application/json"}
-            )
-            if response.status_code == 200:
-                st.success("Data sent successfully to n8n webhook.")
+        # Check for required fields
+        if not has_context:
+            st.error("❌ Please enter a Context before running the analysis.")
+        elif not has_prompt:
+            st.error("❌ Please enter a Question/Prompt before running the analysis.")
+        elif not has_civic_evidence and not has_pharmgkb_evidence:
+            if data_source == "Upload JSON file":
+                st.error("❌ The uploaded JSON file does not contain CIVIC Evidence or pharmGKB Analysis data, or no file was uploaded.")
             else:
-                st.error(f"Failed to send data to n8n webhook. Status code: {response.status_code}")
-        except Exception as e:
-            st.error(f"Error sending data to n8n webhook: {e}")
+                st.error("❌ No CIVIC evidence or pharmGKB analysis available in current session. Please run an analysis first or upload a JSON file with data.")
+        else:
+            try:
+                # Create containers for progress updates
+                progress_container = st.empty()
+                status_container = st.empty()
+                
+                # Create a progress callback function
+                def update_progress(message):
+                    with progress_container.container():
+                        st.markdown(f"**AI Analysis Progress:**")
+                        st.markdown(message, unsafe_allow_html=True)
+                
+                # Initialize progress
+                if data_source == "Upload JSON file":
+                    update_progress("**Initializing AI analysis with uploaded data...**")
+                else:
+                    update_progress("**Initializing AI analysis with session data...**")
+                
+                # Initialize results storage
+                civic_results = None
+                civic_consolidated = None
+                pharmgkb_results = None
+                pharmgkb_consolidated = None
+                
+                # Run CIVIC workflow if evidence exists
+                if has_civic_evidence:
+                    update_progress("🧬 **Starting CIVIC biomedical evidence analysis...**")
+                    from source.civic_agents.workflow_runner import WorkflowRunner as CivicWorkflowRunner
+                    civic_runner = CivicWorkflowRunner(debug=False, progress_callback=update_progress)
+                    civic_results, civic_consolidated = civic_runner.run_from_app_data(output_dict)
+                    update_progress("✅ **CIVIC analysis completed!**")
+                else:
+                    update_progress("⚠️ **Skipping CIVIC analysis - no CIVIC evidence available**")
+                
+                # Run pharmGKB workflow if evidence exists
+                if has_pharmgkb_evidence:
+                    update_progress("💊 **Starting pharmGKB drug interaction analysis...**")
+                    from source.pharmGKB_agents.workflow_runner import WorkflowRunner as PharmGKBWorkflowRunner
+                    pharmgkb_runner = PharmGKBWorkflowRunner(debug=False, progress_callback=update_progress)
+                    pharmgkb_results, pharmgkb_consolidated = pharmgkb_runner.run_from_app_data(output_dict)
+                    update_progress("✅ **PharmGKB analysis completed!**")
+                else:
+                    update_progress("⚠️ **Skipping pharmGKB analysis - no pharmGKB evidence available**")
+                
+                # Save to session state
+                if civic_results:
+                    st.session_state['CIVIC_AI_results'] = civic_results
+                    st.session_state['CIVIC_AI_consolidated'] = civic_consolidated
+                if pharmgkb_results:
+                    st.session_state['PHARMGKB_AI_results'] = pharmgkb_results
+                    st.session_state['PHARMGKB_AI_consolidated'] = pharmgkb_consolidated
+                
+                # Clear progress and show completion
+                progress_container.empty()
+                
+                # Show completion status
+                completed_workflows = []
+                if civic_results:
+                    completed_workflows.append("CIVIC biomedical evidence")
+                if pharmgkb_results:
+                    completed_workflows.append("pharmGKB drug interaction")
+                
+                if completed_workflows:
+                    status_container.success(f"✅ AI analysis completed successfully! Workflows: {', '.join(completed_workflows)}")
+                else:
+                    status_container.warning("⚠️ No workflows were executed due to missing evidence data.")
+                
+                # Refresh the page to show the new download buttons
+                st.rerun()
+                
+            except Exception as e:
+                # Clear progress containers on error
+                progress_container.empty()
+                status_container.empty()
+                st.error(f"Error running AI analysis: {e}")
+                import traceback
+                st.error(f"Traceback: {traceback.format_exc()}")
 
-    # Display a text area with mockup AI output (placeholder)
-    st.markdown("### AI Assistant Output")
-    ai_output = st.text_area(     
-        label = ' ',   
-        value="This is a mockup output from the AI analyser. The results of your analysis will appear here.",
-        height=200,
-        key="ai_output_mockup"
-    )
-
-
-
-
-
-
+    # Display consolidated results if they exist in session state
+    if ('CIVIC_AI_consolidated' in st.session_state and st.session_state['CIVIC_AI_consolidated']) or \
+       ('PHARMGKB_AI_consolidated' in st.session_state and st.session_state['PHARMGKB_AI_consolidated']):
+        st.markdown("---")
+        st.markdown("### AI Analysis Results")
+        
+        # Display CIVIC results if available
+        if 'CIVIC_AI_consolidated' in st.session_state and st.session_state['CIVIC_AI_consolidated']:
+            civic_consolidated_data = st.session_state['CIVIC_AI_consolidated']
             
- 
-# ##########################################
-# #### AI Assistant Sidebar 
-# ##########################################               
-# if st.session_state.page == "AI Assistant":
+            # Show CIVIC metadata
+            civic_metadata = civic_consolidated_data.get('metadata', {})
+            st.info(f"**CIVIC Analysis completed:** {civic_metadata.get('generated_at', 'Unknown')} | **Context:** {civic_metadata.get('context', 'None provided')[:100]}...")
+            
+            # Expandable detailed CIVIC results
+            with st.expander("View Detailed Results - CIVIC Biomedical Evidence Workflow", expanded=False):
+                if civic_consolidated_data.get('gene_analyses'):
+                    # Parse final_analysis to extract sections
+                    def parse_analysis(final_analysis):
+                        """Parse the final_analysis text to extract Relevance Explanation and Summary/Conclusion"""
+                        if not final_analysis:
+                            return "No data available", "No data available"
+                        
+                        relevance_explanation = ""
+                        summary_conclusion = ""
+                        
+                        # Split the analysis by sections
+                        sections = final_analysis.split('##')
+                        
+                        for section in sections:
+                            section = section.strip()
+                            if section.startswith('Relevance Explanation'):
+                                relevance_explanation = section.replace('Relevance Explanation', '').strip()
+                            elif section.startswith('Summary/Conclusion'):
+                                summary_conclusion = section.replace('Summary/Conclusion', '').strip()
+                        
+                        # Clean up the text (remove extra newlines, etc.)
+                        relevance_explanation = relevance_explanation.replace('\n\n', '\n').strip()
+                        summary_conclusion = summary_conclusion.replace('\n\n', '\n').strip()
+                        
+                        # If sections weren't found, try to use the whole text
+                        if not relevance_explanation and not summary_conclusion:
+                            relevance_explanation = final_analysis
+                            summary_conclusion = "Not available"
+                        
+                        return relevance_explanation or "Not available", summary_conclusion or "Not available"
+                    
+                    # Create table data
+                    table_data = []
+                    for gene_name, gene_data in civic_consolidated_data['gene_analyses'].items():
+                        final_analysis = gene_data.get('final_analysis', '')
+                        relevance, summary = parse_analysis(final_analysis)
+                        
+                        table_data.append({
+                            'Gene': gene_name,
+                            'Relevance Explanation': relevance,
+                            'Summary/Conclusion': summary
+                        })
+                    
+                    # Display as DataFrame
+                    if table_data:
+                        results_df = pd.DataFrame(table_data)
+                        st.dataframe(results_df, use_container_width=True, height=None)
+                    else:
+                        st.write("No detailed results available.")
+        
+        # Display pharmGKB results if available
+        if 'PHARMGKB_AI_consolidated' in st.session_state and st.session_state['PHARMGKB_AI_consolidated']:
+            pharmgkb_consolidated_data = st.session_state['PHARMGKB_AI_consolidated']
+            
+            # Show pharmGKB metadata
+            pharmgkb_metadata = pharmgkb_consolidated_data.get('metadata', {})
+            st.info(f"**PharmGKB Analysis completed:** {pharmgkb_metadata.get('generated_at', 'Unknown')} | **Context:** {pharmgkb_metadata.get('context', 'None provided')[:100]}...")
+            
+            # Expandable detailed pharmGKB results
+            with st.expander("View Detailed Results - PharmGKB Drug Interaction Workflow", expanded=False):
+                if pharmgkb_consolidated_data.get('gene_analyses'):
+                    # Parse final_analysis to extract sections (reuse same function)
+                    def parse_analysis(final_analysis):
+                        """Parse the final_analysis text to extract Relevance Explanation and Summary/Conclusion"""
+                        if not final_analysis:
+                            return "No data available", "No data available"
+                        
+                        relevance_explanation = ""
+                        summary_conclusion = ""
+                        
+                        # Split the analysis by sections
+                        sections = final_analysis.split('##')
+                        
+                        for section in sections:
+                            section = section.strip()
+                            if section.startswith('Relevance Explanation'):
+                                relevance_explanation = section.replace('Relevance Explanation', '').strip()
+                            elif section.startswith('Summary/Conclusion'):
+                                summary_conclusion = section.replace('Summary/Conclusion', '').strip()
+                        
+                        # Clean up the text (remove extra newlines, etc.)
+                        relevance_explanation = relevance_explanation.replace('\n\n', '\n').strip()
+                        summary_conclusion = summary_conclusion.replace('\n\n', '\n').strip()
+                        
+                        # If sections weren't found, try to use the whole text
+                        if not relevance_explanation and not summary_conclusion:
+                            relevance_explanation = final_analysis
+                            summary_conclusion = "Not available"
+                        
+                        return relevance_explanation or "Not available", summary_conclusion or "Not available"
+                    
+                    # Create table data
+                    table_data = []
+                    for gene_name, gene_data in pharmgkb_consolidated_data['gene_analyses'].items():
+                        final_analysis = gene_data.get('final_analysis', '')
+                        relevance, summary = parse_analysis(final_analysis)
+                        
+                        table_data.append({
+                            'Gene': gene_name,
+                            'Relevance Explanation': relevance,
+                            'Summary/Conclusion': summary
+                        })
+                    
+                    # Display as DataFrame
+                    if table_data:
+                        results_df = pd.DataFrame(table_data)
+                        st.dataframe(results_df, use_container_width=True, height=None)
+                    else:
+                        st.write("No detailed results available.")
+        
+        # Clear results button
+        if st.button("Clear Previous Results", key="clear_ai_results"):
+            if 'CIVIC_AI_consolidated' in st.session_state:
+                del st.session_state['CIVIC_AI_consolidated']
+            if 'CIVIC_AI_results' in st.session_state:
+                del st.session_state['CIVIC_AI_results']
+            if 'PHARMGKB_AI_consolidated' in st.session_state:
+                del st.session_state['PHARMGKB_AI_consolidated']
+            if 'PHARMGKB_AI_results' in st.session_state:
+                del st.session_state['PHARMGKB_AI_results']
+            st.success("Previous AI analysis results cleared!")
+            st.rerun()
+
+    # JSON Download Section - reorganized with all requested downloads
+    st.markdown("### Download Options")
     
-#     # Text area for additional context
-#     context_input = st.text_area("Context", 
-#                                  placeholder="Enter context here...", 
-#                                  key="ai_context",
-#                                  value=st.session_state.get("ai_context", ""))
+    # Import WorkflowRunner once for JSON generation methods
+    from source.civic_agents.workflow_runner import WorkflowRunner as CivicWorkflowRunner
+    civic_temp_runner = CivicWorkflowRunner()   
+
+    # 1. Input JSON to AI analysis (shared for both workflows)
+    payload_json = civic_temp_runner.get_input_payload_json(payload)
+    st.download_button(
+        label="📥 Download Input JSON",
+        data=io.BytesIO(payload_json.encode("utf-8")),
+        file_name=f"ai_analysis_input_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+        mime="application/json",
+        help="Download the input data sent to AI analysis"
+    )
     
-#     # Text area for Question/Prompt
-#     prompt_input = st.text_area("Question/Prompt", 
-#                                 placeholder="Enter your question or prompt here...", 
-#                                 key="ai_prompt",
-#                                 value=st.session_state.get("ai_prompt", ""))
+    # CIVIC Workflow Downloads
+    if 'CIVIC_AI_results' in st.session_state and st.session_state['CIVIC_AI_results']:
+        st.markdown("#### CIVIC Biomedical Evidence Workflow Downloads")
+        
+        # CIVIC Full results with history
+        civic_full_results_json = civic_temp_runner.get_full_results_json(st.session_state['CIVIC_AI_results'])
+        st.download_button(
+            label="📋 Download CIVIC Full Results",
+            data=io.BytesIO(civic_full_results_json.encode("utf-8")),
+            file_name=f"civic_analysis_full_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            help="Download complete CIVIC results including evaluation history and bioexpert outputs"
+        )
+        
+        # CIVIC Consolidated data results
+        if 'CIVIC_AI_consolidated' in st.session_state and st.session_state['CIVIC_AI_consolidated']:
+            civic_consolidated_json = civic_temp_runner.get_consolidated_data_json(st.session_state['CIVIC_AI_consolidated'])
+            st.download_button(
+                label="📊 Download CIVIC Consolidated Results",
+                data=io.BytesIO(civic_consolidated_json.encode("utf-8")),
+                file_name=f"civic_analysis_consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json",
+                help="Download consolidated CIVIC analysis results summary"
+            )
+        
+        # CIVIC Full prompts sent to LLMs
+        civic_prompts_json = civic_temp_runner.get_prompts_json(st.session_state['CIVIC_AI_results'], payload)
+        st.download_button(
+            label="💬 Download CIVIC Full Prompts",
+            data=io.BytesIO(civic_prompts_json.encode("utf-8")),
+            file_name=f"civic_analysis_prompts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            help="Download all prompts sent to LLM agents during the CIVIC analysis"
+        )
     
-#     print("Displayed AI Assistant page with context:", st.session_state.get("ai_context"),
-#           "and prompt:", st.session_state.get("ai_prompt"))
-    
-#     ##########################################################
-#     # Keyword Options: Either upload frequent keywords or select keywords
-#     ##########################################################
-#     st.markdown("### Keyword Options:")
-#     keyword_option = st.radio("Choose keyword option:",
-#                               ("Upload Frequent Keywords", "Keyword Selection"),
-#                               key="keyword_option")
-#     print("Keyword option chosen:", st.session_state.get("keyword_option"))
-    
-#     if keyword_option == "Upload Frequent Keywords":
-#         # File uploader for frequent keywords (CSV or TXT)
-#         keyword_file = st.file_uploader("Upload Frequent Keywords", type=["csv", "txt"], key="keyword_file")
-#         if keyword_file:
-#             try:
-#                 # Read keywords as CSV (assuming one keyword per row)
-#                 keywords_df = pd.read_csv(keyword_file, header=None)
-#                 uploaded_keywords = keywords_df[0].tolist()
-#                 st.session_state["uploaded_keywords"] = uploaded_keywords
-#                 st.success("Frequent keywords uploaded successfully (CSV)!")
-#                 st.write("Uploaded frequent keywords:", uploaded_keywords)
-#                 print("Frequent keywords loaded from CSV:", uploaded_keywords)
-#             except Exception as e_csv:
-#                 # If CSV reading fails, try reading as plain text
-#                 keyword_file_str = keyword_file.getvalue().decode("utf-8")
-#                 uploaded_keywords = [line.strip() for line in keyword_file_str.splitlines() if line.strip()]
-#                 st.session_state["uploaded_keywords"] = uploaded_keywords
-#                 st.success("Frequent keywords uploaded successfully (TEXT)!")
-#                 st.write("Uploaded frequent keywords:", uploaded_keywords)
-#                 print("Frequent keywords loaded from text:", uploaded_keywords)
-#         else:
-#             print("No frequent keywords file uploaded.")
-#     else:  # Keyword Selection branch using the frequent keywords list from Analyse page
-#         if st.session_state.get("frequent_kws") is not None and not st.session_state["frequent_kws"].empty:
-#             # Use the first column of the uploaded frequent keywords CSV
-#             uploaded_list = st.session_state["frequent_kws"][0].tolist()
-#             selected_keywords = st.multiselect("Please select your keyword:", 
-#                                                  uploaded_list, 
-#                                                  key="selected_keywords")
-#             st.session_state["selected_keywords"] = selected_keywords
-#             st.write("Selected keywords:", selected_keywords)
-#             print("Selected keywords from uploaded list:", selected_keywords)
-#         else:
-#             st.warning("No frequent keywords available. Please upload frequent keywords in the Analyse page.")
-#             print("No frequent keywords available.")
-    
-#     # Ensure that one of the options is provided before proceeding.
-#     provided_keywords = (st.session_state.get("uploaded_keywords")
-#                            if st.session_state.get("keyword_option") == "Upload Frequent Keywords"
-#                            else st.session_state.get("selected_keywords"))
-    
-#     if not provided_keywords:
-#         st.warning("Please provide frequent keywords either by uploading a file or by selecting from the uploaded list to proceed.")
+    # PharmGKB Workflow Downloads
+    if 'PHARMGKB_AI_results' in st.session_state and st.session_state['PHARMGKB_AI_results']:
+        st.markdown("#### PharmGKB Drug Interaction Workflow Downloads")
+        
+        # Import PharmGKB WorkflowRunner for JSON generation
+        from source.pharmGKB_agents.workflow_runner import WorkflowRunner as PharmGKBWorkflowRunner
+        pharmgkb_temp_runner = PharmGKBWorkflowRunner()
+        
+        # PharmGKB Full results with history
+        pharmgkb_full_results_json = pharmgkb_temp_runner.get_full_results_json(st.session_state['PHARMGKB_AI_results'])
+        st.download_button(
+            label="📋 Download PharmGKB Full Results",
+            data=io.BytesIO(pharmgkb_full_results_json.encode("utf-8")),
+            file_name=f"pharmgkb_analysis_full_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            help="Download complete PharmGKB results including evaluation history and expert outputs"
+        )
+        
+        # PharmGKB Consolidated data results
+        if 'PHARMGKB_AI_consolidated' in st.session_state and st.session_state['PHARMGKB_AI_consolidated']:
+            pharmgkb_consolidated_json = pharmgkb_temp_runner.get_consolidated_data_json(st.session_state['PHARMGKB_AI_consolidated'])
+            st.download_button(
+                label="📊 Download PharmGKB Consolidated Results",
+                data=io.BytesIO(pharmgkb_consolidated_json.encode("utf-8")),
+                file_name=f"pharmgkb_analysis_consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json",
+                help="Download consolidated PharmGKB analysis results summary"
+            )
+        
+        # PharmGKB Full prompts sent to LLMs
+        pharmgkb_prompts_json = pharmgkb_temp_runner.get_prompts_json(st.session_state['PHARMGKB_AI_results'], payload)
+        st.download_button(
+            label="💬 Download PharmGKB Full Prompts",
+            data=io.BytesIO(pharmgkb_prompts_json.encode("utf-8")),
+            file_name=f"pharmgkb_analysis_prompts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            help="Download all prompts sent to LLM agents during the PharmGKB analysis"
+        )
