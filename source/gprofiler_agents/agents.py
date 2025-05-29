@@ -1,11 +1,19 @@
 from typing import List, Dict, Any, Optional
 from openai import OpenAI
 import json
-from datetime import datetime
-from .config import Config
-from .models import UserInput, BioExpertOutput, EvaluatorOutput, EvaluationStatus, TokenUsage, AgentExecution
-from .prompts import ORCHESTRATOR_PROMPT, BIOEXPERT_PROMPT, EVALUATOR_PROMPT
 import re
+from datetime import datetime
+
+# Handle imports for both module and direct execution
+try:
+    from .config import Config
+    from .models import UserInput, BioExpertOutput, EvaluatorOutput, EvaluationStatus, TokenUsage, AgentExecution
+    from .prompts import ORCHESTRATOR_PROMPT, BIOEXPERT_PROMPT, EVALUATOR_PROMPT
+except ImportError:
+    # Fallback for direct execution
+    from config import Config
+    from models import UserInput, BioExpertOutput, EvaluatorOutput, EvaluationStatus, TokenUsage, AgentExecution
+    from prompts import ORCHESTRATOR_PROMPT, BIOEXPERT_PROMPT, EVALUATOR_PROMPT
 
 class BaseAgent:
     """Base class for all agents."""
@@ -60,36 +68,36 @@ class OrchestratorAgent(BaseAgent):
     def coordinate_workflow(self, user_input: UserInput) -> str:
         """Coordinate the overall workflow purely by routing data without LLM calls."""
         # Orchestrator handles routing between agents, iteration tracking, and escalation logic
-        return f"Orchestrator: routing user input to BioExpert. Context length: {len(user_input.context)} chars, " \
-               f"Question: '{user_input.question}', Evidence characters: {len(user_input.evidence)}"
+        return f"Orchestrator: routing user input to Gene Enrichment Expert. Context length: {len(user_input.context)} chars, " \
+               f"Question: '{user_input.question}', Evidence items: {len(user_input.evidence)}"
 
-class BioExpertAgent(BaseAgent):
-    """BioExpert agent that analyzes biomedical evidence."""
+class GeneEnrichmentExpertAgent(BaseAgent):
+    """Gene Enrichment Expert agent that analyzes pathway and biological process evidence."""
     
     def __init__(self):
-        super().__init__("BioExpert", BIOEXPERT_PROMPT)
+        super().__init__("GeneEnrichmentExpert", BIOEXPERT_PROMPT)
     
     def analyze(self, user_input: UserInput, previous_output: Optional[BioExpertOutput] = None, 
                 evaluator_feedback: Optional[str] = None, iteration: int = 1) -> BioExpertOutput:
         """Analyze evidence or revise based on feedback."""
         # Handle evidence as string
-        print(" BioExpertAgent user_input.evidence:\n", user_input.evidence)
-        print(f" BioExpertAgent evidence length: {len(user_input.evidence) if user_input.evidence else 0}")
-        print(f" BioExpertAgent evidence type: {type(user_input.evidence)}")
+        print(" GeneEnrichmentExpertAgent user_input.evidence:\n", user_input.evidence)
+        print(f" GeneEnrichmentExpertAgent evidence length: {len(user_input.evidence) if user_input.evidence else 0}")
+        print(f" GeneEnrichmentExpertAgent evidence type: {type(user_input.evidence)}")
         evidence_text = user_input.evidence if user_input.evidence else "No evidence provided."
         
-        print(" BioExpertAgent evidence_text:\n", evidence_text)
-        print(f" BioExpertAgent evidence_text length: {len(evidence_text)}")
+        print(" GeneEnrichmentExpertAgent evidence_text:\n", evidence_text)
+        print(f" GeneEnrichmentExpertAgent evidence_text length: {len(evidence_text)}")
         
-        # Check if evidence is meaningful (more than just gene name)
+        # Check if evidence is meaningful (more than just gene set header)
         if evidence_text and len(evidence_text.strip()) > 0:
             lines = evidence_text.split('\n')
-            meaningful_lines = [line for line in lines if line.strip() and not line.startswith("Gene:")]
-            print(f" BioExpertAgent meaningful evidence lines: {len(meaningful_lines)}")
+            meaningful_lines = [line for line in lines if line.strip() and not line.startswith("Gene Set:") and line.strip() != ""]
+            print(f" GeneEnrichmentExpertAgent meaningful evidence lines: {len(meaningful_lines)}")
             if meaningful_lines:
-                print(f" BioExpertAgent first meaningful line: {meaningful_lines[0][:100]}...")
+                print(f" GeneEnrichmentExpertAgent first meaningful line: {meaningful_lines[0][:100]}...")
         else:
-            print(" BioExpertAgent: No meaningful evidence detected")
+            print(" GeneEnrichmentExpertAgent: No meaningful evidence detected")
         
         if previous_output and evaluator_feedback:
             # build a string from the structured previous output
@@ -123,7 +131,7 @@ class BioExpertAgent(BaseAgent):
                             Evidence:
                             {evidence_text}
 
-                            As the BioExpert Agent, analyze the evidence and answer the question in a structured format with relevance explanation and summary/conclusion. Cite evidence sources explicitly.
+                            As the Gene Enrichment Expert Agent, analyze the pathway and biological process evidence and answer the question in a structured format with relevance explanation and summary/conclusion. Cite evidence sources explicitly using database IDs.
                             """
         messages = [
             {"role": "system", "content": self.system_prompt},
@@ -177,21 +185,24 @@ class BioExpertAgent(BaseAgent):
             iteration=iteration
         )
 
+# Keep BioExpertAgent as an alias for backward compatibility
+BioExpertAgent = GeneEnrichmentExpertAgent
+
 class EvaluatorAgent(BaseAgent):
-    """Evaluator agent that reviews BioExpert analyses."""
+    """Evaluator agent that reviews Gene Enrichment Expert analyses."""
     
     def __init__(self):
         super().__init__("Evaluator", EVALUATOR_PROMPT)
     
     def evaluate(self, user_input: UserInput, bioexpert_output: BioExpertOutput) -> EvaluatorOutput:
-        """Evaluate the BioExpert's analysis."""
+        """Evaluate the Gene Enrichment Expert's analysis."""
         # Handle evidence as string
         evidence_text = user_input.evidence if user_input.evidence else "No evidence provided."
         
         # construct analysis block from structured fields
         summary_block = "\n".join(f"- {pt}" for pt in bioexpert_output.summary_conclusion)
         user_message = f"""
-Please evaluate the following biomedical evidence analysis:
+Please evaluate the following gene enrichment pathway and biological process analysis:
 
 Original Context: {user_input.context}
 Original Question: {user_input.question}
@@ -199,7 +210,7 @@ Original Question: {user_input.question}
 Evidence Provided:
 {evidence_text}
 
-BioExpert Analysis (Iteration {bioexpert_output.iteration}):
+Gene Enrichment Expert Analysis (Iteration {bioexpert_output.iteration}):
 Relevance Explanation:
 {bioexpert_output.relevance_explanation}
 
@@ -209,7 +220,7 @@ Summary/Conclusion:
 Respond exactly with:
 - "APPROVED" if the analysis meets quality standards
 - Or "NOT APPROVED" followed by specific, actionable feedback
-Focus on scientific accuracy, clarity, citation, and completeness.
+Focus on biological accuracy, clarity, citation of database IDs, and completeness.
 """
         messages = [
             {"role": "system", "content": self.system_prompt},

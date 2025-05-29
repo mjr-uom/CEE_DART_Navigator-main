@@ -1134,9 +1134,16 @@ if __name__ == '__main__':
             <div style="background-color:#f0f0f0; padding:20px; border-radius:10px; 
                         margin-top:20px; text-align:center; font-size:18px;">
                 <strong>AI Assistant</strong><br>
-                This section presents examples of interactions with an AI assistant used to support reasoning analysis, 
-                hypothesis generation, and interpretation of results. It showcases how AI tools can complement human 
-                expertise in scientific research.
+                This section provides AI-powered analysis workflows for biomedical evidence interpretation:
+                <br><br>
+                <strong>• CIVIC Evidence Analysis</strong> - Clinical interpretations of genetic variants<br>
+                <strong>• PharmGKB Analysis</strong> - Pharmacogenomic associations and drug interactions<br>
+                <strong>• Gene Enrichment Analysis</strong> - Pathway and biological process enrichment<br>
+                <strong>• Novelty Analysis</strong> - Unified evidence integration and novelty assessment<br>
+                <br>
+                The Novelty Analysis workflow integrates evidence from all three systems using 5 specialized agents 
+                to create comprehensive unified reports with structured sections for potential novel biomarkers, 
+                implications, well-known interactions, and conclusions.
             </div>
         """, unsafe_allow_html=True)
                         
@@ -2291,6 +2298,37 @@ if st.session_state.page == "AI Assistant":
     print("civic_evidence Analysis:", civic_evidence)
     print("pharmGKB_analysis:", pharmGKB_analysis)
 
+    # Add detailed debug information about evidence content
+    print("=== DETAILED EVIDENCE DEBUG ===")
+    if gene_enrichment:
+        print(f"Gene Enrichment type: {type(gene_enrichment)}")
+        print(f"Gene Enrichment keys: {list(gene_enrichment.keys()) if isinstance(gene_enrichment, dict) else 'Not a dict'}")
+        print(f"Gene Enrichment content preview: {str(gene_enrichment)[:200]}...")
+    else:
+        print("Gene Enrichment: None or empty")
+    
+    if community_enrichment:
+        print(f"Community Enrichment type: {type(community_enrichment)}")
+        print(f"Community Enrichment keys: {list(community_enrichment.keys()) if isinstance(community_enrichment, dict) else 'Not a dict'}")
+        print(f"Community Enrichment content preview: {str(community_enrichment)[:200]}...")
+    else:
+        print("Community Enrichment: None or empty")
+    
+    if civic_evidence:
+        print(f"CIVIC Evidence type: {type(civic_evidence)}")
+        print(f"CIVIC Evidence keys: {list(civic_evidence.keys()) if isinstance(civic_evidence, dict) else 'Not a dict'}")
+        print(f"CIVIC Evidence content preview: {str(civic_evidence)[:200]}...")
+    else:
+        print("CIVIC Evidence: None or empty")
+    
+    if pharmGKB_analysis:
+        print(f"PharmGKB Analysis type: {type(pharmGKB_analysis)}")
+        print(f"PharmGKB Analysis keys: {list(pharmGKB_analysis.keys()) if isinstance(pharmGKB_analysis, dict) else 'Not a dict'}")
+        print(f"PharmGKB Analysis content preview: {str(pharmGKB_analysis)[:200]}...")
+    else:
+        print("PharmGKB Analysis: None or empty")
+    print("=== END EVIDENCE DEBUG ===")
+
     output_dict = {'Context': st.session_state.get("ai_context", ""),
                     'Prompt': st.session_state.get("ai_prompt", ""),
                     'Gene Enrichment': gene_enrichment,
@@ -2298,7 +2336,7 @@ if st.session_state.page == "AI Assistant":
                     'CIVIC Evidence': civic_evidence,
                     'pharmGKB Analysis': pharmGKB_analysis}
 
-    print("Output dictionary:", output_dict)
+    #print("Output dictionary:", output_dict)
     
     def convert_np(obj):
         if isinstance(obj, dict):
@@ -2328,6 +2366,8 @@ if st.session_state.page == "AI Assistant":
         # Validate that we have the required data
         has_civic_evidence = output_dict.get('CIVIC Evidence')
         has_pharmgkb_evidence = output_dict.get('pharmGKB Analysis')
+        has_gene_enrichment = output_dict.get('Gene Enrichment')
+        has_community_enrichment = output_dict.get('Community Enrichment')
         has_context = st.session_state.get("ai_context", "").strip()
         has_prompt = st.session_state.get("ai_prompt", "").strip()
         
@@ -2336,22 +2376,39 @@ if st.session_state.page == "AI Assistant":
             st.error("❌ Please enter a Context before running the analysis.")
         elif not has_prompt:
             st.error("❌ Please enter a Question/Prompt before running the analysis.")
-        elif not has_civic_evidence and not has_pharmgkb_evidence:
+        elif not has_civic_evidence and not has_pharmgkb_evidence and not has_gene_enrichment and not has_community_enrichment:
             if data_source == "Upload JSON file":
-                st.error("❌ The uploaded JSON file does not contain CIVIC Evidence or pharmGKB Analysis data, or no file was uploaded.")
+                st.error("❌ The uploaded JSON file does not contain CIVIC Evidence, pharmGKB Analysis, Gene Enrichment, or Community Enrichment data, or no file was uploaded.")
             else:
-                st.error("❌ No CIVIC evidence or pharmGKB analysis available in current session. Please run an analysis first or upload a JSON file with data.")
+                st.error("❌ No CIVIC evidence, pharmGKB analysis, or gene enrichment data available in current session. Please run an analysis first or upload a JSON file with data.")
         else:
             try:
                 # Create containers for progress updates
                 progress_container = st.empty()
                 status_container = st.empty()
                 
-                # Create a progress callback function
+                # Initialize progress message history in session state
+                if 'progress_messages' not in st.session_state:
+                    st.session_state['progress_messages'] = []
+                
+                # Create a progress callback function that maintains last 5 messages
                 def update_progress(message):
+                    # Add new message to the list
+                    st.session_state['progress_messages'].append(message)
+                    
+                    # Keep only the last 5 messages
+                    if len(st.session_state['progress_messages']) > 5:
+                        st.session_state['progress_messages'] = st.session_state['progress_messages'][-5:]
+                    
+                    # Display all messages
                     with progress_container.container():
                         st.markdown(f"**AI Analysis Progress:**")
-                        st.markdown(message, unsafe_allow_html=True)
+                        for i, msg in enumerate(st.session_state['progress_messages']):
+                            # Add some visual distinction for the latest message
+                            if i == len(st.session_state['progress_messages']) - 1:
+                                st.markdown(f"🔄 {msg}", unsafe_allow_html=True)
+                            else:
+                                st.markdown(f"✓ {msg}", unsafe_allow_html=True)
                 
                 # Initialize progress
                 if data_source == "Upload JSON file":
@@ -2364,47 +2421,258 @@ if st.session_state.page == "AI Assistant":
                 civic_consolidated = None
                 pharmgkb_results = None
                 pharmgkb_consolidated = None
+                gprofiler_results = None
+                gprofiler_consolidated = None
                 
                 # Run CIVIC workflow if evidence exists
                 if has_civic_evidence:
                     update_progress("🧬 **Starting CIVIC biomedical evidence analysis...**")
                     from source.civic_agents.workflow_runner import WorkflowRunner as CivicWorkflowRunner
                     civic_runner = CivicWorkflowRunner(debug=False, progress_callback=update_progress)
+                    
+                    # Measure CIVIC execution time
+                    civic_start_time = datetime.now()
                     civic_results, civic_consolidated = civic_runner.run_from_app_data(output_dict)
+                    civic_end_time = datetime.now()
+                    civic_execution_time = (civic_end_time - civic_start_time).total_seconds()
+                    
                     update_progress("✅ **CIVIC analysis completed!**")
                 else:
                     update_progress("⚠️ **Skipping CIVIC analysis - no CIVIC evidence available**")
+                    civic_execution_time = 0.0
                 
                 # Run pharmGKB workflow if evidence exists
                 if has_pharmgkb_evidence:
                     update_progress("💊 **Starting pharmGKB drug interaction analysis...**")
                     from source.pharmGKB_agents.workflow_runner import WorkflowRunner as PharmGKBWorkflowRunner
                     pharmgkb_runner = PharmGKBWorkflowRunner(debug=False, progress_callback=update_progress)
+                    
+                    # Measure PharmGKB execution time
+                    pharmgkb_start_time = datetime.now()
                     pharmgkb_results, pharmgkb_consolidated = pharmgkb_runner.run_from_app_data(output_dict)
+                    pharmgkb_end_time = datetime.now()
+                    pharmgkb_execution_time = (pharmgkb_end_time - pharmgkb_start_time).total_seconds()
+                    
                     update_progress("✅ **PharmGKB analysis completed!**")
                 else:
                     update_progress("⚠️ **Skipping pharmGKB analysis - no pharmGKB evidence available**")
+                    pharmgkb_execution_time = 0.0
+                
+                # Run Gene Enrichment workflow if evidence exists
+                if has_gene_enrichment or has_community_enrichment:
+                    update_progress("🧬 **Starting Gene Enrichment pathway analysis...**")
+                    from source.gprofiler_agents.workflow_runner import WorkflowRunner as GProfilerWorkflowRunner
+                    gprofiler_runner = GProfilerWorkflowRunner(debug=False, progress_callback=update_progress)
+                    
+                    # Measure Gene Enrichment execution time
+                    gprofiler_start_time = datetime.now()
+                    gprofiler_results, gprofiler_consolidated = gprofiler_runner.run_from_app_data(output_dict)
+                    gprofiler_end_time = datetime.now()
+                    gprofiler_execution_time = (gprofiler_end_time - gprofiler_start_time).total_seconds()
+                    
+                    update_progress("✅ **Gene Enrichment analysis completed!**")
+                else:
+                    update_progress("⚠️ **Skipping Gene Enrichment analysis - no gene enrichment or community enrichment data available**")
+                    gprofiler_execution_time = 0.0
+                
+                # Run Novelty Analysis workflow if we have results from at least one of the three systems
+                novelty_results = None
+                novelty_consolidated = None
+                
+                # Debug information
+                print(f"DEBUG: civic_consolidated = {civic_consolidated is not None}")
+                print(f"DEBUG: pharmgkb_consolidated = {pharmgkb_consolidated is not None}")
+                print(f"DEBUG: gprofiler_consolidated = {gprofiler_consolidated is not None}")
+                
+                if civic_consolidated or pharmgkb_consolidated or gprofiler_consolidated:
+                    update_progress("🔬 **Starting Novelty Analysis - Evidence Integration...**")
+                    
+                    try:
+                        from source.novelty_agents import WorkflowRunner as NoveltyWorkflowRunner
+                        novelty_runner = NoveltyWorkflowRunner(debug=False, progress_callback=update_progress)
+                        
+                        # Prepare data for novelty analysis
+                        # Extract the actual analysis content from WorkflowResult objects
+                        civic_analysis_content = {}
+                        if civic_consolidated and hasattr(civic_consolidated, 'final_analysis'):
+                            civic_analysis_content = {
+                                'final_analysis': civic_consolidated.final_analysis,
+                                'total_iterations': civic_consolidated.total_iterations,
+                                'final_status': civic_consolidated.final_status.value if hasattr(civic_consolidated.final_status, 'value') else str(civic_consolidated.final_status)
+                            }
+                            # Also get the gene count from the consolidated data if available
+                            if 'CIVIC_AI_results' in st.session_state:
+                                civic_results_list = st.session_state['CIVIC_AI_results']
+                                if civic_results_list:
+                                    civic_analysis_content['total_genes'] = len(civic_results_list)
+                        
+                        pharmgkb_analysis_content = {}
+                        if pharmgkb_consolidated and hasattr(pharmgkb_consolidated, 'final_analysis'):
+                            pharmgkb_analysis_content = {
+                                'final_analysis': pharmgkb_consolidated.final_analysis,
+                                'total_iterations': pharmgkb_consolidated.total_iterations,
+                                'final_status': pharmgkb_consolidated.final_status.value if hasattr(pharmgkb_consolidated.final_status, 'value') else str(pharmgkb_consolidated.final_status)
+                            }
+                            # Also get the gene count from the consolidated data if available
+                            if 'PHARMGKB_AI_results' in st.session_state:
+                                pharmgkb_results_list = st.session_state['PHARMGKB_AI_results']
+                                if pharmgkb_results_list:
+                                    pharmgkb_analysis_content['total_genes'] = len(pharmgkb_results_list)
+                        
+                        gene_enrichment_analysis_content = {}
+                        if gprofiler_consolidated and hasattr(gprofiler_consolidated, 'final_analysis'):
+                            gene_enrichment_analysis_content = {
+                                'final_analysis': gprofiler_consolidated.final_analysis,
+                                'total_iterations': gprofiler_consolidated.total_iterations,
+                                'final_status': gprofiler_consolidated.final_status.value if hasattr(gprofiler_consolidated.final_status, 'value') else str(gprofiler_consolidated.final_status)
+                            }
+                            # Also get the gene set count from the consolidated data if available
+                            if 'GPROFILER_AI_results' in st.session_state:
+                                gprofiler_results_list = st.session_state['GPROFILER_AI_results']
+                                if gprofiler_results_list:
+                                    gene_enrichment_analysis_content['total_gene_sets'] = len(gprofiler_results_list)
+                        
+                        novelty_app_data = {
+                            'context': output_dict.get('Context', ''),
+                            'question': output_dict.get('Prompt', ''),
+                            'civic_results': civic_analysis_content,
+                            'pharmgkb_results': pharmgkb_analysis_content,
+                            'gene_enrichment_results': gene_enrichment_analysis_content
+                        }
+                        
+                        print(f"DEBUG: Novelty app data keys: {list(novelty_app_data.keys())}")
+                        print(f"DEBUG: Context length: {len(novelty_app_data['context'])}")
+                        print(f"DEBUG: Question length: {len(novelty_app_data['question'])}")
+                        print(f"DEBUG: CIVIC analysis content: {bool(civic_analysis_content)}")
+                        print(f"DEBUG: PharmGKB analysis content: {bool(pharmgkb_analysis_content)}")
+                        print(f"DEBUG: Gene enrichment analysis content: {bool(gene_enrichment_analysis_content)}")
+                        
+                        # Check if we have any actual analysis content
+                        has_analysis_content = bool(civic_analysis_content or pharmgkb_analysis_content or gene_enrichment_analysis_content)
+                        print(f"DEBUG: Has analysis content for novelty: {has_analysis_content}")
+                        
+                        if not has_analysis_content:
+                            print("DEBUG: No analysis content available for novelty analysis")
+                            update_progress("⚠️ **Skipping Novelty Analysis - no analysis content available from other workflows**")
+                            novelty_results = None
+                            novelty_consolidated = None
+                            novelty_execution_time = 0.0
+                        else:
+                            # Measure Novelty Analysis execution time
+                            novelty_start_time = datetime.now()
+                            novelty_results = novelty_runner.run_from_app_data(novelty_app_data)
+                            novelty_end_time = datetime.now()
+                            novelty_execution_time = (novelty_end_time - novelty_start_time).total_seconds()
+                            
+                            novelty_consolidated = novelty_results  # The result itself is the consolidated data
+                            update_progress("✅ **Novelty Analysis completed!**")
+                    except Exception as e:
+                        update_progress(f"⚠️ **Novelty Analysis failed: {str(e)}**")
+                        print(f"DEBUG: Novelty Analysis error: {e}")
+                        import traceback
+                        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+                        novelty_results = None
+                        novelty_consolidated = None
+                        novelty_execution_time = 0.0
+                else:
+                    update_progress("⚠️ **Skipping Novelty Analysis - no evidence from CIVIC, PharmGKB, or Gene Enrichment available**")
+                    print("DEBUG: All consolidated results are None or empty")
+                    novelty_execution_time = 0.0
                 
                 # Save to session state
                 if civic_results:
                     st.session_state['CIVIC_AI_results'] = civic_results
                     st.session_state['CIVIC_AI_consolidated'] = civic_consolidated
+                    st.session_state['CIVIC_execution_time'] = civic_execution_time
                 if pharmgkb_results:
                     st.session_state['PHARMGKB_AI_results'] = pharmgkb_results
                     st.session_state['PHARMGKB_AI_consolidated'] = pharmgkb_consolidated
+                    st.session_state['PHARMGKB_execution_time'] = pharmgkb_execution_time
+                if gprofiler_results:
+                    st.session_state['GPROFILER_AI_results'] = gprofiler_results
+                    st.session_state['GPROFILER_AI_consolidated'] = gprofiler_consolidated
+                    st.session_state['GPROFILER_execution_time'] = gprofiler_execution_time
+                if novelty_results:
+                    st.session_state['NOVELTY_AI_results'] = novelty_results
+                    st.session_state['NOVELTY_AI_consolidated'] = novelty_consolidated
+                    st.session_state['NOVELTY_execution_time'] = novelty_execution_time
                 
                 # Clear progress and show completion
                 progress_container.empty()
                 
-                # Show completion status
+                # Clear progress message history after completion
+                if 'progress_messages' in st.session_state:
+                    del st.session_state['progress_messages']
+                
+                # Show completion status with detailed metrics
                 completed_workflows = []
+                workflow_metrics = []
+                
                 if civic_results:
                     completed_workflows.append("CIVIC biomedical evidence")
+                    if hasattr(civic_consolidated, 'metrics'):
+                        metrics = civic_consolidated.metrics
+                        token_display = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} tokens ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
+                        workflow_metrics.append(f"**CIVIC Analysis:** {civic_consolidated.total_iterations} iteration(s), "
+                                              f"{civic_execution_time:.1f}s, "
+                                              f"{token_display}, "
+                                              f"Status: {civic_consolidated.final_status.value}")
+                    else:
+                        workflow_metrics.append(f"**CIVIC Analysis:** {civic_consolidated.total_iterations if civic_consolidated else 'N/A'} iteration(s), "
+                                              f"{civic_execution_time:.1f}s, "
+                                              f"Status: {civic_consolidated.final_status.value if civic_consolidated else 'N/A'}")
+                
                 if pharmgkb_results:
                     completed_workflows.append("pharmGKB drug interaction")
+                    if hasattr(pharmgkb_consolidated, 'metrics'):
+                        metrics = pharmgkb_consolidated.metrics
+                        token_display = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} tokens ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
+                        workflow_metrics.append(f"**PharmGKB Analysis:** {pharmgkb_consolidated.total_iterations} iteration(s), "
+                                              f"{pharmgkb_execution_time:.1f}s, "
+                                              f"{token_display}, "
+                                              f"Status: {pharmgkb_consolidated.final_status.value}")
+                    else:
+                        workflow_metrics.append(f"**PharmGKB Analysis:** {pharmgkb_consolidated.total_iterations if pharmgkb_consolidated else 'N/A'} iteration(s), "
+                                              f"{pharmgkb_execution_time:.1f}s, "
+                                              f"Status: {pharmgkb_consolidated.final_status.value if pharmgkb_consolidated else 'N/A'}")
+                
+                if gprofiler_results:
+                    completed_workflows.append("Gene Enrichment pathway analysis")
+                    if hasattr(gprofiler_consolidated, 'metrics'):
+                        metrics = gprofiler_consolidated.metrics
+                        token_display = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} tokens ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
+                        workflow_metrics.append(f"**Gene Enrichment Analysis:** {gprofiler_consolidated.total_iterations} iteration(s), "
+                                              f"{gprofiler_execution_time:.1f}s, "
+                                              f"{token_display}, "
+                                              f"Status: {gprofiler_consolidated.final_status.value}")
+                    else:
+                        workflow_metrics.append(f"**Gene Enrichment Analysis:** {gprofiler_consolidated.total_iterations if gprofiler_consolidated else 'N/A'} iteration(s), "
+                                              f"{gprofiler_execution_time:.1f}s, "
+                                              f"Status: {gprofiler_consolidated.final_status.value if gprofiler_consolidated else 'N/A'}")
+                
+                if novelty_results:
+                    completed_workflows.append("Novelty Analysis evidence integration")
+                    if hasattr(novelty_consolidated, 'metrics'):
+                        metrics = novelty_consolidated.metrics
+                        token_display = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} tokens ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
+                        workflow_metrics.append(f"**Novelty Analysis:** {novelty_consolidated.total_iterations} iteration(s), "
+                                              f"{novelty_execution_time:.1f}s, "
+                                              f"{token_display}, "
+                                              f"Status: {novelty_consolidated.final_status.value}")
+                    else:
+                        workflow_metrics.append(f"**Novelty Analysis:** {novelty_consolidated.total_iterations if novelty_consolidated else 'N/A'} iteration(s), "
+                                              f"{novelty_execution_time:.1f}s, "
+                                              f"Status: {novelty_consolidated.final_status.value if novelty_consolidated else 'N/A'}")
                 
                 if completed_workflows:
                     status_container.success(f"✅ AI analysis completed successfully! Workflows: {', '.join(completed_workflows)}")
+                    
+                    # Show detailed metrics
+                    if workflow_metrics:
+                        with status_container:
+                            st.markdown("#### Execution Metrics")
+                            for metric in workflow_metrics:
+                                st.markdown(f"• {metric}")
                 else:
                     status_container.warning("⚠️ No workflows were executed due to missing evidence data.")
                 
@@ -2415,148 +2683,180 @@ if st.session_state.page == "AI Assistant":
                 # Clear progress containers on error
                 progress_container.empty()
                 status_container.empty()
+                
+                # Clear progress message history on error
+                if 'progress_messages' in st.session_state:
+                    del st.session_state['progress_messages']
+                
                 st.error(f"Error running AI analysis: {e}")
                 import traceback
                 st.error(f"Traceback: {traceback.format_exc()}")
 
     # Display consolidated results if they exist in session state
     if ('CIVIC_AI_consolidated' in st.session_state and st.session_state['CIVIC_AI_consolidated']) or \
-       ('PHARMGKB_AI_consolidated' in st.session_state and st.session_state['PHARMGKB_AI_consolidated']):
+       ('PHARMGKB_AI_consolidated' in st.session_state and st.session_state['PHARMGKB_AI_consolidated']) or \
+       ('GPROFILER_AI_consolidated' in st.session_state and st.session_state['GPROFILER_AI_consolidated']) or \
+       ('NOVELTY_AI_consolidated' in st.session_state and st.session_state['NOVELTY_AI_consolidated']):
         st.markdown("---")
         st.markdown("### AI Analysis Results")
         
         # Display CIVIC results if available
         if 'CIVIC_AI_consolidated' in st.session_state and st.session_state['CIVIC_AI_consolidated']:
             civic_consolidated_data = st.session_state['CIVIC_AI_consolidated']
+            civic_execution_time = st.session_state.get('CIVIC_execution_time', 0.0)
             
-            # Show CIVIC metadata
-            civic_metadata = civic_consolidated_data.get('metadata', {})
-            st.info(f"**CIVIC Analysis completed:** {civic_metadata.get('generated_at', 'Unknown')} | **Context:** {civic_metadata.get('context', 'None provided')[:100]}...")
+            # Show CIVIC metadata with enhanced metrics
+            metrics_info = ""
+            if hasattr(civic_consolidated_data, 'metrics'):
+                metrics = civic_consolidated_data.metrics
+                token_breakdown = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
+                metrics_info = f" | **Time:** {civic_execution_time:.1f}s | **Tokens:** {token_breakdown}"
+            else:
+                metrics_info = f" | **Time:** {civic_execution_time:.1f}s"
+            
+            st.info(f"**CIVIC Analysis completed:** {civic_consolidated_data.total_iterations} iteration(s) | **Status:** {civic_consolidated_data.final_status.value}{metrics_info}")
             
             # Expandable detailed CIVIC results
             with st.expander("View Detailed Results - CIVIC Biomedical Evidence Workflow", expanded=False):
-                if civic_consolidated_data.get('gene_analyses'):
-                    # Parse final_analysis to extract sections
-                    def parse_analysis(final_analysis):
-                        """Parse the final_analysis text to extract Relevance Explanation and Summary/Conclusion"""
-                        if not final_analysis:
-                            return "No data available", "No data available"
-                        
-                        relevance_explanation = ""
-                        summary_conclusion = ""
-                        
-                        # Split the analysis by sections
-                        sections = final_analysis.split('##')
-                        
-                        for section in sections:
-                            section = section.strip()
-                            if section.startswith('Relevance Explanation'):
-                                relevance_explanation = section.replace('Relevance Explanation', '').strip()
-                            elif section.startswith('Summary/Conclusion'):
-                                summary_conclusion = section.replace('Summary/Conclusion', '').strip()
-                        
-                        # Clean up the text (remove extra newlines, etc.)
-                        relevance_explanation = relevance_explanation.replace('\n\n', '\n').strip()
-                        summary_conclusion = summary_conclusion.replace('\n\n', '\n').strip()
-                        
-                        # If sections weren't found, try to use the whole text
-                        if not relevance_explanation and not summary_conclusion:
-                            relevance_explanation = final_analysis
-                            summary_conclusion = "Not available"
-                        
-                        return relevance_explanation or "Not available", summary_conclusion or "Not available"
-                    
-                    # Create table data
-                    table_data = []
-                    for gene_name, gene_data in civic_consolidated_data['gene_analyses'].items():
-                        final_analysis = gene_data.get('final_analysis', '')
-                        relevance, summary = parse_analysis(final_analysis)
-                        
-                        table_data.append({
-                            'Gene': gene_name,
-                            'Relevance Explanation': relevance,
-                            'Summary/Conclusion': summary
-                        })
-                    
-                    # Display as DataFrame
-                    if table_data:
-                        results_df = pd.DataFrame(table_data)
-                        st.dataframe(results_df, use_container_width=True, height=None)
-                    else:
-                        st.write("No detailed results available.")
+                if hasattr(civic_consolidated_data, 'final_analysis') and civic_consolidated_data.final_analysis:
+                    # Display the final analysis directly
+                    st.markdown("#### CIVIC Analysis Results")
+                    st.markdown(civic_consolidated_data.final_analysis)
+                else:
+                    st.write("No detailed results available.")
         
         # Display pharmGKB results if available
         if 'PHARMGKB_AI_consolidated' in st.session_state and st.session_state['PHARMGKB_AI_consolidated']:
             pharmgkb_consolidated_data = st.session_state['PHARMGKB_AI_consolidated']
+            pharmgkb_execution_time = st.session_state.get('PHARMGKB_execution_time', 0.0)
             
-            # Show pharmGKB metadata
-            pharmgkb_metadata = pharmgkb_consolidated_data.get('metadata', {})
-            st.info(f"**PharmGKB Analysis completed:** {pharmgkb_metadata.get('generated_at', 'Unknown')} | **Context:** {pharmgkb_metadata.get('context', 'None provided')[:100]}...")
+            # Show pharmGKB metadata with enhanced metrics
+            metrics_info = ""
+            if hasattr(pharmgkb_consolidated_data, 'metrics'):
+                metrics = pharmgkb_consolidated_data.metrics
+                token_breakdown = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
+                metrics_info = f" | **Time:** {pharmgkb_execution_time:.1f}s | **Tokens:** {token_breakdown}"
+            else:
+                metrics_info = f" | **Time:** {pharmgkb_execution_time:.1f}s"
+            
+            st.info(f"**PharmGKB Analysis completed:** {pharmgkb_consolidated_data.total_iterations} iteration(s) | **Status:** {pharmgkb_consolidated_data.final_status.value}{metrics_info}")
             
             # Expandable detailed pharmGKB results
             with st.expander("View Detailed Results - PharmGKB Drug Interaction Workflow", expanded=False):
-                if pharmgkb_consolidated_data.get('gene_analyses'):
-                    # Parse final_analysis to extract sections (reuse same function)
-                    def parse_analysis(final_analysis):
-                        """Parse the final_analysis text to extract Relevance Explanation and Summary/Conclusion"""
-                        if not final_analysis:
-                            return "No data available", "No data available"
-                        
-                        relevance_explanation = ""
-                        summary_conclusion = ""
-                        
-                        # Split the analysis by sections
-                        sections = final_analysis.split('##')
-                        
-                        for section in sections:
-                            section = section.strip()
-                            if section.startswith('Relevance Explanation'):
-                                relevance_explanation = section.replace('Relevance Explanation', '').strip()
-                            elif section.startswith('Summary/Conclusion'):
-                                summary_conclusion = section.replace('Summary/Conclusion', '').strip()
-                        
-                        # Clean up the text (remove extra newlines, etc.)
-                        relevance_explanation = relevance_explanation.replace('\n\n', '\n').strip()
-                        summary_conclusion = summary_conclusion.replace('\n\n', '\n').strip()
-                        
-                        # If sections weren't found, try to use the whole text
-                        if not relevance_explanation and not summary_conclusion:
-                            relevance_explanation = final_analysis
-                            summary_conclusion = "Not available"
-                        
-                        return relevance_explanation or "Not available", summary_conclusion or "Not available"
-                    
-                    # Create table data
-                    table_data = []
-                    for gene_name, gene_data in pharmgkb_consolidated_data['gene_analyses'].items():
-                        final_analysis = gene_data.get('final_analysis', '')
-                        relevance, summary = parse_analysis(final_analysis)
-                        
-                        table_data.append({
-                            'Gene': gene_name,
-                            'Relevance Explanation': relevance,
-                            'Summary/Conclusion': summary
-                        })
-                    
-                    # Display as DataFrame
-                    if table_data:
-                        results_df = pd.DataFrame(table_data)
-                        st.dataframe(results_df, use_container_width=True, height=None)
-                    else:
-                        st.write("No detailed results available.")
+                if hasattr(pharmgkb_consolidated_data, 'final_analysis') and pharmgkb_consolidated_data.final_analysis:
+                    # Display the final analysis directly
+                    st.markdown("#### PharmGKB Analysis Results")
+                    st.markdown(pharmgkb_consolidated_data.final_analysis)
+                else:
+                    st.write("No detailed results available.")
         
-        # Clear results button
-        if st.button("Clear Previous Results", key="clear_ai_results"):
-            if 'CIVIC_AI_consolidated' in st.session_state:
-                del st.session_state['CIVIC_AI_consolidated']
-            if 'CIVIC_AI_results' in st.session_state:
-                del st.session_state['CIVIC_AI_results']
-            if 'PHARMGKB_AI_consolidated' in st.session_state:
-                del st.session_state['PHARMGKB_AI_consolidated']
-            if 'PHARMGKB_AI_results' in st.session_state:
-                del st.session_state['PHARMGKB_AI_results']
-            st.success("Previous AI analysis results cleared!")
-            st.rerun()
+        # Display Gene Enrichment results if available
+        if 'GPROFILER_AI_consolidated' in st.session_state and st.session_state['GPROFILER_AI_consolidated']:
+            gprofiler_consolidated_data = st.session_state['GPROFILER_AI_consolidated']
+            gprofiler_execution_time = st.session_state.get('GPROFILER_execution_time', 0.0)
+            
+            # Show Gene Enrichment metadata with enhanced metrics
+            metrics_info = ""
+            if hasattr(gprofiler_consolidated_data, 'metrics'):
+                metrics = gprofiler_consolidated_data.metrics
+                token_breakdown = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
+                metrics_info = f" | **Time:** {gprofiler_execution_time:.1f}s | **Tokens:** {token_breakdown}"
+            else:
+                metrics_info = f" | **Time:** {gprofiler_execution_time:.1f}s"
+            
+            st.info(f"**Gene Enrichment Analysis completed:** {gprofiler_consolidated_data.total_iterations} iteration(s) | **Status:** {gprofiler_consolidated_data.final_status.value}{metrics_info}")
+            
+            # Expandable detailed Gene Enrichment results
+            with st.expander("View Detailed Results - Gene Enrichment Pathway Analysis Workflow", expanded=False):
+                if hasattr(gprofiler_consolidated_data, 'final_analysis') and gprofiler_consolidated_data.final_analysis:
+                    # Display the final analysis directly
+                    st.markdown("#### Gene Enrichment Analysis Results")
+                    st.markdown(gprofiler_consolidated_data.final_analysis)
+                else:
+                    st.write("No detailed results available.")
+        
+        # Display Novelty Analysis results if available
+        if 'NOVELTY_AI_consolidated' in st.session_state and st.session_state['NOVELTY_AI_consolidated']:
+            novelty_consolidated_data = st.session_state['NOVELTY_AI_consolidated']
+            novelty_execution_time = st.session_state.get('NOVELTY_execution_time', 0.0)
+            
+            # Show Novelty Analysis metadata with enhanced metrics
+            novelty_metadata = novelty_consolidated_data.user_input
+            metrics_info = ""
+            if hasattr(novelty_consolidated_data, 'metrics'):
+                metrics = novelty_consolidated_data.metrics
+                token_breakdown = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
+                metrics_info = f" | **Time:** {novelty_execution_time:.1f}s | **Tokens:** {token_breakdown}"
+            else:
+                metrics_info = f" | **Time:** {novelty_execution_time:.1f}s"
+            
+            st.info(f"**Novelty Analysis completed:** {novelty_consolidated_data.total_iterations} iteration(s) | **Status:** {novelty_consolidated_data.final_status.value}{metrics_info}")
+            
+            # Expandable detailed Novelty Analysis results
+            with st.expander("View Detailed Results - Novelty Analysis Evidence Integration Workflow", expanded=False):
+                if novelty_consolidated_data.unified_report:
+                    # Display the formatted report with proper bullet point rendering
+                    st.markdown("#### Formatted Unified Report")
+                    
+                    # Get the formatted string and ensure proper markdown rendering
+                    formatted_report = novelty_consolidated_data.unified_report.to_formatted_string()
+                    
+                    # Split by sections and render each with proper formatting
+                    sections = formatted_report.split('## ')
+                    for section in sections:
+                        if section.strip():
+                            if not section.startswith('##'):
+                                section = '## ' + section
+                            
+                            # Ensure bullet points are properly formatted for Streamlit
+                            lines = section.split('\n')
+                            formatted_lines = []
+                            for line in lines:
+                                line = line.strip()
+                                if line:
+                                    # Convert bullet points to proper markdown format
+                                    if line.startswith('•'):
+                                        line = line.replace('•', '-', 1)  # Convert • to - for better Streamlit rendering
+                                    elif line.startswith('- ') or line.startswith('* '):
+                                        pass  # Already properly formatted
+                                    elif not line.startswith('##') and not line.startswith('#'):
+                                        # Add bullet point if it's content but not a header
+                                        if any(char.isalnum() for char in line):  # Only if it contains actual content
+                                            line = f"- {line}"
+                                    formatted_lines.append(line)
+                            
+                            formatted_section = '\n'.join(formatted_lines)
+                            st.markdown(formatted_section)
+                else:
+                    st.write("No detailed results available.")
+                        
+                # Show evidence integration summary
+                st.markdown("#### Evidence Integration Summary")
+                
+                # Count completed sections from the original sections list
+                unified_report = novelty_consolidated_data.unified_report
+                original_sections = [
+                    ("Potential Novel Biomarkers", unified_report.potential_novel_biomarkers),
+                    ("Implications", unified_report.implications),
+                    ("Well-Known Interactions", unified_report.well_known_interactions),
+                    ("Conclusions", unified_report.conclusions)
+                ]
+                completed_sections = len([s for s in original_sections if s[1] and s[1].strip()])
+                
+                evidence_summary = f"""
+                **Evidence Sources Integrated:**
+                - CIVIC genes: {novelty_consolidated_data.consolidated_evidence.total_genes_civic}
+                - PharmGKB genes: {novelty_consolidated_data.consolidated_evidence.total_genes_pharmgkb}
+                - Gene sets: {novelty_consolidated_data.consolidated_evidence.total_gene_sets_enrichment}
+                
+                **Workflow Details:**
+                - Total iterations: {novelty_consolidated_data.total_iterations}
+                - Final status: {novelty_consolidated_data.final_status.value}
+                - Report sections completed: {completed_sections} of 4
+                """
+                st.markdown(evidence_summary)
+        
+        
 
     # JSON Download Section - reorganized with all requested downloads
     st.markdown("### Download Options")
@@ -2568,7 +2868,7 @@ if st.session_state.page == "AI Assistant":
     # 1. Input JSON to AI analysis (shared for both workflows)
     payload_json = civic_temp_runner.get_input_payload_json(payload)
     st.download_button(
-        label="📥 Download Input JSON",
+        label="Download Input JSON",
         data=io.BytesIO(payload_json.encode("utf-8")),
         file_name=f"ai_analysis_input_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
         mime="application/json",
@@ -2582,7 +2882,7 @@ if st.session_state.page == "AI Assistant":
         # CIVIC Full results with history
         civic_full_results_json = civic_temp_runner.get_full_results_json(st.session_state['CIVIC_AI_results'])
         st.download_button(
-            label="📋 Download CIVIC Full Results",
+            label="Download CIVIC Full Results",
             data=io.BytesIO(civic_full_results_json.encode("utf-8")),
             file_name=f"civic_analysis_full_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
@@ -2593,7 +2893,7 @@ if st.session_state.page == "AI Assistant":
         if 'CIVIC_AI_consolidated' in st.session_state and st.session_state['CIVIC_AI_consolidated']:
             civic_consolidated_json = civic_temp_runner.get_consolidated_data_json(st.session_state['CIVIC_AI_consolidated'])
             st.download_button(
-                label="📊 Download CIVIC Consolidated Results",
+                label="Download CIVIC Consolidated Results",
                 data=io.BytesIO(civic_consolidated_json.encode("utf-8")),
                 file_name=f"civic_analysis_consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json",
@@ -2603,7 +2903,7 @@ if st.session_state.page == "AI Assistant":
         # CIVIC Full prompts sent to LLMs
         civic_prompts_json = civic_temp_runner.get_prompts_json(st.session_state['CIVIC_AI_results'], payload)
         st.download_button(
-            label="💬 Download CIVIC Full Prompts",
+            label="Download CIVIC Full Prompts",
             data=io.BytesIO(civic_prompts_json.encode("utf-8")),
             file_name=f"civic_analysis_prompts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
@@ -2621,7 +2921,7 @@ if st.session_state.page == "AI Assistant":
         # PharmGKB Full results with history
         pharmgkb_full_results_json = pharmgkb_temp_runner.get_full_results_json(st.session_state['PHARMGKB_AI_results'])
         st.download_button(
-            label="📋 Download PharmGKB Full Results",
+            label="Download PharmGKB Full Results",
             data=io.BytesIO(pharmgkb_full_results_json.encode("utf-8")),
             file_name=f"pharmgkb_analysis_full_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
@@ -2632,7 +2932,7 @@ if st.session_state.page == "AI Assistant":
         if 'PHARMGKB_AI_consolidated' in st.session_state and st.session_state['PHARMGKB_AI_consolidated']:
             pharmgkb_consolidated_json = pharmgkb_temp_runner.get_consolidated_data_json(st.session_state['PHARMGKB_AI_consolidated'])
             st.download_button(
-                label="📊 Download PharmGKB Consolidated Results",
+                label="Download PharmGKB Consolidated Results",
                 data=io.BytesIO(pharmgkb_consolidated_json.encode("utf-8")),
                 file_name=f"pharmgkb_analysis_consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json",
@@ -2642,9 +2942,119 @@ if st.session_state.page == "AI Assistant":
         # PharmGKB Full prompts sent to LLMs
         pharmgkb_prompts_json = pharmgkb_temp_runner.get_prompts_json(st.session_state['PHARMGKB_AI_results'], payload)
         st.download_button(
-            label="💬 Download PharmGKB Full Prompts",
+            label="Download PharmGKB Full Prompts",
             data=io.BytesIO(pharmgkb_prompts_json.encode("utf-8")),
             file_name=f"pharmgkb_analysis_prompts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
             help="Download all prompts sent to LLM agents during the PharmGKB analysis"
         )
+    
+    # Gene Enrichment Workflow Downloads
+    if 'GPROFILER_AI_results' in st.session_state and st.session_state['GPROFILER_AI_results']:
+        st.markdown("#### Gene Enrichment Pathway Analysis Workflow Downloads")
+        
+        # Import GProfiler WorkflowRunner for JSON generation
+        from source.gprofiler_agents.workflow_runner import WorkflowRunner as GProfilerWorkflowRunner
+        gprofiler_temp_runner = GProfilerWorkflowRunner()
+        
+        # Gene Enrichment Full results with history
+        gprofiler_full_results_json = gprofiler_temp_runner.get_full_results_json(st.session_state['GPROFILER_AI_results'])
+        st.download_button(
+            label="Download Gene Enrichment Full Results",
+            data=io.BytesIO(gprofiler_full_results_json.encode("utf-8")),
+            file_name=f"gene_enrichment_analysis_full_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            help="Download complete Gene Enrichment results including evaluation history and expert outputs"
+        )
+        
+        # Gene Enrichment Consolidated data results
+        if 'GPROFILER_AI_consolidated' in st.session_state and st.session_state['GPROFILER_AI_consolidated']:
+            gprofiler_consolidated_json = gprofiler_temp_runner.get_consolidated_data_json(st.session_state['GPROFILER_AI_consolidated'])
+            st.download_button(
+                label="Download Gene Enrichment Consolidated Results",
+                data=io.BytesIO(gprofiler_consolidated_json.encode("utf-8")),
+                file_name=f"gene_enrichment_analysis_consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json",
+                help="Download consolidated Gene Enrichment analysis results summary"
+            )
+        
+        # Gene Enrichment Full prompts sent to LLMs
+        gprofiler_prompts_json = gprofiler_temp_runner.get_prompts_json(st.session_state['GPROFILER_AI_results'], payload)
+        st.download_button(
+            label="Download Gene Enrichment Full Prompts",
+            data=io.BytesIO(gprofiler_prompts_json.encode("utf-8")),
+            file_name=f"gene_enrichment_analysis_prompts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            help="Download all prompts sent to LLM agents during the Gene Enrichment analysis"
+        )
+    
+    # Novelty Analysis Workflow Downloads
+    if 'NOVELTY_AI_results' in st.session_state and st.session_state['NOVELTY_AI_results']:
+        st.markdown("#### Novelty Analysis Evidence Integration Workflow Downloads")
+        
+        # Import Novelty WorkflowRunner for JSON generation
+        from source.novelty_agents import WorkflowRunner as NoveltyWorkflowRunner
+        novelty_temp_runner = NoveltyWorkflowRunner()
+        
+        # Novelty Full results with history
+        novelty_full_results_json = novelty_temp_runner.get_full_results_json(st.session_state['NOVELTY_AI_results'])
+        st.download_button(
+            label="Download Novelty Analysis Full Results",
+            data=io.BytesIO(novelty_full_results_json.encode("utf-8")),
+            file_name=f"novelty_analysis_full_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            help="Download complete Novelty Analysis results including feedback history and unified report"
+        )
+        
+        # Novelty Consolidated data results
+        if 'NOVELTY_AI_consolidated' in st.session_state and st.session_state['NOVELTY_AI_consolidated']:
+            novelty_consolidated_json = novelty_temp_runner.get_consolidated_data_json(st.session_state['NOVELTY_AI_consolidated'])
+            st.download_button(
+                label="Download Novelty Analysis Consolidated Results",
+                data=io.BytesIO(novelty_consolidated_json.encode("utf-8")),
+                file_name=f"novelty_analysis_consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json",
+                help="Download consolidated Novelty Analysis unified report summary"
+            )
+        
+        # Novelty Full prompts sent to LLMs
+        novelty_prompts_json = novelty_temp_runner.get_prompts_json(st.session_state['NOVELTY_AI_results'], payload)
+        st.download_button(
+            label="Download Novelty Analysis Full Prompts",
+            data=io.BytesIO(novelty_prompts_json.encode("utf-8")),
+            file_name=f"novelty_analysis_prompts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            help="Download all prompts sent to LLM agents during the Novelty Analysis"
+        )
+
+        # Clear results button
+        if st.button("Clear Previous Results", key="clear_ai_results"):
+            if 'CIVIC_AI_consolidated' in st.session_state:
+                del st.session_state['CIVIC_AI_consolidated']
+            if 'CIVIC_AI_results' in st.session_state:
+                del st.session_state['CIVIC_AI_results']
+            if 'CIVIC_execution_time' in st.session_state:
+                del st.session_state['CIVIC_execution_time']
+            if 'PHARMGKB_AI_consolidated' in st.session_state:
+                del st.session_state['PHARMGKB_AI_consolidated']
+            if 'PHARMGKB_AI_results' in st.session_state:
+                del st.session_state['PHARMGKB_AI_results']
+            if 'PHARMGKB_execution_time' in st.session_state:
+                del st.session_state['PHARMGKB_execution_time']
+            if 'GPROFILER_AI_consolidated' in st.session_state:
+                del st.session_state['GPROFILER_AI_consolidated']
+            if 'GPROFILER_AI_results' in st.session_state:
+                del st.session_state['GPROFILER_AI_results']
+            if 'GPROFILER_execution_time' in st.session_state:
+                del st.session_state['GPROFILER_execution_time']
+            if 'NOVELTY_AI_consolidated' in st.session_state:
+                del st.session_state['NOVELTY_AI_consolidated']
+            if 'NOVELTY_AI_results' in st.session_state:
+                del st.session_state['NOVELTY_AI_results']
+            if 'NOVELTY_execution_time' in st.session_state:
+                del st.session_state['NOVELTY_execution_time']
+            # Clear progress message history
+            if 'progress_messages' in st.session_state:
+                del st.session_state['progress_messages']
+            st.success("Previous AI analysis results cleared!")
+            st.rerun()

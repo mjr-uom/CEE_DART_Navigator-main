@@ -8,9 +8,21 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from .models import UserInput, WorkflowResult
-from .workflow import create_workflow_engine
-from .prompts import BIOEXPERT_PROMPT, EVALUATOR_PROMPT
+# Handle imports for both module and direct execution
+try:
+    from .models import UserInput, WorkflowResult
+    from .workflow import create_workflow_engine
+    from .prompts import BIOEXPERT_PROMPT, EVALUATOR_PROMPT
+except ImportError:
+    # Fallback for direct execution
+    from models import UserInput, WorkflowResult
+    from workflow import create_workflow_engine
+    from prompts import BIOEXPERT_PROMPT, EVALUATOR_PROMPT
+
+
+class ValidationError(Exception):
+    """Custom exception for validation errors."""
+    pass
 
 
 class WorkflowRunner:
@@ -21,47 +33,68 @@ class WorkflowRunner:
         self.progress_callback = progress_callback
         self.workflow = create_workflow_engine(progress_callback=progress_callback)
     
+    def _validate_input(self, context: str, question: str) -> None:
+        """Validate that required input fields are provided.
+        
+        Args:
+            context: The study context
+            question: The user's question
+            
+        Raises:
+            ValidationError: If required fields are missing or empty
+        """
+        if not context or not context.strip():
+            raise ValidationError("Context is required. Please provide study context before running the analysis.")
+        
+        if not question or not question.strip():
+            raise ValidationError("Question/Prompt is required. Please provide a question before running the analysis.")
+    
     def _extract_gene_name_from_evidence(self, evidence: str, index: int) -> str:
         """Extract gene name from evidence string or use fallback naming."""
         # Try to find gene name in evidence string
         lines = evidence.split('\n')
         for line in lines:
-            if line.startswith("Gene: "):
-                return line.replace("Gene: ", "").strip()
-            elif line.startswith("No clinical evidence available for gene "):
-                return line.replace("No clinical evidence available for gene ", "").strip()
+            if line.startswith("Gene Set: "):
+                return line.replace("Gene Set: ", "").strip()
+            elif line.startswith("No gene enrichment evidence available for "):
+                return line.replace("No gene enrichment evidence available for ", "").strip()
         
         # Fallback to index-based naming
-        return f'Gene_{index}'
+        return f'GeneSet_{index}'
     
     def run_from_app_data(self, output_dict: Dict[str, Any]) -> tuple[List[WorkflowResult], Dict[str, Any]]:
         """Run workflow from app.py output_dict format."""
+        # Validate input before processing
+        context = output_dict.get('Context', '')
+        question = output_dict.get('Prompt', '')
+        self._validate_input(context, question)
+        
         inputs = self._convert_app_data_to_inputs(output_dict)
-        # Process genes sequentially with progress tracking
+        # Process gene sets sequentially with progress tracking
         results = []
-        total_genes = len(inputs)
+        total_sets = len(inputs)
         
         if self.progress_callback:
-            self.progress_callback(f"**CIVIC System** - Starting AI analysis for {total_genes} gene(s)")
+            self.progress_callback(f"**Gene Enrichment System** - Starting AI analysis for {total_sets} gene enrichment set(s)")
         
         for i, inp in enumerate(inputs, 1):
-            gene_name = self._extract_gene_name_from_evidence(inp.evidence, i)
-            # Update progress for current gene
+            set_name = self._extract_gene_name_from_evidence(inp.evidence, i)
+            # Update progress for current gene set
             if self.progress_callback:
-                self.progress_callback(f"**CIVIC System** - Processing gene {i}/{total_genes}: {gene_name}")
+                self.progress_callback(f"**Gene Enrichment System** - Processing gene set {i}/{total_sets}: {set_name}")
             
             result = self.workflow.run_workflow(inp)
             results.append(result)
             
-            # Update progress after gene completion
+            # Update progress after gene set completion
             if self.progress_callback:
                 status_emoji = "✅" if result.final_status.value == "APPROVED" else "⚠️"
-                self.progress_callback(f"**CIVIC System** - {status_emoji} Gene {i}/{total_genes} ({gene_name}) completed - {result.total_iterations} iteration(s)")
+                self.progress_callback(f"**Gene Enrichment System** - {status_emoji} Gene set {i}/{total_sets} ({set_name}) completed - {result.total_iterations} iteration(s)")
         
         # Final completion message
         if self.progress_callback:
             approved_count = sum(1 for r in results if r.final_status.value == "APPROVED")
-            self.progress_callback(f"**CIVIC System** - 🎉 All genes completed! {approved_count}/{total_genes} analyses approved")
+            self.progress_callback(f"**Gene Enrichment System** - 🎉 All gene sets completed! {approved_count}/{total_sets} analyses approved")
         
         # Generate consolidated data for session state
         consolidated_data = self._generate_consolidated_data(results)
@@ -75,190 +108,195 @@ class WorkflowRunner:
         """Run workflow from JSON file (original CLI functionality)."""
         inputs = self._load_input_from_file(file_path)
         
-        # Process genes sequentially
+        # Validate inputs after loading
+        if inputs:
+            for inp in inputs:
+                self._validate_input(inp.context, inp.question)
+        
+        # Process gene sets sequentially
         results = []
-        total_genes = len(inputs)
+        total_sets = len(inputs)
         
         for i, inp in enumerate(inputs, 1):
-            gene_name = self._extract_gene_name_from_evidence(inp.evidence, i)
+            set_name = self._extract_gene_name_from_evidence(inp.evidence, i)
             
-            # Update progress for current gene (if callback available)
+            # Update progress for current gene set (if callback available)
             if self.progress_callback:
-                self.progress_callback(f"**Processing gene {i}/{total_genes}: {gene_name}**")
+                self.progress_callback(f"**Processing gene set {i}/{total_sets}: {set_name}**")
             
             result = self.workflow.run_workflow(inp)
             results.append(result)
             
-            # Update progress after gene completion (if callback available)
+            # Update progress after gene set completion (if callback available)
             if self.progress_callback:
                 status_emoji = "✅" if result.final_status.value == "APPROVED" else "⚠️"
-                self.progress_callback(f"{status_emoji} **Gene {i}/{total_genes} ({gene_name}) completed** - {result.total_iterations} iteration(s)")
+                self.progress_callback(f"{status_emoji} **Gene set {i}/{total_sets} ({set_name}) completed** - {result.total_iterations} iteration(s)")
         
         # Final completion message (if callback available)
         if self.progress_callback:
             approved_count = sum(1 for r in results if r.final_status.value == "APPROVED")
-            self.progress_callback(f"🎉 **All genes completed!** {approved_count}/{total_genes} analyses approved")
+            self.progress_callback(f"🎉 **All gene sets completed!** {approved_count}/{total_sets} analyses approved")
         
         return results
     
-    def _process_civic_evidence_data(self, civic_evidence: dict) -> List[tuple[str, str]]:
-        """Process CIVIC Evidence data into gene-evidence pairs.
+    def _process_enrichment_data(self, gene_enrichment: dict, community_enrichment: dict) -> str:
+        """Process Gene Enrichment and Community Enrichment data into a combined evidence string.
         
         Args:
-            civic_evidence: Dictionary of CIVIC evidence data (gene -> gene_data dict)
+            gene_enrichment: Dictionary of gene enrichment pathways
+            community_enrichment: Dictionary of community enrichment data (community_id -> pathways)
             
         Returns:
-            List of tuples containing (gene_name, combined_evidence_string)
+            Combined evidence string with all pathways formatted
         """
-        gene_evidence_pairs = []
+        evidence_parts = []
         
-        for gene, gene_data in civic_evidence.items():
-            print(f"DEBUG: Processing gene: {gene}")
-            print(f"DEBUG: gene_data type: {type(gene_data)}")
-            print(f"DEBUG: gene_data content: {gene_data}")
-            
-            if not isinstance(gene_data, dict):
-                print(f"DEBUG: Skipping {gene} - not a dict")
-                continue
-                
-            evidence_parts = []
-            
-            # Add gene name as first part
-            evidence_parts.append(f"Gene: {gene}")
-            print(f"DEBUG: Added gene name")
-            
-            # Add Description and Summary
-            description = gene_data.get('Description')
-            summary = gene_data.get('Summary')
-            
-            print(f"DEBUG: Description: {description}")
-            print(f"DEBUG: Summary: {summary}")
-            
-            if description and description.strip():
-                evidence_parts.append(f"Gene Description: {description}")
-            
-            if summary and summary.strip():
-                evidence_parts.append(f"Gene Summary: {summary}")
-            
-            # Add molecular profiles
-            molecular_profiles = gene_data.get('Molecular_profiles', [])
-            print(f"DEBUG: Molecular_profiles: {molecular_profiles}")
-            if molecular_profiles:
-                for i, profile in enumerate(molecular_profiles):
-                    if profile and profile.strip():
-                        evidence_parts.append(f"Molecular Profile {i+1}: {profile}")
-            
-            # Add clinical evidence
-            evidence_list = gene_data.get('Evidence', [])
-            print(f"DEBUG: Evidence list: {evidence_list}")
-            if evidence_list:
-                for i, evidence_item in enumerate(evidence_list):
-                    if isinstance(evidence_item, dict):
-                        evidence_str = self._format_evidence_item(evidence_item, i+1)
-                        evidence_parts.append(evidence_str)
-                    else:
-                        evidence_parts.append(str(evidence_item))
-            
-            # Combine all evidence parts into a single string
-            combined_evidence = "\n\n".join(evidence_parts)
-            print(f"DEBUG: Combined evidence length: {len(combined_evidence)}")
-            print(f"DEBUG: Combined evidence preview: {combined_evidence[:200]}...")
-            
-            gene_evidence_pairs.append((gene, combined_evidence))
+        # Add header
+        evidence_parts.append("Gene Set: Combined Gene Enrichment and Community Enrichment Analysis")
+        evidence_parts.append("")  # Empty line for separation
         
-        return gene_evidence_pairs
+        # Process Gene Enrichment data
+        if gene_enrichment:
+            evidence_parts.append("=== GENE ENRICHMENT PATHWAYS ===")
+            evidence_parts.append("")
+            
+            for pathway_name, pathway_data in gene_enrichment.items():
+                if isinstance(pathway_data, dict):
+                    evidence_str = self._format_gene_enrichment_item(pathway_name, pathway_data)
+                    evidence_parts.append(evidence_str)
+                    print(f"DEBUG: Added gene enrichment entry for: {pathway_name}")
+                else:
+                    evidence_parts.append(f"{pathway_name}: {str(pathway_data)}")
+        
+        # Process Community Enrichment data
+        if community_enrichment:
+            evidence_parts.append("")
+            evidence_parts.append("=== COMMUNITY ENRICHMENT PATHWAYS ===")
+            evidence_parts.append("")
+            
+            # Iterate through each community (ignore the community ID, just process the pathways)
+            for community_id, community_data in community_enrichment.items():
+                if isinstance(community_data, dict):
+                    print(f"DEBUG: Processing community {community_id} with {len(community_data)} pathways")
+                    
+                    for pathway_name, pathway_data in community_data.items():
+                        if isinstance(pathway_data, dict):
+                            evidence_str = self._format_gene_enrichment_item(pathway_name, pathway_data)
+                            evidence_parts.append(evidence_str)
+                            print(f"DEBUG: Added community enrichment entry for: {pathway_name} (from community {community_id})")
+                        else:
+                            evidence_parts.append(f"{pathway_name}: {str(pathway_data)}")
+        
+        # Combine all evidence parts into a single string
+        combined_evidence = "\n\n".join(evidence_parts)
+        print(f"DEBUG: Combined evidence length: {len(combined_evidence)}")
+        print(f"DEBUG: Combined evidence preview: {combined_evidence[:300]}...")
+        
+        return combined_evidence
 
     def _convert_app_data_to_inputs(self, output_dict: Dict[str, Any]) -> List[UserInput]:
-        """Convert app.py output_dict to UserInput objects."""
+        """Convert app.py output_dict to UserInput objects for gene enrichment and community enrichment evidence."""
         context = output_dict.get('Context', '')
         question = output_dict.get('Prompt', '')  # Note: 'Prompt' in app, 'Question' in main
-        civic_evidence = output_dict.get('CIVIC Evidence', {})
+        gene_enrichment = output_dict.get('Gene Enrichment', {})
+        community_enrichment = output_dict.get('Community Enrichment', {})
         
-        print("DEBUG: civic_evidence keys:", list(civic_evidence.keys()) if civic_evidence else "No CIVIC Evidence")
-        print("DEBUG: civic_evidence type:", type(civic_evidence))
-        print("DEBUG: civic_evidence content:", civic_evidence)
-        
-        # You can also include other data types if needed
-        gene_enrichment = output_dict.get('Gene Enrichment')
-        community_enrichment = output_dict.get('Community Enrichment') 
-        pharmgkb_analysis = output_dict.get('pharmGKB Analysis')
+        print("DEBUG: gene_enrichment keys:", list(gene_enrichment.keys()) if gene_enrichment else "No Gene Enrichment")
+        print("DEBUG: gene_enrichment type:", type(gene_enrichment))
+        print("DEBUG: community_enrichment keys:", list(community_enrichment.keys()) if community_enrichment else "No Community Enrichment")
+        print("DEBUG: community_enrichment type:", type(community_enrichment))
         
         inputs: List[UserInput] = []
         
-        # Process CIVIC evidence data using the common method
-        gene_evidence_pairs = self._process_civic_evidence_data(civic_evidence)
+        # Process enrichment data using the common method
+        combined_evidence = self._process_enrichment_data(gene_enrichment, community_enrichment)
         
-        for gene, combined_evidence in gene_evidence_pairs:
-            evidence_parts = combined_evidence.split('\n\n')
+        # Create UserInput if we have any evidence (more than just header and empty line)
+        evidence_parts = combined_evidence.split('\n\n')
+        if len(evidence_parts) > 2:  # More than just the header
+            print("DEBUG: Creating UserInput with combined gene and community enrichment evidence")
+            print(f"DEBUG: Final enrichment evidence string length: {len(combined_evidence)}")
+            print(f"DEBUG: Final enrichment evidence string preview: {combined_evidence[:300]}...")
+            inputs.append(UserInput(
+                context=context,
+                question=question,
+                evidence=combined_evidence
+            ))
+        else:
+            print("DEBUG: Creating UserInput with no enrichment evidence message")
+            no_evidence_text = "Gene Set: Combined Gene Enrichment and Community Enrichment Analysis\n\nNo gene enrichment or community enrichment evidence available"
+            print(f"DEBUG: No enrichment evidence text: {no_evidence_text}")
+            inputs.append(UserInput(
+                context=context,
+                question=question,
+                evidence=no_evidence_text
+            ))
+        
+        print(f"DEBUG: Total inputs created: {len(inputs)}")
+        return inputs
+    
+    def _format_gene_enrichment_item(self, pathway_name: str, pathway_data: dict) -> str:
+        """Format gene enrichment dictionary into the specified string format.
+        
+        Example input:
+        "NADH dehydrogenase (ubiquinone) activity": {
+            "description": "Catalysis of the reaction: NADH + ubiquinone + 5 H+(in) = NAD+ + ubiquinol + 4 H+(out). [RHEA:29091]",
+            "intersections": "MT-ND2, MT-ND3, MT-ND5, MT-ND4L, MT-ND4, MT-ND1",
+            "native": "GO:0008137",
+            "source": "GO:MF"
+        }
+        
+        Example output:
+        "NADH dehydrogenase (ubiquinone) activity; description: Catalysis of the reaction: NADH + ubiquinone + 5 H+(in) = NAD+ + ubiquinol + 4 H+(out). [RHEA:29091];  intersections: MT-ND2, MT-ND3, MT-ND5, MT-ND4L, MT-ND4, MT-ND1;  [GO:0008137]"
+        """
+        description = pathway_data.get('description', 'No description available')
+        intersections = pathway_data.get('intersections', 'No genes listed')
+        native_id = pathway_data.get('native', '')
+        source = pathway_data.get('source', '')
+        
+        # Format according to the specified pattern
+        formatted_str = f"{pathway_name}; description: {description}; Genes intersections: {intersections}"
+        
+        if native_id:
+            formatted_str += f"; [{native_id}]"
+        
+        return formatted_str
+    
+    def _load_input_from_file(self, file_path: str) -> List[UserInput]:
+        """Load sample_input.json with 'Context', 'Question', 'Gene Enrichment', and 'Community Enrichment' mapping."""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            context = data.get('Context', '')
+            question = data.get('Question', '')
+            gene_enrichment = data.get('Gene Enrichment', {})  # dict: pathway_name -> pathway_data dict
+            community_enrichment = data.get('Community Enrichment', {})  # dict: community_id -> {pathway_name -> pathway_data}
             
-            if len(evidence_parts) > 1:  # More than just the gene name
-                print("DEBUG: Creating UserInput with evidence")
-                print(f"DEBUG: Final evidence string length: {len(combined_evidence)}")
-                print(f"DEBUG: Final evidence string preview: {combined_evidence[:300]}...")
+            inputs: List[UserInput] = []
+            
+            # Process enrichment data using the common method
+            combined_evidence = self._process_enrichment_data(gene_enrichment, community_enrichment)
+            
+            # Create UserInput if we have any evidence (more than just header and empty line)
+            evidence_parts = combined_evidence.split('\n\n')
+            if len(evidence_parts) > 2:  # More than just the header
                 inputs.append(UserInput(
                     context=context,
                     question=question,
                     evidence=combined_evidence
                 ))
             else:
-                print("DEBUG: Creating UserInput with no evidence message")
-                no_evidence_text = f"Gene: {gene}\n\nNo clinical evidence available for gene {gene}"
-                print(f"DEBUG: No evidence text: {no_evidence_text}")
+                no_evidence_text = "Gene Set: Combined Gene Enrichment and Community Enrichment Analysis\n\nNo gene enrichment or community enrichment evidence available"
                 inputs.append(UserInput(
                     context=context,
                     question=question,
                     evidence=no_evidence_text
                 ))
-        
-        print(f"DEBUG: Total inputs created: {len(inputs)}")
-        return inputs
-    
-    def _format_evidence_item(self, evidence_item: dict, index: int) -> str:
-        """Format evidence dictionary into readable string."""
-        statement = evidence_item.get('statement', 'N/A')
-        evidence_name = evidence_item.get('evidence_name', 'N/A')
-        
-        return f"Statement: {statement} [{evidence_name}]"
-    
-    def _load_input_from_file(self, file_path: str) -> List[UserInput]:
-        """Load sample_input.json with 'Context', 'Question', and 'CIVIC Evidence' mapping."""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            context = data.get('Context', '')
-            question = data.get('Question', '')
-            civic = data.get('CIVIC Evidence', {})  # dict: gene -> evidence list
             
-            inputs: List[UserInput] = []
-            
-            # Process CIVIC evidence data using the common method
-            gene_evidence_pairs = self._process_civic_evidence_data(civic)
-            
-            for gene, combined_evidence in gene_evidence_pairs:
-                evidence_parts = combined_evidence.split('\n\n')
-                
-                # Only create UserInput if there's at least some evidence
-                if len(evidence_parts) > 1:  # More than just the gene name
-                    inputs.append(UserInput(
-                        context=context,
-                        question=question,
-                        evidence=combined_evidence
-                    ))
-                else:
-                    # If no evidence, still create input but with a note
-                    no_evidence_text = f"Gene: {gene}\n\nNo clinical evidence available for gene {gene}"
-                    inputs.append(UserInput(
-                        context=context,
-                        question=question,
-                        evidence=no_evidence_text
-                    ))
             return inputs
-        except FileNotFoundError:
-            raise Exception(f"Input file not found: {file_path}")
-        except json.JSONDecodeError as e:
-            raise Exception(f"Invalid JSON in input file: {e}")
         except Exception as e:
-            raise Exception(f"Error loading input file: {e}")
+            print(f"Error loading input file: {e}")
+            return []
     
     def save_results_to_files(self, results: List[WorkflowResult], 
                             output_path: Optional[str] = None,
@@ -268,7 +306,7 @@ class WorkflowRunner:
             for i, result in enumerate(results, 1):
                 # append gene name if available
                 gene_name = self._extract_gene_name_from_evidence(result.user_input.evidence, i)
-                suffix = gene_name if gene_name != f'Gene_{i}' else None
+                suffix = gene_name if gene_name != f'GeneSet_{i}' else None
                 out_path = Path(output_path)
                 if suffix:
                     out_path = out_path.with_name(f"{out_path.stem}_{suffix}{out_path.suffix}")
@@ -278,7 +316,7 @@ class WorkflowRunner:
         if consolidated_path:
             self._save_consolidated_final_analysis(results, consolidated_path)
         elif len(results) > 1:
-            # Auto-generate consolidated file if multiple genes processed
+            # Auto-generate consolidated file if multiple gene sets processed
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             consolidated_path = f"consolidated_final_analysis_{timestamp}.json"
             self._save_consolidated_final_analysis(results, consolidated_path)
@@ -290,18 +328,18 @@ class WorkflowRunner:
             consolidated_data = {
                 "metadata": {
                     "generated_at": datetime.now().isoformat(),
-                    "total_genes_analyzed": len(results),
+                    "total_gene_sets_analyzed": len(results),
                     "context": results[0].user_input.context if results else "",
                     "question": results[0].user_input.question if results else ""
                 },
-                "gene_analyses": {}
+                "gene_set_analyses": {}
             }
             
-            # Add each gene's final analysis
+            # Add each gene set's final analysis
             for result in results:
                 gene_name = self._extract_gene_name_from_evidence(result.user_input.evidence, results.index(result) + 1)
                 
-                consolidated_data["gene_analyses"][gene_name] = {
+                consolidated_data["gene_set_analyses"][gene_name] = {
                     "final_analysis": result.final_analysis,
                     "final_status": result.final_status.value,
                     "total_iterations": result.total_iterations,
@@ -313,7 +351,7 @@ class WorkflowRunner:
                 json.dump(consolidated_data, f, indent=2, ensure_ascii=False)
             
             print(f"Consolidated final analysis saved to {file_path}")
-            print(f"Analyzed {len(results)} genes total")
+            print(f"Analyzed {len(results)} gene sets total")
             
         except Exception as e:
             print(f"❌ Failed to save consolidated analysis: {e}")
@@ -351,24 +389,24 @@ class WorkflowRunner:
         consolidated_data = {
             "metadata": {
                 "generated_at": datetime.now().isoformat(),
-                "total_genes_analyzed": len(results),
+                "total_gene_sets_analyzed": len(results),
                 "context": results[0].user_input.context if results else "",
                 "question": results[0].user_input.question if results else ""
             },
-            "gene_analyses": {},
+            "gene_set_analyses": {},
             "summary_stats": {
-                "total_genes": len(results),
+                "total_gene_sets": len(results),
                 "approved_analyses": sum(1 for r in results if r.final_status.value == "APPROVED"),
                 "average_iterations": sum(r.total_iterations for r in results) / len(results) if results else 0,
-                "genes_with_evidence": sum(1 for r in results if r.user_input.evidence and len(r.user_input.evidence.strip()) > 0)  # Non-empty evidence
+                "gene_sets_with_evidence": sum(1 for r in results if r.user_input.evidence and len(r.user_input.evidence.strip()) > 0)  # Non-empty evidence
             }
         }
         
-        # Add each gene's final analysis
+        # Add each gene set's final analysis
         for result in results:
             gene_name = self._extract_gene_name_from_evidence(result.user_input.evidence, results.index(result) + 1)
             
-            consolidated_data["gene_analyses"][gene_name] = {
+            consolidated_data["gene_set_analyses"][gene_name] = {
                 "final_analysis": result.final_analysis,
                 "final_status": result.final_status.value,
                 "total_iterations": result.total_iterations,
@@ -434,7 +472,7 @@ class WorkflowRunner:
         prompts_data = {
             "metadata": {
                 "generated_at": datetime.now().isoformat(),
-                "total_genes": len(results),
+                "total_gene_sets": len(results),
                 "description": "Full prompts sent to LLM agents during AI analysis",
                 "note": "Each agent call includes both system prompt and user message. Evidence text is included in all prompts."
             },
@@ -443,7 +481,7 @@ class WorkflowRunner:
                 "bioexpert": BIOEXPERT_PROMPT,
                 "evaluator": EVALUATOR_PROMPT
             },
-            "gene_prompts": {}
+            "gene_set_prompts": {}
         }
         
         for result in results:
@@ -452,8 +490,8 @@ class WorkflowRunner:
             evidence_text = result.user_input.evidence if result.user_input.evidence else "No evidence provided."
             
             gene_prompts = {
-                "gene_info": {
-                    "gene_name": gene_name,
+                "gene_set_info": {
+                    "gene_set_name": gene_name,
                     "context": result.user_input.context,
                     "question": result.user_input.question,
                     "evidence_length": len(result.user_input.evidence),
@@ -465,14 +503,14 @@ class WorkflowRunner:
                 "evaluator_prompts": []
             }
             
-            # First iteration BioExpert prompt
+            # First iteration Gene Enrichment Expert prompt
             first_bioexpert_prompt = f"""
 Context: {result.user_input.context}
 Question: {result.user_input.question}
 Evidence:
 {evidence_text}
 
-As the BioExpert Agent, analyze the evidence and answer the question in a structured format with relevance explanation and summary/conclusion. Cite evidence sources explicitly.
+As the Gene Enrichment Expert Agent, analyze the pathway and biological process evidence and answer the question in a structured format with relevance explanation and summary/conclusion. Cite evidence sources explicitly using database IDs.
 """
             gene_prompts["bioexpert_prompts"].append({
                 "iteration": 1,
@@ -521,7 +559,7 @@ Please provide an improved, structured analysis addressing each point of feedbac
             for i, bio_output in enumerate(result.bioexpert_history, 1):
                 summary_block = "\n".join(f"- {pt}" for pt in bio_output.summary_conclusion)
                 evaluator_prompt = f"""
-Please evaluate the following biomedical evidence analysis:
+Please evaluate the following gene enrichment pathway and biological process analysis:
 
 Original Context: {result.user_input.context}
 Original Question: {result.user_input.question}
@@ -529,7 +567,7 @@ Original Question: {result.user_input.question}
 Evidence Provided:
 {evidence_text}
 
-BioExpert Analysis (Iteration {bio_output.iteration}):
+Gene Enrichment Expert Analysis (Iteration {bio_output.iteration}):
 Relevance Explanation:
 {bio_output.relevance_explanation}
 
@@ -539,13 +577,13 @@ Summary/Conclusion:
 Respond exactly with:
 - "APPROVED" if the analysis meets quality standards
 - Or "NOT APPROVED" followed by specific, actionable feedback
-Focus on scientific accuracy, clarity, citation, and completeness.
+Focus on biological accuracy, clarity, citation of database IDs, and completeness.
 """
                 gene_prompts["evaluator_prompts"].append({
                     "iteration": i,
                     "user_message": evaluator_prompt
                 })
             
-            prompts_data["gene_prompts"][gene_name] = gene_prompts
+            prompts_data["gene_set_prompts"][gene_name] = gene_prompts
         
         return json.dumps(prompts_data, indent=2, ensure_ascii=False, default=str) 

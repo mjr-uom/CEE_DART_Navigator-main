@@ -1,4 +1,6 @@
 {
+	"Context": "The aim here is to identify differences between responders (pCR) and non-responders (RD) in the two different treatment arms (T-DM1, DHP). The Breast cancer team in the group suggest that non-responding patients have activation of alternative signaling pathways and responding patients have increased anti-tumor immune activity during HER2-targeted treatment.",
+	"Question": "Do responders show upregulation of immune-related genes or signatures indicative of anti-tumor immune activity (e.g. interferon signaling, T cell activation)?",
 	"Gene Enrichment": {
 		"NADH dehydrogenase (ubiquinone) activity": {
 			"description": "Catalysis of the reaction: NADH + ubiquinone + 5 H+(in) = NAD+ + ubiquinol + 4 H+(out). [RHEA:29091]",

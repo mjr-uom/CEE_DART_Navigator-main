@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 from .config import Config
-from .models import UserInput, BioExpertOutput, EvaluatorOutput, EvaluationStatus, WorkflowResult
+from .models import UserInput, BioExpertOutput, EvaluatorOutput, EvaluationStatus, WorkflowResult, WorkflowMetrics
 from .agents import OrchestratorAgent, BioExpertAgent, EvaluatorAgent
 
 class WorkflowEngine:
@@ -61,7 +61,7 @@ class WorkflowEngine:
                     break
         else:
             gene = None
-        print("run_workflow user_input:\n", user_input)
+        #print("run_workflow user_input:\n", user_input)
 
         title = f"Starting Biomedical Evidence Interpretation Workflow"
         if gene:
@@ -74,6 +74,8 @@ class WorkflowEngine:
         bioexpert_history: List[BioExpertOutput] = []
         current_bioexpert_output: Optional[BioExpertOutput] = None
         iteration = 1
+        workflow_metrics = WorkflowMetrics()
+        workflow_start_time = datetime.now()
         
         # Orchestrator starts the workflow
         orchestrator_status = self.orchestrator.coordinate_workflow(user_input)
@@ -85,9 +87,9 @@ class WorkflowEngine:
             
             # Update progress for current iteration
             if gene:
-                self._update_progress(f"Gene **{gene}** - Iteration **{iteration}**: BioExpert analyzing evidence...")
+                self._update_progress(f"**CIVIC System** - Gene **{gene}** - Iteration **{iteration}**: CIVIC BioExpert analyzing evidence...")
             else:
-                self._update_progress(f"Iteration **{iteration}**: BioExpert analyzing evidence...")
+                self._update_progress(f"**CIVIC System** - Iteration **{iteration}**: CIVIC BioExpert analyzing evidence...")
             
             # BioExpert Analysis Phase
             with Progress(
@@ -96,7 +98,10 @@ class WorkflowEngine:
                 console=self.console,
                 transient=True
             ) as progress:
-                task = progress.add_task("BioExpert analyzing evidence...", total=None)
+                task = progress.add_task("CIVIC BioExpert analyzing evidence...", total=None)
+                
+                # Start tracking BioExpert execution
+                bioexpert_execution = self.bioexpert.start_execution()
                 
                 if iteration == 1:
                     # First analysis
@@ -113,14 +118,18 @@ class WorkflowEngine:
                         iteration=iteration
                     )
                 
-                progress.update(task, description="BioExpert analysis complete")
+                # End tracking BioExpert execution
+                bioexpert_execution = self.bioexpert.end_execution()
+                workflow_metrics.add_agent_execution(bioexpert_execution)
+                
+                progress.update(task, description="CIVIC BioExpert analysis complete")
                 time.sleep(0.5)  # Brief pause for visual effect
             
             # Update progress for evaluation phase
             if gene:
-                self._update_progress(f"Gene **{gene}** - Iteration **{iteration}**: BioExpert analysis complete, evaluating...")
+                self._update_progress(f"**CIVIC System** - Gene **{gene}** - Iteration **{iteration}**: CIVIC BioExpert analysis complete, evaluating...")
             else:
-                self._update_progress(f"Iteration **{iteration}**: BioExpert analysis complete, evaluating...")
+                self._update_progress(f"**CIVIC System** - Iteration **{iteration}**: CIVIC BioExpert analysis complete, evaluating...")
             
             # Display BioExpert output
             self._display_bioexpert_output(current_bioexpert_output, iteration)
@@ -129,31 +138,39 @@ class WorkflowEngine:
             bioexpert_history.append(current_bioexpert_output)
             
             # Evaluation phase
+            evaluator_execution = self.evaluator.start_execution()
             evaluation = self.evaluator.evaluate(user_input, current_bioexpert_output)
+            evaluator_execution = self.evaluator.end_execution()
+            workflow_metrics.add_agent_execution(evaluator_execution)
+            
             evaluation_history.append(evaluation)
             self._display_evaluation_output(evaluation, iteration)
             
-            # Check approval
+            # Check approval and update progress with status
             if evaluation.status == EvaluationStatus.APPROVED:
                 if gene:
-                    self._update_progress(f"Gene **{gene}** - Iteration **{iteration}**: Analysis APPROVED!")
+                    self._update_progress(f"**CIVIC System** - Gene **{gene}** - Iteration **{iteration}**: Analysis APPROVED by Evaluator!")
                 else:
-                    self._update_progress(f"Iteration **{iteration}**: Analysis APPROVED!")
+                    self._update_progress(f"**CIVIC System** - Iteration **{iteration}**: Analysis APPROVED by Evaluator!")
                 break
             else:
                 if gene:
-                    self._update_progress(f"Gene **{gene}** - Iteration **{iteration}**: Analysis needs refinement, preparing iteration {iteration + 1}...")
+                    self._update_progress(f"**CIVIC System** - Gene **{gene}** - Iteration **{iteration}**: Analysis NOT APPROVED by Evaluator, preparing iteration {iteration + 1}...")
                 else:
-                    self._update_progress(f"Iteration **{iteration}**: Analysis needs refinement, preparing iteration {iteration + 1}...")
+                    self._update_progress(f"**CIVIC System** - Iteration **{iteration}**: Analysis NOT APPROVED by Evaluator, preparing iteration {iteration + 1}...")
             
             # Prepare next iteration
             iteration += 1
         
         # Final completion message
         if gene:
-            self._update_progress(f"Gene **{gene}** analysis completed after **{iteration}** iteration(s)")
+            self._update_progress(f"**CIVIC System** - Gene **{gene}** analysis completed after **{iteration}** iteration(s)")
         else:
-            self._update_progress(f"Analysis completed after **{iteration}** iteration(s)")
+            self._update_progress(f"**CIVIC System** - Analysis completed after **{iteration}** iteration(s)")
+        
+        # Calculate total workflow time
+        workflow_end_time = datetime.now()
+        workflow_metrics.total_execution_time_seconds = (workflow_end_time - workflow_start_time).total_seconds()
         
         # Create final result
         merged_analysis = self._merge_bioexpert_output(current_bioexpert_output)
@@ -163,7 +180,8 @@ class WorkflowEngine:
             evaluation_history=evaluation_history,
             bioexpert_history=bioexpert_history,
             final_status=evaluation_history[-1].status,
-            user_input=user_input
+            user_input=user_input,
+            metrics=workflow_metrics
         )
         
         self._display_final_summary(result)

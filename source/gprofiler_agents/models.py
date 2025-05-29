@@ -6,10 +6,10 @@ from source.utils.metrics import TokenUsage, AgentExecution, WorkflowMetrics
 from source.utils.models import EvaluationStatus
 
 class UserInput(BaseModel):
-    """User input for the biomedical evidence interpretation workflow."""
+    """User input for the gene enrichment pathway and biological process interpretation workflow."""
     context: str  # Study context, background information
     question: str  # User's specific question
-    evidence: str = ""  # Combined biomedical evidence string for the gene
+    evidence: str = ""  # Combined gene enrichment evidence string containing pathways and biological processes
     
     class Config:
         # Allow loading from JSON with field names

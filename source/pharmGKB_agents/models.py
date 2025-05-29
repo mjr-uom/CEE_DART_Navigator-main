@@ -1,10 +1,9 @@
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 from enum import Enum
-
-class EvaluationStatus(Enum):
-    APPROVED = "APPROVED"
-    NOT_APPROVED = "NOT_APPROVED"
+from datetime import datetime
+from source.utils.metrics import TokenUsage, AgentExecution, WorkflowMetrics
+from source.utils.models import EvaluationStatus
 
 class UserInput(BaseModel):
     """User input for the biomedical evidence interpretation workflow."""
@@ -46,3 +45,4 @@ class WorkflowResult(BaseModel):
     )
     final_status: EvaluationStatus
     user_input: UserInput
+    metrics: WorkflowMetrics = Field(default_factory=WorkflowMetrics)

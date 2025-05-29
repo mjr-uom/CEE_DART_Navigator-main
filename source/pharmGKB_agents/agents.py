@@ -1,8 +1,9 @@
 from typing import List, Dict, Any, Optional
 from openai import OpenAI
 import json
+from datetime import datetime
 from .config import Config
-from .models import UserInput, BioExpertOutput, EvaluatorOutput, EvaluationStatus
+from .models import UserInput, BioExpertOutput, EvaluatorOutput, EvaluationStatus, TokenUsage, AgentExecution
 from .prompts import ORCHESTRATOR_PROMPT, BIOEXPERT_PROMPT, EVALUATOR_PROMPT
 import re
 
@@ -13,9 +14,24 @@ class BaseAgent:
         self.name = name
         self.system_prompt = system_prompt
         self.client = OpenAI(api_key=Config.OPENAI_API_KEY)
+        self.current_execution: Optional[AgentExecution] = None
+    
+    def start_execution(self) -> AgentExecution:
+        """Start tracking execution for this agent."""
+        self.current_execution = AgentExecution(
+            agent_name=self.name,
+            start_time=datetime.now()
+        )
+        return self.current_execution
+    
+    def end_execution(self) -> AgentExecution:
+        """End tracking execution for this agent."""
+        if self.current_execution:
+            self.current_execution.end_time = datetime.now()
+        return self.current_execution
     
     def _call_openai(self, messages: List[Dict[str, str]], **kwargs) -> str:
-        """Make a call to OpenAI API."""
+        """Make a call to OpenAI API with token tracking."""
         try:
             response = self.client.chat.completions.create(
                 model=Config.OPENAI_MODEL,
@@ -24,6 +40,13 @@ class BaseAgent:
                 max_tokens=Config.MAX_TOKENS,
                 **kwargs
             )
+            
+            # Track token usage if execution is being tracked
+            if self.current_execution and hasattr(response, 'usage') and response.usage:
+                self.current_execution.token_usage.prompt_tokens += response.usage.prompt_tokens or 0
+                self.current_execution.token_usage.completion_tokens += response.usage.completion_tokens or 0
+                self.current_execution.token_usage.total_tokens += response.usage.total_tokens or 0
+            
             return response.choices[0].message.content.strip()
         except Exception as e:
             raise RuntimeError(f"OpenAI API call failed: {e}")
@@ -51,9 +74,23 @@ class BioExpertAgent(BaseAgent):
         """Analyze evidence or revise based on feedback."""
         # Handle evidence as string
         print(" BioExpertAgent user_input.evidence:\n", user_input.evidence)
+        print(f" PharmGKB BioExpertAgent evidence length: {len(user_input.evidence) if user_input.evidence else 0}")
+        print(f" PharmGKB BioExpertAgent evidence type: {type(user_input.evidence)}")
         evidence_text = user_input.evidence if user_input.evidence else "No evidence provided."
         
         print(" BioExpertAgent evidence_text:\n", evidence_text)
+        print(f" PharmGKB BioExpertAgent evidence_text length: {len(evidence_text)}")
+        
+        # Check if evidence is meaningful (more than just gene name)
+        if evidence_text and len(evidence_text.strip()) > 0:
+            lines = evidence_text.split('\n')
+            meaningful_lines = [line for line in lines if line.strip() and not line.startswith("Gene:")]
+            print(f" PharmGKB BioExpertAgent meaningful evidence lines: {len(meaningful_lines)}")
+            if meaningful_lines:
+                print(f" PharmGKB BioExpertAgent first meaningful line: {meaningful_lines[0][:100]}...")
+        else:
+            print(" PharmGKB BioExpertAgent: No meaningful evidence detected")
+        
         if previous_output and evaluator_feedback:
             # build a string from the structured previous output
             prev = previous_output

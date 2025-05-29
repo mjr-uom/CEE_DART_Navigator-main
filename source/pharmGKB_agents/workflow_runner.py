@@ -42,13 +42,13 @@ class WorkflowRunner:
         total_genes = len(inputs)
         
         if self.progress_callback:
-            self.progress_callback(f"🧬 **Starting AI analysis for {total_genes} gene(s)**")
+            self.progress_callback(f"**PharmGKB System** - Starting AI analysis for {total_genes} gene(s)")
         
         for i, inp in enumerate(inputs, 1):
             gene_name = self._extract_gene_name_from_evidence(inp.evidence, i)
             # Update progress for current gene
             if self.progress_callback:
-                self.progress_callback(f"**Processing gene {i}/{total_genes}: {gene_name}**")
+                self.progress_callback(f"**PharmGKB System** - Processing gene {i}/{total_genes}: {gene_name}")
             
             result = self.workflow.run_workflow(inp)
             results.append(result)
@@ -56,17 +56,20 @@ class WorkflowRunner:
             # Update progress after gene completion
             if self.progress_callback:
                 status_emoji = "✅" if result.final_status.value == "APPROVED" else "⚠️"
-                self.progress_callback(f"{status_emoji} **Gene {i}/{total_genes} ({gene_name}) completed** - {result.total_iterations} iteration(s)")
+                self.progress_callback(f"**PharmGKB System** - {status_emoji} Gene {i}/{total_genes} ({gene_name}) completed - {result.total_iterations} iteration(s)")
         
         # Final completion message
         if self.progress_callback:
             approved_count = sum(1 for r in results if r.final_status.value == "APPROVED")
-            self.progress_callback(f"🎉 **All genes completed!** {approved_count}/{total_genes} analyses approved")
+            self.progress_callback(f"**PharmGKB System** - 🎉 All genes completed! {approved_count}/{total_genes} analyses approved")
         
         # Generate consolidated data for session state
         consolidated_data = self._generate_consolidated_data(results)
         
-        return results, consolidated_data
+        # Return the first result as consolidated for metrics display
+        consolidated_result = results[0] if results else None
+        
+        return results, consolidated_result
     
     def run_from_json_file(self, file_path: str) -> List[WorkflowResult]:
         """Run workflow from JSON file (original CLI functionality)."""
@@ -98,22 +101,16 @@ class WorkflowRunner:
         
         return results
     
-    def _convert_app_data_to_inputs(self, output_dict: Dict[str, Any]) -> List[UserInput]:
-        """Convert app.py output_dict to UserInput objects for pharmGKB evidence."""
-        context = output_dict.get('Context', '')
-        question = output_dict.get('Prompt', '')  # Note: 'Prompt' in app, 'Question' in main
-        pharmgkb_evidence = output_dict.get('pharmGKB Analysis', {})
+    def _process_pharmgkb_evidence_data(self, pharmgkb_evidence: dict) -> List[tuple[str, str]]:
+        """Process pharmGKB Analysis data into gene-evidence pairs.
         
-        print("DEBUG: pharmgkb_evidence keys:", list(pharmgkb_evidence.keys()) if pharmgkb_evidence else "No pharmGKB Analysis")
-        print("DEBUG: pharmgkb_evidence type:", type(pharmgkb_evidence))
-        print("DEBUG: pharmgkb_evidence content:", pharmgkb_evidence)
-        
-        # You can also include other data types if needed
-        gene_enrichment = output_dict.get('Gene Enrichment')
-        community_enrichment = output_dict.get('Community Enrichment') 
-        civic_evidence = output_dict.get('CIVIC Evidence')
-        
-        inputs: List[UserInput] = []
+        Args:
+            pharmgkb_evidence: Dictionary of pharmGKB evidence data (gene -> gene_entries list)
+            
+        Returns:
+            List of tuples containing (gene_name, combined_evidence_string)
+        """
+        gene_evidence_pairs = []
         
         for gene, gene_entries in pharmgkb_evidence.items():
             print(f"DEBUG: Processing gene: {gene}")
@@ -145,8 +142,37 @@ class WorkflowRunner:
             print(f"DEBUG: Combined evidence length: {len(combined_evidence)}")
             print(f"DEBUG: Combined evidence preview: {combined_evidence[:200]}...")
             
+            gene_evidence_pairs.append((gene, combined_evidence))
+        
+        return gene_evidence_pairs
+
+    def _convert_app_data_to_inputs(self, output_dict: Dict[str, Any]) -> List[UserInput]:
+        """Convert app.py output_dict to UserInput objects for pharmGKB evidence."""
+        context = output_dict.get('Context', '')
+        question = output_dict.get('Prompt', '')  # Note: 'Prompt' in app, 'Question' in main
+        pharmgkb_evidence = output_dict.get('pharmGKB Analysis', {})
+        
+        print("DEBUG: pharmgkb_evidence keys:", list(pharmgkb_evidence.keys()) if pharmgkb_evidence else "No pharmGKB Analysis")
+        print("DEBUG: pharmgkb_evidence type:", type(pharmgkb_evidence))
+        print("DEBUG: pharmgkb_evidence content:", pharmgkb_evidence)
+        
+        # You can also include other data types if needed
+        gene_enrichment = output_dict.get('Gene Enrichment')
+        community_enrichment = output_dict.get('Community Enrichment') 
+        civic_evidence = output_dict.get('CIVIC Evidence')
+        
+        inputs: List[UserInput] = []
+        
+        # Process pharmGKB evidence data using the common method
+        gene_evidence_pairs = self._process_pharmgkb_evidence_data(pharmgkb_evidence)
+        
+        for gene, combined_evidence in gene_evidence_pairs:
+            evidence_parts = combined_evidence.split('\n\n')
+            
             if len(evidence_parts) > 1:  # More than just the gene name
                 print("DEBUG: Creating UserInput with pharmGKB evidence")
+                print(f"DEBUG: Final pharmGKB evidence string length: {len(combined_evidence)}")
+                print(f"DEBUG: Final pharmGKB evidence string preview: {combined_evidence[:300]}...")
                 inputs.append(UserInput(
                     context=context,
                     question=question,
@@ -155,6 +181,7 @@ class WorkflowRunner:
             else:
                 print("DEBUG: Creating UserInput with no pharmGKB evidence message")
                 no_evidence_text = f"Gene: {gene}\n\nNo pharmGKB evidence available for gene {gene}"
+                print(f"DEBUG: No pharmGKB evidence text: {no_evidence_text}")
                 inputs.append(UserInput(
                     context=context,
                     question=question,
@@ -194,29 +221,14 @@ class WorkflowRunner:
             context = data.get('Context', '')
             question = data.get('Question', '')
             pharmgkb = data.get('pharmGKB Analysis', {})  # dict: gene -> pharmGKB entries list
+            
             inputs: List[UserInput] = []
-            for gene, gene_entries in pharmgkb.items():
-                if not isinstance(gene_entries, list):
-                    continue
-                    
-                evidence_parts = []
-                
-                # Add gene name as first part
-                evidence_parts.append(f"Gene: {gene}")
-                
-                # Process each pharmGKB entry for this gene
-                if gene_entries:  # Check if list is not empty
-                    # Convert pharmGKB entries to strings for the model
-                    for i, entry in enumerate(gene_entries):
-                        if isinstance(entry, dict):
-                            # Convert pharmGKB dict to a readable string with better formatting
-                            evidence_str = self._format_pharmgkb_evidence_item(entry, i+1)
-                            evidence_parts.append(evidence_str)
-                        else:
-                            evidence_parts.append(str(entry))
-                
-                # Combine all evidence parts into a single string
-                combined_evidence = "\n\n".join(evidence_parts)
+            
+            # Process pharmGKB evidence data using the common method
+            gene_evidence_pairs = self._process_pharmgkb_evidence_data(pharmgkb)
+            
+            for gene, combined_evidence in gene_evidence_pairs:
+                evidence_parts = combined_evidence.split('\n\n')
                 
                 # Only create UserInput if there's at least some evidence
                 if len(evidence_parts) > 1:  # More than just the gene name
@@ -360,7 +372,7 @@ class WorkflowRunner:
     
     def get_input_payload_json(self, output_dict: Dict[str, Any]) -> str:
         """Generate JSON string for the input payload sent to AI analysis."""
-        return json.dumps(output_dict, indent=2, ensure_ascii=False)
+        return json.dumps(output_dict, indent=2, ensure_ascii=False, default=str)
     
     def get_full_results_json(self, results: List[WorkflowResult]) -> str:
         """Generate JSON string for full results including evaluation and bioexpert history."""
@@ -393,11 +405,22 @@ class WorkflowRunner:
             }
             results_dict.append(result_dict)
         
-        return json.dumps(results_dict, indent=2, ensure_ascii=False)
+        return json.dumps(results_dict, indent=2, ensure_ascii=False, default=str)
     
-    def get_consolidated_data_json(self, consolidated_data: Dict[str, Any]) -> str:
+    def get_consolidated_data_json(self, consolidated_data) -> str:
         """Generate JSON string for consolidated analysis results."""
-        return json.dumps(consolidated_data, indent=2, ensure_ascii=False)
+        # Handle both WorkflowResult objects and dictionaries
+        if hasattr(consolidated_data, 'model_dump'):
+            # It's a Pydantic model (WorkflowResult), convert to dict
+            data_dict = consolidated_data.model_dump()
+        elif hasattr(consolidated_data, 'dict'):
+            # It's a Pydantic model with older method name
+            data_dict = consolidated_data.dict()
+        else:
+            # It's already a dictionary
+            data_dict = consolidated_data
+        
+        return json.dumps(data_dict, indent=2, ensure_ascii=False, default=str)
     
     def get_prompts_json(self, results: List[WorkflowResult], input_payload: Dict[str, Any]) -> str:
         """Generate JSON string for all prompts sent to LLM agents during analysis."""
@@ -518,4 +541,4 @@ Focus on scientific accuracy, clarity, citation, and completeness.
             
             prompts_data["gene_prompts"][gene_name] = gene_prompts
         
-        return json.dumps(prompts_data, indent=2, ensure_ascii=False) 
+        return json.dumps(prompts_data, indent=2, ensure_ascii=False, default=str) 

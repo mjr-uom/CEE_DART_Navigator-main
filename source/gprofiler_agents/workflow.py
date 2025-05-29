@@ -7,9 +7,16 @@ import time
 import json
 from datetime import datetime
 
-from .config import Config
-from .models import UserInput, BioExpertOutput, EvaluatorOutput, EvaluationStatus, WorkflowResult, WorkflowMetrics
-from .agents import OrchestratorAgent, BioExpertAgent, EvaluatorAgent
+# Handle imports for both module and direct execution
+try:
+    from .config import Config
+    from .models import UserInput, BioExpertOutput, EvaluatorOutput, EvaluationStatus, WorkflowResult, WorkflowMetrics
+    from .agents import OrchestratorAgent, GeneEnrichmentExpertAgent, EvaluatorAgent
+except ImportError:
+    # Fallback for direct execution
+    from config import Config
+    from models import UserInput, BioExpertOutput, EvaluatorOutput, EvaluationStatus, WorkflowResult, WorkflowMetrics
+    from agents import OrchestratorAgent, GeneEnrichmentExpertAgent, EvaluatorAgent
 
 class WorkflowEngine:
     """Main workflow engine that orchestrates the biomedical evidence interpretation process."""
@@ -18,7 +25,7 @@ class WorkflowEngine:
         self.console = console or Console()
         self.progress_callback = progress_callback
         self.orchestrator = OrchestratorAgent()
-        self.bioexpert = BioExpertAgent()
+        self.bioexpert = GeneEnrichmentExpertAgent()
         self.evaluator = EvaluatorAgent()
     
     def _update_progress(self, message: str):
@@ -51,22 +58,22 @@ class WorkflowEngine:
         Returns:
             WorkflowResult: Final result with analysis and workflow metadata
         """
-        # Extract gene name from evidence string
+        # Extract gene set name from evidence string
         if user_input.evidence:
             lines = user_input.evidence.split('\n')
             gene = None
             for line in lines:
-                if line.startswith("Gene: "):
-                    gene = line.replace("Gene: ", "").strip()
+                if line.startswith("Gene Set: "):
+                    gene = line.replace("Gene Set: ", "").strip()
                     break
         else:
             gene = None
         #print("run_workflow user_input:\n", user_input)
 
-        title = f"Starting Biomedical Evidence Interpretation Workflow"
+        title = f"Starting Gene Enrichment Pathway Analysis Workflow"
         if gene:
-            title += f" for gene {gene}"
-            self._update_progress(f"Starting analysis for gene: **{gene}**")
+            title += f" for gene set {gene}"
+            self._update_progress(f"Starting analysis for gene set: **{gene}**")
         self.console.print(Panel.fit(title, style="bold blue"))
         
         # Initialize workflow tracking
@@ -87,20 +94,20 @@ class WorkflowEngine:
             
             # Update progress for current iteration
             if gene:
-                self._update_progress(f"**PharmGKB System** - Gene **{gene}** - Iteration **{iteration}**: PharmGKB BioExpert analyzing evidence...")
+                self._update_progress(f"**Gene Enrichment System** - Gene set **{gene}** - Iteration **{iteration}**: Gene Enrichment Expert analyzing evidence...")
             else:
-                self._update_progress(f"**PharmGKB System** - Iteration **{iteration}**: PharmGKB BioExpert analyzing evidence...")
+                self._update_progress(f"**Gene Enrichment System** - Iteration **{iteration}**: Gene Enrichment Expert analyzing evidence...")
             
-            # BioExpert Analysis Phase
+            # Gene Enrichment Expert Analysis Phase
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
                 console=self.console,
                 transient=True
             ) as progress:
-                task = progress.add_task("PharmGKB BioExpert analyzing evidence...", total=None)
+                task = progress.add_task("Gene Enrichment Expert analyzing evidence...", total=None)
                 
-                # Start tracking BioExpert execution
+                # Start tracking Gene Enrichment Expert execution
                 bioexpert_execution = self.bioexpert.start_execution()
                 
                 if iteration == 1:
@@ -118,20 +125,20 @@ class WorkflowEngine:
                         iteration=iteration
                     )
                 
-                # End tracking BioExpert execution
+                # End tracking Gene Enrichment Expert execution
                 bioexpert_execution = self.bioexpert.end_execution()
                 workflow_metrics.add_agent_execution(bioexpert_execution)
                 
-                progress.update(task, description="PharmGKB BioExpert analysis complete")
+                progress.update(task, description="Gene Enrichment Expert analysis complete")
                 time.sleep(0.5)  # Brief pause for visual effect
             
             # Update progress for evaluation phase
             if gene:
-                self._update_progress(f"**PharmGKB System** - Gene **{gene}** - Iteration **{iteration}**: PharmGKB BioExpert analysis complete, evaluating...")
+                self._update_progress(f"**Gene Enrichment System** - Gene set **{gene}** - Iteration **{iteration}**: Gene Enrichment Expert analysis complete, evaluating...")
             else:
-                self._update_progress(f"**PharmGKB System** - Iteration **{iteration}**: PharmGKB BioExpert analysis complete, evaluating...")
+                self._update_progress(f"**Gene Enrichment System** - Iteration **{iteration}**: Gene Enrichment Expert analysis complete, evaluating...")
             
-            # Display BioExpert output
+            # Display Gene Enrichment Expert output
             self._display_bioexpert_output(current_bioexpert_output, iteration)
             
             # Add to history
@@ -149,24 +156,24 @@ class WorkflowEngine:
             # Check approval and update progress with status
             if evaluation.status == EvaluationStatus.APPROVED:
                 if gene:
-                    self._update_progress(f"**PharmGKB System** - Gene **{gene}** - Iteration **{iteration}**: Analysis APPROVED by Evaluator!")
+                    self._update_progress(f"**Gene Enrichment System** - Gene set **{gene}** - Iteration **{iteration}**: Analysis APPROVED by Evaluator!")
                 else:
-                    self._update_progress(f"**PharmGKB System** - Iteration **{iteration}**: Analysis APPROVED by Evaluator!")
+                    self._update_progress(f"**Gene Enrichment System** - Iteration **{iteration}**: Analysis APPROVED by Evaluator!")
                 break
             else:
                 if gene:
-                    self._update_progress(f"**PharmGKB System** - Gene **{gene}** - Iteration **{iteration}**: Analysis NOT APPROVED by Evaluator, preparing iteration {iteration + 1}...")
+                    self._update_progress(f"**Gene Enrichment System** - Gene set **{gene}** - Iteration **{iteration}**: Analysis NOT APPROVED by Evaluator, preparing iteration {iteration + 1}...")
                 else:
-                    self._update_progress(f"**PharmGKB System** - Iteration **{iteration}**: Analysis NOT APPROVED by Evaluator, preparing iteration {iteration + 1}...")
+                    self._update_progress(f"**Gene Enrichment System** - Iteration **{iteration}**: Analysis NOT APPROVED by Evaluator, preparing iteration {iteration + 1}...")
             
             # Prepare next iteration
             iteration += 1
         
         # Final completion message
         if gene:
-            self._update_progress(f"**PharmGKB System** - Gene **{gene}** analysis completed after **{iteration}** iteration(s)")
+            self._update_progress(f"**Gene Enrichment System** - Gene set **{gene}** analysis completed after **{iteration}** iteration(s)")
         else:
-            self._update_progress(f"**PharmGKB System** - Analysis completed after **{iteration}** iteration(s)")
+            self._update_progress(f"**Gene Enrichment System** - Analysis completed after **{iteration}** iteration(s)")
         
         # Calculate total workflow time
         workflow_end_time = datetime.now()
@@ -201,13 +208,13 @@ class WorkflowEngine:
             return str(obj)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        # Extract gene name from evidence string
+        # Extract gene set name from evidence string
         if result.user_input.evidence:
             lines = result.user_input.evidence.split('\n')
             gene = "unknown"
             for line in lines:
-                if line.startswith("Gene: "):
-                    gene = line.replace("Gene: ", "").strip()
+                if line.startswith("Gene Set: "):
+                    gene = line.replace("Gene Set: ", "").strip()
                     break
         else:
             gene = "unknown"

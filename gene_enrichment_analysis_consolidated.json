@@ -1,0 +1,22 @@
+{
+  "metadata": {
+    "generated_at": "2025-05-26T21:05:57.937174",
+    "total_gene_sets_analyzed": 1,
+    "context": "The aim here is to identify differences between responders (pCR) and non-responders (RD) in the two different treatment arms (T-DM1, DHP). The Breast cancer team in the group suggest that non-responding patients have activation of alternative signaling pathways and responding patients have increased anti-tumor immune activity during HER2-targeted treatment. We discovered a significant differences in interactions between the genes when comparing responders vs non-responders.",
+    "question": "To what extend the evidence related to these genes explain the fact that one group responds to the treatment?"
+  },
+  "gene_set_analyses": {
+    "Combined Gene Enrichment and Community Enrichment Analysis": {
+      "final_analysis": "## Relevance Explanation\nThe gene enrichment evidence reveals two major biological themes differentiating responders and non-responders: mitochondrial respiratory chain function and immune-related T cell processes. The mitochondrial genes (MT-ND1, MT-ND2, MT-ND3, MT-ND4, MT-ND4L, MT-ND5) are strongly associated with NADH dehydrogenase activity and mitochondrial respiratory chain complex I function (GO:0008137, CORUM:178, HP:0200125), indicating altered mitochondrial energy metabolism in one group. Concurrently, immune-related genes (CD3G, PTPRC, BCL2, PMAIP1, ESR1, GATA3, TBX3) are enriched in pathways related to T cell selection and activation (GO:0043368, GO:0045061), apoptosis regulation (GO:0097136, REAC:R-HSA-111453), and estrogen signaling (WP:WP712), suggesting differential immune activity and hormone receptor signaling. This dual pattern supports the hypothesis that non-responders may have mitochondrial dysfunction activating alternative signaling, while responders exhibit enhanced anti-tumor immune responses and hormone-related pathways.\n\n## Summary/Conclusion\n- Mitochondrial respiratory chain complex I genes show enrichment for NADH dehydrogenase activity and mitochondrial defects (GO:0008137, HP:0200125), implying that mitochondrial dysfunction may underlie alternative signaling pathways in non-responders.\n- Immune-related genes involved in positive thymic T cell selection and activation (CD3G, PTPRC; GO:0043368, GO:0045061) and apoptosis regulation (BCL2, PMAIP1; GO:0097136) suggest that responders have increased anti-tumor immune activity.\n- Estrogen receptor-related genes (ESR1, PGR, GATA3, TBX3) are enriched in mammary gland morphogenesis and estrogen signaling pathways (GO:0060443, WP:WP712), indicating hormone receptor signaling may contribute to treatment response.\n- The evidence collectively supports that responders likely benefit from active immune surveillance and hormone signaling, whereas non-responders may exhibit mitochondrial respiratory chain alterations that promote resistance via alternative pathways.",
+      "final_status": "APPROVED",
+      "total_iterations": 1,
+      "evidence_length": 37777
+    }
+  },
+  "summary_stats": {
+    "total_gene_sets": 1,
+    "approved_analyses": 1,
+    "average_iterations": 1.0,
+    "gene_sets_with_evidence": 1
+  }
+}
