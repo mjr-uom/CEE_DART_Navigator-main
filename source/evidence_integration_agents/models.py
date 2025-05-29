@@ -147,7 +147,7 @@ class UnifiedReport(BaseModel):
         return '\n'.join(formatted_lines)
 
 class WorkflowResult(BaseModel):
-    """Final result of the novelty analysis workflow."""
+    """Final result of the evidence integration workflow."""
     unified_report: UnifiedReport
     total_iterations: int
     feedback_history: List[FeedbackCollection] = Field(

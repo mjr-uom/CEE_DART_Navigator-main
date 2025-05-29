@@ -49,11 +49,17 @@ flowchart TD
     subgraph Integration["🔄 Evidence Integration Phase"]
         direction TB
         
-        subgraph Novelty["🎯 Novelty Analysis System"]
+        subgraph Novelty["🎯 Evidence Integration System"]
             direction TB
             
-            %% Orchestrator
-            Orchestrator["🎭 Orchestrator Agent<br/>(Evidence Consolidation)"]
+            subgraph NoveltyAgents["Evidence Integration Agents"]
+                direction LR
+                Orchestrator["🎯 Orchestrator<br/>Evidence Coordination"]
+                ReportComposer["📝 Report Composer<br/>Unified Report Creation"]
+                ContentValidator["✅ Content Validator<br/>Structural Integrity"]
+                CriticalReviewer["🔍 Critical Reviewer<br/>Bias Analysis"]
+                RelevanceValidator["🎯 Relevance Validator<br/>Question Alignment"]
+            end
             
             %% Report Composer
             ReportComposer["📝 Report Composer Agent<br/>(Unified Report Creation)"]
@@ -120,7 +126,7 @@ Three independent agent systems analyze pre-extracted evidence simultaneously:
    - Uses Gene Enrichment Expert + Content Validator agents
 
 ### 🔄 **Phase 2: Evidence Integration**
-The **Novelty Analysis System** 🎯 integrates all evidence:
+The **Evidence Integration System** 🎯 integrates all evidence:
 
 1. **Orchestrator Agent** 🎭
    - Consolidates evidence from all three systems

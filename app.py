@@ -1139,9 +1139,9 @@ if __name__ == '__main__':
                 <strong>• CIVIC Evidence Analysis</strong> - Clinical interpretations of genetic variants<br>
                 <strong>• PharmGKB Analysis</strong> - Pharmacogenomic associations and drug interactions<br>
                 <strong>• Gene Enrichment Analysis</strong> - Pathway and biological process enrichment<br>
-                <strong>• Novelty Analysis</strong> - Unified evidence integration and novelty assessment<br>
+                <strong>• Evidence Integration</strong> - Unified evidence integration and comprehensive reporting<br>
                 <br>
-                The Novelty Analysis workflow integrates evidence from all three systems using 5 specialized agents 
+                The Evidence Integration workflow integrates evidence from all three systems using 5 specialized agents 
                 to create comprehensive unified reports with structured sections for potential novel biomarkers, 
                 implications, well-known interactions, and conclusions.
             </div>
@@ -2475,9 +2475,9 @@ if st.session_state.page == "AI Assistant":
                     update_progress("⚠️ **Skipping Gene Enrichment analysis - no gene enrichment or community enrichment data available**")
                     gprofiler_execution_time = 0.0
                 
-                # Run Novelty Analysis workflow if we have results from at least one of the three systems
-                novelty_results = None
-                novelty_consolidated = None
+                # Run Evidence Integration workflow if we have results from at least one of the three systems
+                evidence_integration_results = None
+                evidence_integration_consolidated = None
                 
                 # Debug information
                 print(f"DEBUG: civic_consolidated = {civic_consolidated is not None}")
@@ -2485,13 +2485,13 @@ if st.session_state.page == "AI Assistant":
                 print(f"DEBUG: gprofiler_consolidated = {gprofiler_consolidated is not None}")
                 
                 if civic_consolidated or pharmgkb_consolidated or gprofiler_consolidated:
-                    update_progress("🔬 **Starting Novelty Analysis - Evidence Integration...**")
+                    update_progress("🔬 **Starting Evidence Integration - Evidence Integration...**")
                     
                     try:
-                        from source.novelty_agents import WorkflowRunner as NoveltyWorkflowRunner
-                        novelty_runner = NoveltyWorkflowRunner(debug=False, progress_callback=update_progress)
+                        from source.evidence_integration_agents import WorkflowRunner as EvidenceIntegrationWorkflowRunner
+                        evidence_integration_runner = EvidenceIntegrationWorkflowRunner(debug=False, progress_callback=update_progress)
                         
-                        # Prepare data for novelty analysis
+                        # Prepare data for evidence integration
                         # Extract the actual analysis content from WorkflowResult objects
                         civic_analysis_content = {}
                         if civic_consolidated and hasattr(civic_consolidated, 'final_analysis'):
@@ -2532,7 +2532,7 @@ if st.session_state.page == "AI Assistant":
                                 if gprofiler_results_list:
                                     gene_enrichment_analysis_content['total_gene_sets'] = len(gprofiler_results_list)
                         
-                        novelty_app_data = {
+                        evidence_integration_app_data = {
                             'context': output_dict.get('Context', ''),
                             'question': output_dict.get('Prompt', ''),
                             'civic_results': civic_analysis_content,
@@ -2540,44 +2540,44 @@ if st.session_state.page == "AI Assistant":
                             'gene_enrichment_results': gene_enrichment_analysis_content
                         }
                         
-                        print(f"DEBUG: Novelty app data keys: {list(novelty_app_data.keys())}")
-                        print(f"DEBUG: Context length: {len(novelty_app_data['context'])}")
-                        print(f"DEBUG: Question length: {len(novelty_app_data['question'])}")
+                        print(f"DEBUG: Evidence integration app data keys: {list(evidence_integration_app_data.keys())}")
+                        print(f"DEBUG: Context length: {len(evidence_integration_app_data['context'])}")
+                        print(f"DEBUG: Question length: {len(evidence_integration_app_data['question'])}")
                         print(f"DEBUG: CIVIC analysis content: {bool(civic_analysis_content)}")
                         print(f"DEBUG: PharmGKB analysis content: {bool(pharmgkb_analysis_content)}")
                         print(f"DEBUG: Gene enrichment analysis content: {bool(gene_enrichment_analysis_content)}")
                         
                         # Check if we have any actual analysis content
                         has_analysis_content = bool(civic_analysis_content or pharmgkb_analysis_content or gene_enrichment_analysis_content)
-                        print(f"DEBUG: Has analysis content for novelty: {has_analysis_content}")
+                        print(f"DEBUG: Has analysis content for evidence integration: {has_analysis_content}")
                         
                         if not has_analysis_content:
-                            print("DEBUG: No analysis content available for novelty analysis")
-                            update_progress("⚠️ **Skipping Novelty Analysis - no analysis content available from other workflows**")
-                            novelty_results = None
-                            novelty_consolidated = None
-                            novelty_execution_time = 0.0
+                            print("DEBUG: No analysis content available for evidence integration")
+                            update_progress("⚠️ **Skipping Evidence Integration - no analysis content available from other workflows**")
+                            evidence_integration_results = None
+                            evidence_integration_consolidated = None
+                            evidence_integration_execution_time = 0.0
                         else:
-                            # Measure Novelty Analysis execution time
-                            novelty_start_time = datetime.now()
-                            novelty_results = novelty_runner.run_from_app_data(novelty_app_data)
-                            novelty_end_time = datetime.now()
-                            novelty_execution_time = (novelty_end_time - novelty_start_time).total_seconds()
+                            # Measure Evidence Integration execution time
+                            evidence_integration_start_time = datetime.now()
+                            evidence_integration_results = evidence_integration_runner.run_from_app_data(evidence_integration_app_data)
+                            evidence_integration_end_time = datetime.now()
+                            evidence_integration_execution_time = (evidence_integration_end_time - evidence_integration_start_time).total_seconds()
                             
-                            novelty_consolidated = novelty_results  # The result itself is the consolidated data
-                            update_progress("✅ **Novelty Analysis completed!**")
+                            evidence_integration_consolidated = evidence_integration_results  # The result itself is the consolidated data
+                            update_progress("✅ **Evidence Integration completed!**")
                     except Exception as e:
-                        update_progress(f"⚠️ **Novelty Analysis failed: {str(e)}**")
-                        print(f"DEBUG: Novelty Analysis error: {e}")
+                        update_progress(f"⚠️ **Evidence Integration failed: {str(e)}**")
+                        print(f"DEBUG: Evidence Integration error: {e}")
                         import traceback
                         print(f"DEBUG: Traceback: {traceback.format_exc()}")
-                        novelty_results = None
-                        novelty_consolidated = None
-                        novelty_execution_time = 0.0
+                        evidence_integration_results = None
+                        evidence_integration_consolidated = None
+                        evidence_integration_execution_time = 0.0
                 else:
-                    update_progress("⚠️ **Skipping Novelty Analysis - no evidence from CIVIC, PharmGKB, or Gene Enrichment available**")
+                    update_progress("⚠️ **Skipping Evidence Integration - no evidence from CIVIC, PharmGKB, or Gene Enrichment available**")
                     print("DEBUG: All consolidated results are None or empty")
-                    novelty_execution_time = 0.0
+                    evidence_integration_execution_time = 0.0
                 
                 # Save to session state
                 if civic_results:
@@ -2592,10 +2592,10 @@ if st.session_state.page == "AI Assistant":
                     st.session_state['GPROFILER_AI_results'] = gprofiler_results
                     st.session_state['GPROFILER_AI_consolidated'] = gprofiler_consolidated
                     st.session_state['GPROFILER_execution_time'] = gprofiler_execution_time
-                if novelty_results:
-                    st.session_state['NOVELTY_AI_results'] = novelty_results
-                    st.session_state['NOVELTY_AI_consolidated'] = novelty_consolidated
-                    st.session_state['NOVELTY_execution_time'] = novelty_execution_time
+                if evidence_integration_results:
+                    st.session_state['EVIDENCE_INTEGRATION_results'] = evidence_integration_results
+                    st.session_state['EVIDENCE_INTEGRATION_consolidated'] = evidence_integration_consolidated
+                    st.session_state['EVIDENCE_INTEGRATION_execution_time'] = evidence_integration_execution_time
                 
                 # Clear progress and show completion
                 progress_container.empty()
@@ -2650,19 +2650,19 @@ if st.session_state.page == "AI Assistant":
                                               f"{gprofiler_execution_time:.1f}s, "
                                               f"Status: {gprofiler_consolidated.final_status.value if gprofiler_consolidated else 'N/A'}")
                 
-                if novelty_results:
-                    completed_workflows.append("Novelty Analysis evidence integration")
-                    if hasattr(novelty_consolidated, 'metrics'):
-                        metrics = novelty_consolidated.metrics
+                if evidence_integration_results:
+                    completed_workflows.append("Evidence Integration evidence integration")
+                    if hasattr(evidence_integration_consolidated, 'metrics'):
+                        metrics = evidence_integration_consolidated.metrics
                         token_display = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} tokens ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
-                        workflow_metrics.append(f"**Novelty Analysis:** {novelty_consolidated.total_iterations} iteration(s), "
-                                              f"{novelty_execution_time:.1f}s, "
+                        workflow_metrics.append(f"**Evidence Integration:** {evidence_integration_consolidated.total_iterations} iteration(s), "
+                                              f"{evidence_integration_execution_time:.1f}s, "
                                               f"{token_display}, "
-                                              f"Status: {novelty_consolidated.final_status.value}")
+                                              f"Status: {evidence_integration_consolidated.final_status.value}")
                     else:
-                        workflow_metrics.append(f"**Novelty Analysis:** {novelty_consolidated.total_iterations if novelty_consolidated else 'N/A'} iteration(s), "
-                                              f"{novelty_execution_time:.1f}s, "
-                                              f"Status: {novelty_consolidated.final_status.value if novelty_consolidated else 'N/A'}")
+                        workflow_metrics.append(f"**Evidence Integration:** {evidence_integration_consolidated.total_iterations if evidence_integration_consolidated else 'N/A'} iteration(s), "
+                                              f"{evidence_integration_execution_time:.1f}s, "
+                                              f"Status: {evidence_integration_consolidated.final_status.value if evidence_integration_consolidated else 'N/A'}")
                 
                 if completed_workflows:
                     status_container.success(f"✅ AI analysis completed successfully! Workflows: {', '.join(completed_workflows)}")
@@ -2688,15 +2688,53 @@ if st.session_state.page == "AI Assistant":
                 if 'progress_messages' in st.session_state:
                     del st.session_state['progress_messages']
                 
-                st.error(f"Error running AI analysis: {e}")
+                # Enhanced error handling with specific guidance for network issues
+                error_message = str(e)
+                
+                if "Connection error" in error_message or "getaddrinfo failed" in error_message:
+                    st.error("🌐 **Network Connectivity Issue**")
+                    st.markdown("""
+                    **The AI analysis failed due to a network connectivity problem.** This usually means:
+                    
+                    **Possible Causes:**
+                    - Internet connection is unstable or disconnected
+                    - Corporate firewall is blocking OpenAI API access
+                    - DNS resolution issues
+                    - Proxy server configuration problems
+                    
+                    **Troubleshooting Steps:**
+                    1. **Check your internet connection** - Try opening a website in your browser
+                    2. **Verify OpenAI API access** - Corporate networks often block AI services
+                    3. **Try a different network** - Use mobile hotspot or home network if on corporate WiFi
+                    4. **Wait and retry** - Temporary network issues often resolve themselves
+                    5. **Contact IT support** - If on a corporate network, ask about OpenAI API access
+                    
+                    **Technical Details:**
+                    """)
+                    st.code(f"Error: {error_message}")
+                elif "Rate limit" in error_message:
+                    st.error("⏱️ **API Rate Limit Exceeded**")
+                    st.markdown("""
+                    **The OpenAI API rate limit has been exceeded.** Please:
+                    
+                    1. **Wait a few minutes** before trying again
+                    2. **Check your OpenAI usage** at https://platform.openai.com/usage
+                    3. **Consider upgrading your plan** if you frequently hit limits
+                    """)
+                    st.code(f"Error: {error_message}")
+                else:
+                    st.error(f"Error running AI analysis: {e}")
+                
+                # Always show the full traceback for debugging
                 import traceback
-                st.error(f"Traceback: {traceback.format_exc()}")
+                with st.expander("Technical Details (for debugging)", expanded=False):
+                    st.code(traceback.format_exc())
 
     # Display consolidated results if they exist in session state
     if ('CIVIC_AI_consolidated' in st.session_state and st.session_state['CIVIC_AI_consolidated']) or \
        ('PHARMGKB_AI_consolidated' in st.session_state and st.session_state['PHARMGKB_AI_consolidated']) or \
        ('GPROFILER_AI_consolidated' in st.session_state and st.session_state['GPROFILER_AI_consolidated']) or \
-       ('NOVELTY_AI_consolidated' in st.session_state and st.session_state['NOVELTY_AI_consolidated']):
+       ('EVIDENCE_INTEGRATION_consolidated' in st.session_state and st.session_state['EVIDENCE_INTEGRATION_consolidated']):
         st.markdown("---")
         st.markdown("### AI Analysis Results")
         
@@ -2776,85 +2814,61 @@ if st.session_state.page == "AI Assistant":
                     st.write("No detailed results available.")
         
         # Display Novelty Analysis results if available
-        if 'NOVELTY_AI_consolidated' in st.session_state and st.session_state['NOVELTY_AI_consolidated']:
-            novelty_consolidated_data = st.session_state['NOVELTY_AI_consolidated']
-            novelty_execution_time = st.session_state.get('NOVELTY_execution_time', 0.0)
+        if 'EVIDENCE_INTEGRATION_consolidated' in st.session_state and st.session_state['EVIDENCE_INTEGRATION_consolidated']:
+            evidence_integration_consolidated_data = st.session_state['EVIDENCE_INTEGRATION_consolidated']
+            evidence_integration_execution_time = st.session_state.get('EVIDENCE_INTEGRATION_execution_time', 0.0)
             
             # Show Novelty Analysis metadata with enhanced metrics
-            novelty_metadata = novelty_consolidated_data.user_input
+            evidence_integration_metadata = evidence_integration_consolidated_data.user_input
             metrics_info = ""
-            if hasattr(novelty_consolidated_data, 'metrics'):
-                metrics = novelty_consolidated_data.metrics
+            if hasattr(evidence_integration_consolidated_data, 'metrics'):
+                metrics = evidence_integration_consolidated_data.metrics
                 token_breakdown = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
-                metrics_info = f" | **Time:** {novelty_execution_time:.1f}s | **Tokens:** {token_breakdown}"
+                metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s | **Tokens:** {token_breakdown}"
             else:
-                metrics_info = f" | **Time:** {novelty_execution_time:.1f}s"
+                metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s"
             
-            st.info(f"**Novelty Analysis completed:** {novelty_consolidated_data.total_iterations} iteration(s) | **Status:** {novelty_consolidated_data.final_status.value}{metrics_info}")
+            st.info(f"**Evidence Integration completed:** {evidence_integration_consolidated_data.total_iterations} iteration(s) | **Status:** {evidence_integration_consolidated_data.final_status.value}{metrics_info}")
             
             # Expandable detailed Novelty Analysis results
-            with st.expander("View Detailed Results - Novelty Analysis Evidence Integration Workflow", expanded=False):
-                if novelty_consolidated_data.unified_report:
-                    # Display the formatted report with proper bullet point rendering
-                    st.markdown("#### Formatted Unified Report")
+            # with st.expander("View Detailed Results - Novelty Analysis Evidence Integration Workflow", expanded=False):
+            #     if evidence_integration_consolidated_data.unified_report:
+            #         # Display the formatted report with proper bullet point rendering
+            #         st.markdown("#### Formatted Unified Report")
                     
-                    # Get the formatted string and ensure proper markdown rendering
-                    formatted_report = novelty_consolidated_data.unified_report.to_formatted_string()
+            #         # Get the formatted string and ensure proper markdown rendering
+            #         formatted_report = evidence_integration_consolidated_data.unified_report.to_formatted_string()
                     
-                    # Split by sections and render each with proper formatting
-                    sections = formatted_report.split('## ')
-                    for section in sections:
-                        if section.strip():
-                            if not section.startswith('##'):
-                                section = '## ' + section
+            #         # Split by sections and render each with proper formatting
+            #         sections = formatted_report.split('## ')
+            #         for section in sections:
+            #             if section.strip():
+            #                 if not section.startswith('##'):
+            #                     section = '## ' + section
                             
-                            # Ensure bullet points are properly formatted for Streamlit
-                            lines = section.split('\n')
-                            formatted_lines = []
-                            for line in lines:
-                                line = line.strip()
-                                if line:
-                                    # Convert bullet points to proper markdown format
-                                    if line.startswith('•'):
-                                        line = line.replace('•', '-', 1)  # Convert • to - for better Streamlit rendering
-                                    elif line.startswith('- ') or line.startswith('* '):
-                                        pass  # Already properly formatted
-                                    elif not line.startswith('##') and not line.startswith('#'):
-                                        # Add bullet point if it's content but not a header
-                                        if any(char.isalnum() for char in line):  # Only if it contains actual content
-                                            line = f"- {line}"
-                                    formatted_lines.append(line)
+            #                 # Ensure bullet points are properly formatted for Streamlit
+            #                 lines = section.split('\n')
+            #                 formatted_lines = []
+            #                 for line in lines:
+            #                     line = line.strip()
+            #                     if line:
+            #                         # Convert bullet points to proper markdown format
+            #                         if line.startswith('•'):
+            #                             line = line.replace('•', '-', 1)  # Convert • to - for better Streamlit rendering
+            #                         elif line.startswith('- ') or line.startswith('* '):
+            #                             pass  # Already properly formatted
+            #                         elif not line.startswith('##') and not line.startswith('#'):
+            #                             # Add bullet point if it's content but not a header
+            #                             if any(char.isalnum() for char in line):  # Only if it contains actual content
+            #                                 line = f"- {line}"
+            #                         formatted_lines.append(line)
                             
-                            formatted_section = '\n'.join(formatted_lines)
-                            st.markdown(formatted_section)
-                else:
-                    st.write("No detailed results available.")
+            #                 formatted_section = '\n'.join(formatted_lines)
+            #                 st.markdown(formatted_section)
+            #     else:
+            #         st.write("No detailed results available.")
                         
-                # Show evidence integration summary
-                st.markdown("#### Evidence Integration Summary")
                 
-                # Count completed sections from the original sections list
-                unified_report = novelty_consolidated_data.unified_report
-                original_sections = [
-                    ("Potential Novel Biomarkers", unified_report.potential_novel_biomarkers),
-                    ("Implications", unified_report.implications),
-                    ("Well-Known Interactions", unified_report.well_known_interactions),
-                    ("Conclusions", unified_report.conclusions)
-                ]
-                completed_sections = len([s for s in original_sections if s[1] and s[1].strip()])
-                
-                evidence_summary = f"""
-                **Evidence Sources Integrated:**
-                - CIVIC genes: {novelty_consolidated_data.consolidated_evidence.total_genes_civic}
-                - PharmGKB genes: {novelty_consolidated_data.consolidated_evidence.total_genes_pharmgkb}
-                - Gene sets: {novelty_consolidated_data.consolidated_evidence.total_gene_sets_enrichment}
-                
-                **Workflow Details:**
-                - Total iterations: {novelty_consolidated_data.total_iterations}
-                - Final status: {novelty_consolidated_data.final_status.value}
-                - Report sections completed: {completed_sections} of 4
-                """
-                st.markdown(evidence_summary)
         
         
 
@@ -2987,44 +3001,125 @@ if st.session_state.page == "AI Assistant":
             mime="application/json",
             help="Download all prompts sent to LLM agents during the Gene Enrichment analysis"
         )
+
+        # Display Evidence Integration results if available
+        if 'EVIDENCE_INTEGRATION_consolidated' in st.session_state and st.session_state['EVIDENCE_INTEGRATION_consolidated']:
+            evidence_integration_consolidated_data = st.session_state['EVIDENCE_INTEGRATION_consolidated']
+            evidence_integration_execution_time = st.session_state.get('EVIDENCE_INTEGRATION_execution_time', 0.0)
+            
+            # Show Evidence Integration metadata with enhanced metrics
+            evidence_integration_metadata = evidence_integration_consolidated_data.user_input
+            metrics_info = ""
+            if hasattr(evidence_integration_consolidated_data, 'metrics'):
+                metrics = evidence_integration_consolidated_data.metrics
+                token_breakdown = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
+                metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s | **Tokens:** {token_breakdown}"
+            else:
+                metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s"
+            
+            st.info(f"**Evidence Integration completed:** {evidence_integration_consolidated_data.total_iterations} iteration(s) | **Status:** {evidence_integration_consolidated_data.final_status.value}{metrics_info}")
+            
+            # Expandable detailed Evidence Integration results
+            with st.expander("View Detailed Results - Evidence Integration Evidence Integration Workflow", expanded=False):
+                if evidence_integration_consolidated_data.unified_report:
+                    # Display the formatted report with proper bullet point rendering
+                    st.markdown("#### Formatted Unified Report")
+                    
+                    # Get the formatted string and ensure proper markdown rendering
+                    formatted_report = evidence_integration_consolidated_data.unified_report.to_formatted_string()
+                    
+                    # Split by sections and render each with proper formatting
+                    sections = formatted_report.split('## ')
+                    for section in sections:
+                        if section.strip():
+                            if not section.startswith('##'):
+                                section = '## ' + section
+                            
+                            # Ensure bullet points are properly formatted for Streamlit
+                            lines = section.split('\n')
+                            formatted_lines = []
+                            for line in lines:
+                                line = line.strip()
+                                if line:
+                                    # Convert bullet points to proper markdown format
+                                    if line.startswith('•'):
+                                        line = line.replace('•', '-', 1)  # Convert • to - for better Streamlit rendering
+                                    elif line.startswith('- ') or line.startswith('* '):
+                                        pass  # Already properly formatted
+                                    elif not line.startswith('##') and not line.startswith('#'):
+                                        # Add bullet point if it's content but not a header
+                                        if any(char.isalnum() for char in line):  # Only if it contains actual content
+                                            line = f"- {line}"
+                                    formatted_lines.append(line)
+                            
+                            formatted_section = '\n'.join(formatted_lines)
+                            st.markdown(formatted_section)
+                else:
+                    st.write("No detailed results available.")
+
+                # Show evidence integration summary
+                st.markdown("#### Evidence Integration Summary")
+                
+                # Count completed sections from the original sections list
+                unified_report = evidence_integration_consolidated_data.unified_report
+                original_sections = [
+                    ("Potential Novel Biomarkers", unified_report.potential_novel_biomarkers),
+                    ("Implications", unified_report.implications),
+                    ("Well-Known Interactions", unified_report.well_known_interactions),
+                    ("Conclusions", unified_report.conclusions)
+                ]
+                completed_sections = len([s for s in original_sections if s[1] and s[1].strip()])
+                
+                evidence_summary = f"""
+                **Evidence Sources Integrated:**
+                - CIVIC genes: {evidence_integration_consolidated_data.consolidated_evidence.total_genes_civic}
+                - PharmGKB genes: {evidence_integration_consolidated_data.consolidated_evidence.total_genes_pharmgkb}
+                - Gene sets: {evidence_integration_consolidated_data.consolidated_evidence.total_gene_sets_enrichment}
+                
+                **Workflow Details:**
+                - Total iterations: {evidence_integration_consolidated_data.total_iterations}
+                - Final status: {evidence_integration_consolidated_data.final_status.value}
+                - Report sections completed: {completed_sections} of 4
+                """
+                st.markdown(evidence_summary)
     
-    # Novelty Analysis Workflow Downloads
-    if 'NOVELTY_AI_results' in st.session_state and st.session_state['NOVELTY_AI_results']:
-        st.markdown("#### Novelty Analysis Evidence Integration Workflow Downloads")
+    # Evidence Integration Workflow Downloads
+    if 'EVIDENCE_INTEGRATION_results' in st.session_state and st.session_state['EVIDENCE_INTEGRATION_results']:
+        st.markdown("#### Evidence Integration Evidence Integration Workflow Downloads")
         
-        # Import Novelty WorkflowRunner for JSON generation
-        from source.novelty_agents import WorkflowRunner as NoveltyWorkflowRunner
-        novelty_temp_runner = NoveltyWorkflowRunner()
+        # Import Evidence Integration WorkflowRunner for JSON generation
+        from source.evidence_integration_agents import WorkflowRunner as EvidenceIntegrationWorkflowRunner
+        evidence_integration_temp_runner = EvidenceIntegrationWorkflowRunner()
         
-        # Novelty Full results with history
-        novelty_full_results_json = novelty_temp_runner.get_full_results_json(st.session_state['NOVELTY_AI_results'])
+        # Evidence Integration Full results with history
+        evidence_integration_full_results_json = evidence_integration_temp_runner.get_full_results_json(st.session_state['EVIDENCE_INTEGRATION_results'])
         st.download_button(
-            label="Download Novelty Analysis Full Results",
-            data=io.BytesIO(novelty_full_results_json.encode("utf-8")),
-            file_name=f"novelty_analysis_full_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            label="Download Evidence Integration Full Results",
+            data=io.BytesIO(evidence_integration_full_results_json.encode("utf-8")),
+            file_name=f"evidence_integration_full_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
-            help="Download complete Novelty Analysis results including feedback history and unified report"
+            help="Download complete Evidence Integration results including feedback history and unified report"
         )
         
-        # Novelty Consolidated data results
-        if 'NOVELTY_AI_consolidated' in st.session_state and st.session_state['NOVELTY_AI_consolidated']:
-            novelty_consolidated_json = novelty_temp_runner.get_consolidated_data_json(st.session_state['NOVELTY_AI_consolidated'])
+        # Evidence Integration Consolidated data results
+        if 'EVIDENCE_INTEGRATION_consolidated' in st.session_state and st.session_state['EVIDENCE_INTEGRATION_consolidated']:
+            evidence_integration_consolidated_json = evidence_integration_temp_runner.get_consolidated_data_json(st.session_state['EVIDENCE_INTEGRATION_consolidated'])
             st.download_button(
-                label="Download Novelty Analysis Consolidated Results",
-                data=io.BytesIO(novelty_consolidated_json.encode("utf-8")),
-                file_name=f"novelty_analysis_consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                label="Download Evidence Integration Consolidated Results",
+                data=io.BytesIO(evidence_integration_consolidated_json.encode("utf-8")),
+                file_name=f"evidence_integration_consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json",
-                help="Download consolidated Novelty Analysis unified report summary"
+                help="Download consolidated Evidence Integration unified report summary"
             )
         
-        # Novelty Full prompts sent to LLMs
-        novelty_prompts_json = novelty_temp_runner.get_prompts_json(st.session_state['NOVELTY_AI_results'], payload)
+        # Evidence Integration Full prompts sent to LLMs
+        evidence_integration_prompts_json = evidence_integration_temp_runner.get_prompts_json(st.session_state['EVIDENCE_INTEGRATION_results'], payload)
         st.download_button(
-            label="Download Novelty Analysis Full Prompts",
-            data=io.BytesIO(novelty_prompts_json.encode("utf-8")),
-            file_name=f"novelty_analysis_prompts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            label="Download Evidence Integration Full Prompts",
+            data=io.BytesIO(evidence_integration_prompts_json.encode("utf-8")),
+            file_name=f"evidence_integration_prompts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
-            help="Download all prompts sent to LLM agents during the Novelty Analysis"
+            help="Download all prompts sent to LLM agents during the Evidence Integration"
         )
 
         # Clear results button
@@ -3047,14 +3142,15 @@ if st.session_state.page == "AI Assistant":
                 del st.session_state['GPROFILER_AI_results']
             if 'GPROFILER_execution_time' in st.session_state:
                 del st.session_state['GPROFILER_execution_time']
-            if 'NOVELTY_AI_consolidated' in st.session_state:
-                del st.session_state['NOVELTY_AI_consolidated']
-            if 'NOVELTY_AI_results' in st.session_state:
-                del st.session_state['NOVELTY_AI_results']
-            if 'NOVELTY_execution_time' in st.session_state:
-                del st.session_state['NOVELTY_execution_time']
+            if 'EVIDENCE_INTEGRATION_consolidated' in st.session_state:
+                del st.session_state['EVIDENCE_INTEGRATION_consolidated']
+            if 'EVIDENCE_INTEGRATION_results' in st.session_state:
+                del st.session_state['EVIDENCE_INTEGRATION_results']
+            if 'EVIDENCE_INTEGRATION_execution_time' in st.session_state:
+                del st.session_state['EVIDENCE_INTEGRATION_execution_time']
             # Clear progress message history
             if 'progress_messages' in st.session_state:
                 del st.session_state['progress_messages']
             st.success("Previous AI analysis results cleared!")
             st.rerun()
+

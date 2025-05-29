@@ -87,9 +87,9 @@ class WorkflowEngine:
             
             # Update progress for current iteration
             if gene:
-                self._update_progress(f"**CIVIC System** - Gene **{gene}** - Iteration **{iteration}**: CIVIC BioExpert analyzing evidence...")
+                self._update_progress(f"**CIViC evidence interpretation** - Gene **{gene}** - Iteration **{iteration}**: CIVIC BioExpert analyzing evidence...")
             else:
-                self._update_progress(f"**CIVIC System** - Iteration **{iteration}**: CIVIC BioExpert analyzing evidence...")
+                self._update_progress(f"**CIViC evidence interpretation** - Iteration **{iteration}**: CIVIC BioExpert analyzing evidence...")
             
             # BioExpert Analysis Phase
             with Progress(
@@ -127,9 +127,9 @@ class WorkflowEngine:
             
             # Update progress for evaluation phase
             if gene:
-                self._update_progress(f"**CIVIC System** - Gene **{gene}** - Iteration **{iteration}**: CIVIC BioExpert analysis complete, evaluating...")
+                self._update_progress(f"**CIViC evidence interpretation** - Gene **{gene}** - Iteration **{iteration}**: CIVIC BioExpert analysis complete, evaluating...")
             else:
-                self._update_progress(f"**CIVIC System** - Iteration **{iteration}**: CIVIC BioExpert analysis complete, evaluating...")
+                self._update_progress(f"**CIViC evidence interpretation** - Iteration **{iteration}**: CIVIC BioExpert analysis complete, evaluating...")
             
             # Display BioExpert output
             self._display_bioexpert_output(current_bioexpert_output, iteration)
@@ -149,24 +149,24 @@ class WorkflowEngine:
             # Check approval and update progress with status
             if evaluation.status == EvaluationStatus.APPROVED:
                 if gene:
-                    self._update_progress(f"**CIVIC System** - Gene **{gene}** - Iteration **{iteration}**: Analysis APPROVED by Evaluator!")
+                    self._update_progress(f"**CIViC evidence interpretation** - Gene **{gene}** - Iteration **{iteration}**: Analysis APPROVED by Evaluator!")
                 else:
-                    self._update_progress(f"**CIVIC System** - Iteration **{iteration}**: Analysis APPROVED by Evaluator!")
+                    self._update_progress(f"**CIViC evidence interpretation** - Iteration **{iteration}**: Analysis APPROVED by Evaluator!")
                 break
             else:
                 if gene:
-                    self._update_progress(f"**CIVIC System** - Gene **{gene}** - Iteration **{iteration}**: Analysis NOT APPROVED by Evaluator, preparing iteration {iteration + 1}...")
+                    self._update_progress(f"**CIViC evidence interpretation** - Gene **{gene}** - Iteration **{iteration}**: Analysis NOT APPROVED by Evaluator, preparing iteration {iteration + 1}...")
                 else:
-                    self._update_progress(f"**CIVIC System** - Iteration **{iteration}**: Analysis NOT APPROVED by Evaluator, preparing iteration {iteration + 1}...")
+                    self._update_progress(f"**CIViC evidence interpretation** - Iteration **{iteration}**: Analysis NOT APPROVED by Evaluator, preparing iteration {iteration + 1}...")
             
             # Prepare next iteration
             iteration += 1
         
         # Final completion message
         if gene:
-            self._update_progress(f"**CIVIC System** - Gene **{gene}** analysis completed after **{iteration}** iteration(s)")
+            self._update_progress(f"**CIViC evidence interpretation** - Gene **{gene}** analysis completed after **{iteration}** iteration(s)")
         else:
-            self._update_progress(f"**CIVIC System** - Analysis completed after **{iteration}** iteration(s)")
+            self._update_progress(f"**CIViC evidence interpretation** - Analysis completed after **{iteration}** iteration(s)")
         
         # Calculate total workflow time
         workflow_end_time = datetime.now()
@@ -185,39 +185,7 @@ class WorkflowEngine:
         )
         
         self._display_final_summary(result)
-        self._save_result_to_json(result)
         return result
-
-    def _save_result_to_json(self, result: WorkflowResult):
-        """Save the workflow result to a JSON file."""
-        def default_serializer(obj):
-            # Handle enums and objects with __dict__
-            if hasattr(obj, "value"):
-                return obj.value
-            elif hasattr(obj, "__dict__"):
-                return obj.__dict__
-            elif isinstance(obj, set):
-                return list(obj)
-            return str(obj)
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        # Extract gene name from evidence string
-        if result.user_input.evidence:
-            lines = result.user_input.evidence.split('\n')
-            gene = "unknown"
-            for line in lines:
-                if line.startswith("Gene: "):
-                    gene = line.replace("Gene: ", "").strip()
-                    break
-        else:
-            gene = "unknown"
-        filename = f"workflow_result_{gene}_{timestamp}.json"
-        try:
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(result, f, default=default_serializer, indent=2, ensure_ascii=False)
-            self.console.print(f"[green]Result saved to {filename}[/green]")
-        except Exception as e:
-            self.console.print(f"[red]Failed to save result: {e}[/red]")
 
     def _display_bioexpert_output(self, output: BioExpertOutput, iteration: int):
         """Display BioExpert analysis output."""

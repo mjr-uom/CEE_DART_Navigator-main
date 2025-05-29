@@ -13,19 +13,19 @@ try:
     from .models import (UserInput, ReportComposerOutput, EvaluatorOutput, CriticOutput, 
                         DeliberationOutput, EvaluationStatus, WorkflowResult, 
                         ConsolidatedEvidence, FeedbackCollection, UnifiedReport, WorkflowMetrics)
-    from .agents import (OrchestratorAgent, ReportComposerAgent, EvaluatorAgent, 
-                        CriticAgent, DeliberationAgent)
+    from .agents import (OrchestratorAgent, ReportComposerAgent, ContentValidatorAgent, 
+                        CriticalReviewerAgent, RelevanceValidatorAgent)
 except ImportError:
     # Fallback for direct execution
     from config import Config
     from models import (UserInput, ReportComposerOutput, EvaluatorOutput, CriticOutput, 
                        DeliberationOutput, EvaluationStatus, WorkflowResult, 
                        ConsolidatedEvidence, FeedbackCollection, UnifiedReport, WorkflowMetrics)
-    from agents import (OrchestratorAgent, ReportComposerAgent, EvaluatorAgent, 
-                       CriticAgent, DeliberationAgent)
+    from agents import (OrchestratorAgent, ReportComposerAgent, ContentValidatorAgent, 
+                       CriticalReviewerAgent, RelevanceValidatorAgent)
 
 class WorkflowEngine:
-    """Main workflow engine that orchestrates the novelty analysis process with 5 agents."""
+    """Main workflow engine that orchestrates the evidence integration process with 5 agents."""
     
     def __init__(self, console: Optional[Console] = None, progress_callback=None):
         self.console = console or Console()
@@ -46,7 +46,7 @@ class WorkflowEngine:
     def run_workflow_from_files(self, civic_file: str, pharmgkb_file: str, 
                                gene_enrichment_file: str, context: str, question: str) -> WorkflowResult:
         """
-        Run the complete novelty analysis workflow from consolidated analysis files.
+        Run the complete evidence integration workflow from consolidated analysis files.
         
         Args:
             civic_file: Path to CIVIC analysis consolidated JSON file
@@ -58,7 +58,7 @@ class WorkflowEngine:
         Returns:
             WorkflowResult: Final unified report with analysis and workflow metadata
         """
-        title = "Starting Novelty Analysis Workflow - Evidence Integration"
+        title = "Starting Evidence Integration Workflow - Evidence Integration"
         self.console.print(Panel.fit(title, style="bold blue"))
         self._update_progress("**Extracting evidence** from analysis files...")
         
@@ -78,7 +78,7 @@ class WorkflowEngine:
     
     def run_workflow(self, user_input: UserInput, consolidated_evidence: ConsolidatedEvidence) -> WorkflowResult:
         """
-        Run the complete novelty analysis workflow.
+        Run the complete evidence integration workflow.
         
         Args:
             user_input: User's input containing context, question, and evidence
@@ -106,7 +106,7 @@ class WorkflowEngine:
             self.console.print(f"**Iteration {iteration}**")
             
             # Update progress for current iteration
-            self._update_progress(f"**Novelty Analysis System** - Iteration **{iteration}**: Report Composer creating unified report...")
+            self._update_progress(f"**Evidence Integration System** - Iteration **{iteration}**: Report Composer creating unified report...")
             
             # Report Composer Phase
             with Progress(
@@ -115,7 +115,7 @@ class WorkflowEngine:
                 console=self.console,
                 transient=True
             ) as progress:
-                task = progress.add_task("Novelty Report Composer creating unified report...", total=None)
+                task = progress.add_task("Evidence Integration Report Composer creating unified report...", total=None)
                 
                 # Start tracking Report Composer execution
                 report_composer_execution = self.report_composer.start_execution()
@@ -141,11 +141,11 @@ class WorkflowEngine:
                 report_composer_execution = self.report_composer.end_execution()
                 workflow_metrics.add_agent_execution(report_composer_execution)
                 
-                progress.update(task, description="Novelty Report Composer analysis complete")
+                progress.update(task, description="Evidence Integration Report Composer analysis complete")
                 time.sleep(0.5)  # Brief pause for visual effect
             
             # Update progress for evaluation phase
-            self._update_progress(f"**Novelty Analysis System** - Iteration **{iteration}**: Report complete, gathering feedback from all agents...")
+            self._update_progress(f"**Evidence Integration System** - Iteration **{iteration}**: Report complete, gathering feedback from all agents...")
             
             # Display Report Composer output
             self._display_report_output(current_report_output, iteration)
@@ -213,16 +213,16 @@ class WorkflowEngine:
             
             # Check if all agents approved
             if feedback_collection.all_approved:
-                self._update_progress(f"**Novelty Analysis System** - Iteration **{iteration}**: All agents APPROVED the report! ({feedback_summary})")
+                self._update_progress(f"**Evidence Integration System** - Iteration **{iteration}**: All agents APPROVED the report! ({feedback_summary})")
                 break
             else:
-                self._update_progress(f"**Novelty Analysis System** - Iteration **{iteration}**: Feedback received ({feedback_summary}), preparing iteration {iteration + 1}...")
+                self._update_progress(f"**Evidence Integration System** - Iteration **{iteration}**: Feedback received ({feedback_summary}), preparing iteration {iteration + 1}...")
             
             # Prepare next iteration
             iteration += 1
         
         # Final completion message
-        self._update_progress(f"**Novelty Analysis System** - Analysis completed after **{iteration}** iteration(s)")
+        self._update_progress(f"**Evidence Integration System** - Analysis completed after **{iteration}** iteration(s)")
         
         # Create final unified report
         unified_report = UnifiedReport(
@@ -337,7 +337,7 @@ class WorkflowEngine:
     def _display_final_summary(self, result: WorkflowResult):
         """Display the final workflow summary."""
         self.console.print(Panel.fit(
-            "Novelty Analysis Workflow Complete",
+            "Evidence Integration Workflow Complete",
             style="bold blue"
         ))
         

@@ -192,39 +192,7 @@ class WorkflowEngine:
         )
         
         self._display_final_summary(result)
-        self._save_result_to_json(result)
         return result
-
-    def _save_result_to_json(self, result: WorkflowResult):
-        """Save the workflow result to a JSON file."""
-        def default_serializer(obj):
-            # Handle enums and objects with __dict__
-            if hasattr(obj, "value"):
-                return obj.value
-            elif hasattr(obj, "__dict__"):
-                return obj.__dict__
-            elif isinstance(obj, set):
-                return list(obj)
-            return str(obj)
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        # Extract gene set name from evidence string
-        if result.user_input.evidence:
-            lines = result.user_input.evidence.split('\n')
-            gene = "unknown"
-            for line in lines:
-                if line.startswith("Gene Set: "):
-                    gene = line.replace("Gene Set: ", "").strip()
-                    break
-        else:
-            gene = "unknown"
-        filename = f"workflow_result_{gene}_{timestamp}.json"
-        try:
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(result, f, default=default_serializer, indent=2, ensure_ascii=False)
-            self.console.print(f"[green]Result saved to {filename}[/green]")
-        except Exception as e:
-            self.console.print(f"[red]Failed to save result: {e}[/red]")
 
     def _display_bioexpert_output(self, output: BioExpertOutput, iteration: int):
         """Display BioExpert analysis output."""

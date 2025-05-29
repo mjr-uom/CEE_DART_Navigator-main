@@ -42,13 +42,13 @@ class WorkflowRunner:
         total_genes = len(inputs)
         
         if self.progress_callback:
-            self.progress_callback(f"**CIVIC System** - Starting AI analysis for {total_genes} gene(s)")
+            self.progress_callback(f"**CIViC evidence interpretation** - Starting AI analysis for {total_genes} gene(s)")
         
         for i, inp in enumerate(inputs, 1):
             gene_name = self._extract_gene_name_from_evidence(inp.evidence, i)
             # Update progress for current gene
             if self.progress_callback:
-                self.progress_callback(f"**CIVIC System** - Processing gene {i}/{total_genes}: {gene_name}")
+                self.progress_callback(f"**CIViC evidence interpretation** - Processing gene {i}/{total_genes}: {gene_name}")
             
             result = self.workflow.run_workflow(inp)
             results.append(result)
@@ -56,12 +56,12 @@ class WorkflowRunner:
             # Update progress after gene completion
             if self.progress_callback:
                 status_emoji = "✅" if result.final_status.value == "APPROVED" else "⚠️"
-                self.progress_callback(f"**CIVIC System** - {status_emoji} Gene {i}/{total_genes} ({gene_name}) completed - {result.total_iterations} iteration(s)")
+                self.progress_callback(f"**CIViC evidence interpretation** - {status_emoji} Gene {i}/{total_genes} ({gene_name}) completed - {result.total_iterations} iteration(s)")
         
         # Final completion message
         if self.progress_callback:
             approved_count = sum(1 for r in results if r.final_status.value == "APPROVED")
-            self.progress_callback(f"**CIVIC System** - 🎉 All genes completed! {approved_count}/{total_genes} analyses approved")
+            self.progress_callback(f"**CIViC evidence interpretation** - 🎉 All genes completed! {approved_count}/{total_genes} analyses approved")
         
         # Generate consolidated data for session state
         consolidated_data = self._generate_consolidated_data(results)

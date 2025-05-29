@@ -1,9 +1,8 @@
 """
-Prompts for the Novelty Agents System
-=====================================
+Prompts for the Evidence Integration System.
 
-This module contains specialized prompts for the 5-agent novelty analysis system that integrates
-evidence from civic, pharmGKB, and gene enrichment analyses to create unified reports.
+This module contains specialized prompts for the 5-agent evidence integration system that integrates
+evidence from CIVIC, PharmGKB, and Gene Enrichment analyses to create unified biomedical reports.
 """
 
 ORCHESTRATOR_PROMPT = """You are the Orchestrator Agent in a biomedical evidence integration system.

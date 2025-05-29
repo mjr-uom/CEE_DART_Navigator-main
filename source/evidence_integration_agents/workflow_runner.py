@@ -20,6 +20,12 @@ except ImportError:
     from workflow import WorkflowEngine
     from config import Config
 
+# Import EvaluationStatus from utils
+try:
+    from ..utils.models import EvaluationStatus
+except ImportError:
+    from source.utils.models import EvaluationStatus
+
 
 class ValidationError(Exception):
     """Custom exception for validation errors."""
@@ -68,7 +74,7 @@ class NoveltyWorkflowRunner:
     def run_from_files(self, civic_file: str, pharmgkb_file: str, gene_enrichment_file: str,
                       context: str, question: str) -> WorkflowResult:
         """
-        Run novelty analysis workflow from consolidated analysis files.
+        Run evidence integration workflow from consolidated analysis files.
         
         Args:
             civic_file: Path to CIVIC analysis consolidated JSON file
@@ -90,7 +96,7 @@ class NoveltyWorkflowRunner:
         self._validate_file_exists(pharmgkb_file, "PharmGKB")
         self._validate_file_exists(gene_enrichment_file, "Gene Enrichment")
         
-        print(f"Starting novelty analysis workflow...")
+        print(f"Starting evidence integration workflow...")
         print(f"CIVIC file: {civic_file}")
         print(f"PharmGKB file: {pharmgkb_file}")
         print(f"Gene Enrichment file: {gene_enrichment_file}")
@@ -110,7 +116,7 @@ class NoveltyWorkflowRunner:
     
     def run_from_app_data(self, app_data: Dict[str, Any]) -> WorkflowResult:
         """
-        Run novelty analysis workflow from app data structure.
+        Run evidence integration workflow from app data structure.
         
         Args:
             app_data: Dictionary containing analysis results from all three systems
@@ -129,7 +135,7 @@ class NoveltyWorkflowRunner:
         Raises:
             ValidationError: If input validation fails or required data is missing
         """
-        print("DEBUG: Starting novelty analysis run_from_app_data")
+        print("DEBUG: Starting evidence integration run_from_app_data")
         
         # Extract context and question
         context = app_data.get('context', '')
@@ -247,7 +253,7 @@ class NoveltyWorkflowRunner:
         print(f"DEBUG: Data empty status - civic: {civic_empty}, pharmgkb: {pharmgkb_empty}, gene_enrichment: {gene_enrichment_empty}")
         
         if civic_empty and pharmgkb_empty and gene_enrichment_empty:
-            raise ValidationError("All evidence data is empty. Cannot proceed with novelty analysis.")
+            raise ValidationError("All evidence data is empty. Cannot proceed with evidence integration.")
         
         # Create temporary files for the workflow
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -295,7 +301,7 @@ class NoveltyWorkflowRunner:
     
     def run_from_json_file(self, json_file: str) -> WorkflowResult:
         """
-        Run novelty analysis workflow from a JSON file containing file paths and parameters.
+        Run evidence integration workflow from a JSON file containing file paths and parameters.
         
         Args:
             json_file: Path to JSON file with structure:
@@ -337,9 +343,9 @@ class NoveltyWorkflowRunner:
             question=config['question']
         )
     
-    def create_sample_config(self, output_file: str = "novelty_analysis_config.json") -> str:
+    def create_sample_config(self, output_file: str = "evidence_integration_config.json") -> str:
         """
-        Create a sample configuration file for the novelty analysis workflow.
+        Create a sample configuration file for the evidence integration workflow.
         
         Args:
             output_file: Path where to save the sample configuration
@@ -379,7 +385,7 @@ class NoveltyWorkflowRunner:
         full_results = {
             "metadata": {
                 "generated_at": datetime.now().isoformat(),
-                "workflow_type": "Novelty Analysis - Evidence Integration",
+                "workflow_type": "Evidence Integration - Evidence Integration",
                 "total_iterations": result.total_iterations,
                 "final_status": result.final_status.value,
                 "description": "Complete workflow execution trace with all agent interactions, prompts, and responses"
@@ -437,7 +443,7 @@ class NoveltyWorkflowRunner:
         
         # Add metrics if available
         if hasattr(result, 'metrics') and result.metrics:
-            full_results["workflow_metrics"]["execution_time_seconds"] = result.metrics.execution_time_seconds
+            full_results["workflow_metrics"]["execution_time_seconds"] = result.metrics.total_execution_time_seconds
             full_results["workflow_metrics"]["total_tokens_used"] = {
                 "prompt_tokens": result.metrics.total_tokens_used.prompt_tokens,
                 "completion_tokens": result.metrics.total_tokens_used.completion_tokens,
@@ -731,7 +737,7 @@ Respond with "APPROVED" or "NOT APPROVED" followed by specific deliberation feed
             "metadata": {
                 "generated_at": datetime.now().isoformat(),
                 "total_iterations": result.total_iterations,
-                "description": "Full prompts sent to LLM agents during novelty analysis",
+                "description": "Full prompts sent to LLM agents during evidence integration",
                 "note": "Each agent call includes both system prompt and user message. Evidence from all three systems is integrated."
             },
             "system_prompts": {
