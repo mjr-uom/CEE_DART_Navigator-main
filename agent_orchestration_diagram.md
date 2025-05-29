@@ -5,42 +5,42 @@ This diagram shows how the four agent systems work together in the CEE DART Navi
 ```mermaid
 flowchart TD
     %% Input Data
-    Input[("📊 Input Data<br/>• Context<br/>• Question<br/>• Gene Lists")]
+    Input[("📊 Input Data<br/>• Context<br/>• Question<br/>• Pre-extracted Evidence<br/>from Knowledge Bases")]
     
     %% Evidence Collection Phase
-    subgraph Evidence["🔍 Evidence Collection Phase (Parallel Execution)"]
+    subgraph Evidence["🔍 Evidence Analysis Phase (Parallel Execution)"]
         direction TB
         
         %% CIVIC System
         subgraph CIVIC["🧬 CIVIC Analysis System"]
             direction TB
-            C_Bio["BioExpert Agent<br/>(Clinical Evidence)"]
+            C_Bio["BioExpert Agent<br/>(Clinical Evidence Analysis)"]
             C_Eval["Content Validator<br/>(Quality Check)"]
             C_Bio --> C_Eval
             C_Eval -->|"APPROVED/NOT APPROVED"| C_Bio
-            C_Result[("📋 CIVIC Results<br/>• Clinical Variants<br/>• Drug Associations<br/>• Evidence Levels")]
+            C_Result[("📋 CIVIC Analysis Results<br/>• Gene-level Clinical Interpretations<br/>• Therapeutic Relevance<br/>• Evidence Synthesis")]
             C_Eval --> C_Result
         end
         
         %% PharmGKB System  
         subgraph PharmGKB["💊 PharmGKB Analysis System"]
             direction TB
-            P_Bio["BioExpert Agent<br/>(Pharmacogenomic Evidence)"]
+            P_Bio["BioExpert Agent<br/>(Pharmacogenomic Analysis)"]
             P_Eval["Content Validator<br/>(Quality Check)"]
             P_Bio --> P_Eval
             P_Eval -->|"APPROVED/NOT APPROVED"| P_Bio
-            P_Result[("📋 PharmGKB Results<br/>• Drug-Gene Interactions<br/>• Pharmacokinetics<br/>• Dosing Guidelines")]
+            P_Result[("📋 PharmGKB Analysis Results<br/>• Pharmacogenomic Associations<br/>• Drug Response Patterns<br/>• Genetic Variant Effects")]
             P_Eval --> P_Result
         end
         
         %% GProfiler System
         subgraph GProfiler["🔬 Gene Enrichment Analysis System"]
             direction TB
-            G_Bio["Gene Enrichment Expert<br/>(Pathway Analysis)"]
+            G_Bio["Gene Enrichment Expert<br/>(Pathway & Function Analysis)"]
             G_Eval["Content Validator<br/>(Quality Check)"]
             G_Bio --> G_Eval
             G_Eval -->|"APPROVED/NOT APPROVED"| G_Bio
-            G_Result[("📋 Enrichment Results<br/>• Biological Pathways<br/>• GO Terms<br/>• Functional Networks")]
+            G_Result[("📋 Gene Enrichment Results<br/>• Pathway Enrichment Analysis<br/>• Biological Process Insights<br/>• Functional Annotations")]
             G_Eval --> G_Result
         end
     end
@@ -101,22 +101,22 @@ flowchart TD
 
 ## System Overview
 
-### 🔍 **Phase 1: Parallel Evidence Collection**
-Three independent agent systems run simultaneously:
+### 🔍 **Phase 1: Parallel Evidence Analysis**
+Three independent agent systems analyze pre-extracted evidence simultaneously:
 
 1. **CIVIC System** 🧬
-   - Analyzes clinical evidence for genetic variants
-   - Focuses on drug associations and therapeutic relevance
+   - Analyzes pre-extracted clinical evidence for genetic variants
+   - Produces gene-level clinical interpretations and therapeutic relevance assessments
    - Uses BioExpert + Content Validator agents
 
 2. **PharmGKB System** 💊
-   - Processes pharmacogenomic evidence
-   - Examines drug-gene interactions and dosing guidelines
+   - Processes pre-extracted pharmacogenomic evidence
+   - Generates pharmacogenomic associations and drug response pattern analysis
    - Uses BioExpert + Content Validator agents
 
 3. **GProfiler System** 🔬
-   - Performs gene enrichment and pathway analysis
-   - Identifies biological processes and functional networks
+   - Analyzes gene sets for pathway and functional enrichment
+   - Produces pathway enrichment analysis and biological process insights
    - Uses Gene Enrichment Expert + Content Validator agents
 
 ### 🔄 **Phase 2: Evidence Integration**
