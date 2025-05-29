@@ -41,6 +41,9 @@ import collections
 
 import altair as alt
 
+# Import PDF generation function
+from pdf_generator import generate_evidence_integration_pdf
+
 
 
 default_session_state = {
@@ -443,6 +446,399 @@ def map_index_to_unsorted(index_in_ordered: int, ordered_list: list, unordered_l
     value_in_ordered = ordered_list[index_in_ordered]
     unordered_index = unordered_index_map[value_in_ordered]
     return unordered_index
+
+def parse_communities(community_text):
+    """Parse community input text into dictionary"""
+    community_dict = {}
+    
+    if not community_text.strip():
+        return {}
+    
+    lines = community_text.strip().split('\n')
+    for line in lines:
+        line = line.strip()
+        if ':' in line:
+            try:
+                community_name, genes_str = line.split(':', 1)
+                community_name = community_name.strip()
+                genes = [gene.strip().upper() for gene in genes_str.split(',') if gene.strip()]
+                
+                if genes:
+                    # Extract community number or use full name
+                    community_id = community_name.replace('Community', '').strip()
+                    if not community_id:
+                        community_id = community_name
+                    community_dict[community_id] = genes
+            except:
+                continue  # Skip malformed lines
+    
+    return community_dict
+
+def extract_evidence_from_gene_list(gene_list, community_dict=None, p_value=0.05, progress_callback=None):
+    """
+    Extract evidence for a provided gene list
+    
+    Args:
+        gene_list: List of gene symbols
+        community_dict: Optional dict {community_id: [gene_list]}
+        p_value: P-value threshold for gene enrichment
+        progress_callback: Function to call for progress updates
+    """
+    
+    # Basic format checking and cleaning
+    cleaned_genes = []
+    for gene in gene_list:
+        gene = gene.strip().upper()
+        if gene and gene.replace('_', '').replace('-', '').isalnum():
+            cleaned_genes.append(gene)
+    
+    if not cleaned_genes:
+        raise ValueError("No valid genes found in input")
+    
+    # Store in session state
+    st.session_state['gene_list_no_types'] = cleaned_genes
+    st.session_state['gene_list'] = [f"{gene}_gene" for gene in cleaned_genes]  # Add type suffix for compatibility
+    
+    if progress_callback:
+        progress_callback("🧬 Starting Gene Enrichment Analysis...")
+    
+    # Gene Enrichment Analysis
+    ge_analyser = ge.GE_Analyser(cleaned_genes)
+    ge_results = ge_analyser.run_GE_on_nodes(user_threshold=p_value)
+    st.session_state['gene_enrichment'] = ge_analyser.ge_results_dict
+    
+    # Community Enrichment Analysis
+    if community_dict:
+        if progress_callback:
+            progress_callback("🔬 Processing Community Enrichment Analysis...")
+            
+        community_enrichment_results = {}
+        for community_id, genes in community_dict.items():
+            if genes:
+                ge_analyser = ge.GE_Analyser(genes)
+                ge_results = ge_analyser.run_GE_on_nodes(user_threshold=p_value)
+                community_enrichment_results[community_id] = ge_analyser.ge_results_dict
+                community_enrichment_results[community_id]['gene_list'] = ", ".join(genes)
+        
+        st.session_state['community_enrichment'] = community_enrichment_results
+        st.session_state['community_analysis'] = community_dict
+    else:
+        st.session_state['community_enrichment'] = {}
+        st.session_state['community_analysis'] = {}
+    
+    # CIVIC Evidence Analysis
+    if progress_callback:
+        progress_callback("🏥 Extracting CIVIC Clinical Evidence...")
+    
+    try:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        civicdb_path = os.path.join(base_path, 'resources', 'civicdb')
+        
+        if not os.path.exists(civicdb_path):
+            st.session_state['civic_evidence'] = None
+            if progress_callback:
+                progress_callback(f"⚠️ CIVIC database path does not exist: {civicdb_path}")
+        else:
+            analyzer = civic_evidence_code.CivicEvidenceAnalyzer(civicdb_path, cleaned_genes)
+            analyzer.create_feature_details_dict()
+            details_dict = analyzer.add_evidence_to_dict()
+            st.session_state['civic_evidence'] = details_dict
+    except Exception as e:
+        st.session_state['civic_evidence'] = None
+        if progress_callback:
+            progress_callback(f"⚠️ CIVIC analysis failed: {str(e)}")
+    
+    # PharmGKB Analysis  
+    if progress_callback:
+        progress_callback("💊 Extracting PharmGKB Drug Interaction Data...")
+    
+    try:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        pharmagkb_files_path = os.path.join(base_path, 'resources', 'pharmgkb')
+        
+        if not os.path.exists(pharmagkb_files_path):
+            st.session_state['pharmGKB_analysis'] = None
+            if progress_callback:
+                progress_callback(f"⚠️ PharmGKB files path does not exist: {pharmagkb_files_path}")
+        else:
+            pharmGKB_analyzer = pbk.pharmGKB_Analyzer(cleaned_genes)
+            pharmGKB_analyzer.get_pharmGKB_knowledge(files_path=pharmagkb_files_path)
+            
+            # Process PharmGKB results (same as current implementation)
+            pharmGKB_df = pd.concat([
+                pharmGKB_analyzer.pharmGKB_var_pheno_ann_filtered,
+                pharmGKB_analyzer.pharmGKB_var_drug_ann_filtered,
+                pharmGKB_analyzer.pharmGKB_var_fa_ann_filtered
+            ], ignore_index=True)
+            
+            if not pharmGKB_df.empty:
+                # Ensure required columns exist
+                required_columns = ['Gene', 'Drug(s)', 'Sentence', 'Notes', 'PMID']
+                missing_columns = [col for col in required_columns if col not in pharmGKB_df.columns]
+                if not missing_columns:
+                    # Convert to required format
+                    pharmGKB_details = {}
+                    grouped = pharmGKB_df.groupby('Gene')
+                    for gene, group in grouped:
+                        gene_entries = []
+                        for _, row in group.iterrows():
+                            entry = {
+                                "Drug(s)": row.get("Drug(s)", None),
+                                "Sentence": row.get("Sentence", None),
+                                "Notes": row.get("Notes", None) if pd.notnull(row.get("Notes", None)) else None,
+                                "PMID": int(row["PMID"]) if pd.notnull(row.get("PMID", None)) and str(row["PMID"]).isdigit() else row.get("PMID", None)
+                            }
+                            gene_entries.append(entry)
+                        pharmGKB_details[gene] = gene_entries
+                    st.session_state['pharmGKB_analysis'] = pharmGKB_details
+                else:
+                    st.session_state['pharmGKB_analysis'] = None
+                    if progress_callback:
+                        progress_callback(f"⚠️ Missing required PharmGKB columns: {', '.join(missing_columns)}")
+            else:
+                st.session_state['pharmGKB_analysis'] = None
+                
+    except Exception as e:
+        st.session_state['pharmGKB_analysis'] = None
+        if progress_callback:
+            progress_callback(f"⚠️ PharmGKB analysis failed: {str(e)}")
+    
+    if progress_callback:
+        progress_callback("✅ Evidence extraction completed!")
+
+def generate_evidence_integration_pdf(context, question, gene_list, evidence_integration_data, analysis_timestamp):
+    """
+    Generate a PDF report for Evidence Integration analysis
+    
+    Args:
+        context: User context
+        question: User question/prompt  
+        gene_list: List of genes analyzed
+        evidence_integration_data: Evidence integration consolidated data
+        analysis_timestamp: When the analysis was performed
+    
+    Returns:
+        bytes: PDF content as bytes
+    """
+    try:
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+        from reportlab.lib.colors import HexColor
+        import io
+        
+        # Create a buffer to store PDF content
+        buffer = io.BytesIO()
+        
+        # Create the PDF document
+        doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                               leftMargin=0.75*inch, rightMargin=0.75*inch,
+                               topMargin=1*inch, bottomMargin=1*inch)
+        
+        # Build story content
+        story = []
+        
+        # Get styles
+        styles = getSampleStyleSheet()
+        
+        # Custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            textColor=HexColor('#1f77b4')
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Heading2'],
+            fontSize=16,
+            spaceAfter=20,
+            textColor=HexColor('#2c3e50')
+        )
+        
+        body_style = ParagraphStyle(
+            'CustomBody',
+            parent=styles['Normal'],
+            fontSize=11,
+            spaceAfter=12,
+            alignment=TA_JUSTIFY,
+            leading=14
+        )
+        
+        # Title
+        story.append(Paragraph("Molecular Interaction Signatures Portal", title_style))
+        story.append(Paragraph("AI-Powered Evidence Integration Report", subtitle_style))
+        story.append(Spacer(1, 20))
+        
+        # Analysis Information
+        story.append(Paragraph("Analysis Information", subtitle_style))
+        
+        info_data = [
+            ["Report Generated:", analysis_timestamp.strftime("%B %d, %Y at %H:%M:%S")],
+            ["Analysis Type:", "Evidence Integration"],
+            ["Total Genes Analyzed:", str(len(gene_list)) if gene_list else "N/A"],
+        ]
+        
+        info_table = Table(info_data, colWidths=[2*inch, 4*inch])
+        info_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), HexColor('#f8f9fa')),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, HexColor('#dee2e6')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        
+        story.append(info_table)
+        story.append(Spacer(1, 20))
+        
+        # Context Section
+        if context and context.strip():
+            story.append(Paragraph("Research Context", subtitle_style))
+            story.append(Paragraph(context.strip(), body_style))
+            story.append(Spacer(1, 15))
+        
+        # Question Section
+        if question and question.strip():
+            story.append(Paragraph("Research Question", subtitle_style))
+            story.append(Paragraph(question.strip(), body_style))
+            story.append(Spacer(1, 15))
+        
+        # Gene List Section
+        if gene_list:
+            story.append(Paragraph("Genes Analyzed", subtitle_style))
+            
+            # Format gene list nicely
+            if len(gene_list) <= 20:
+                gene_text = ", ".join(gene_list)
+            else:
+                gene_text = ", ".join(gene_list[:20]) + f"... and {len(gene_list) - 20} more genes"
+            
+            story.append(Paragraph(gene_text, body_style))
+            story.append(Spacer(1, 15))
+        
+        # Evidence Integration Results
+        if evidence_integration_data and hasattr(evidence_integration_data, 'unified_report') and evidence_integration_data.unified_report:
+            story.append(Paragraph("AI Analysis Results", subtitle_style))
+            
+            unified_report = evidence_integration_data.unified_report
+            
+            # Helper function to clean and format text for PDF
+            def clean_text_for_pdf(text):
+                if not text:
+                    return "No information available."
+                
+                # Remove markdown formatting and clean up text
+                import re
+                
+                # Remove markdown headers
+                text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
+                
+                # Convert bullet points
+                text = re.sub(r'^[•\-\*]\s*', '• ', text, flags=re.MULTILINE)
+                
+                # Clean up extra whitespace
+                text = re.sub(r'\n\s*\n', '\n\n', text)
+                text = text.strip()
+                
+                return text
+            
+            # Potential Novel Biomarkers
+            if unified_report.potential_novel_biomarkers:
+                story.append(Paragraph("Potential Novel Biomarkers", styles['Heading3']))
+                cleaned_text = clean_text_for_pdf(unified_report.potential_novel_biomarkers)
+                story.append(Paragraph(cleaned_text, body_style))
+                story.append(Spacer(1, 12))
+            
+            # Implications
+            if unified_report.implications:
+                story.append(Paragraph("Clinical and Research Implications", styles['Heading3']))
+                cleaned_text = clean_text_for_pdf(unified_report.implications)
+                story.append(Paragraph(cleaned_text, body_style))
+                story.append(Spacer(1, 12))
+            
+            # Well-Known Interactions
+            if unified_report.well_known_interactions:
+                story.append(Paragraph("Well-Known Interactions", styles['Heading3']))
+                cleaned_text = clean_text_for_pdf(unified_report.well_known_interactions)
+                story.append(Paragraph(cleaned_text, body_style))
+                story.append(Spacer(1, 12))
+            
+            # Conclusions
+            if unified_report.conclusions:
+                story.append(Paragraph("Conclusions", styles['Heading3']))
+                cleaned_text = clean_text_for_pdf(unified_report.conclusions)
+                story.append(Paragraph(cleaned_text, body_style))
+                story.append(Spacer(1, 12))
+        
+        # Analysis Summary
+        if evidence_integration_data:
+            story.append(Spacer(1, 20))
+            story.append(Paragraph("Analysis Summary", subtitle_style))
+            
+            summary_data = [
+                ["Total Iterations:", str(evidence_integration_data.total_iterations)],
+                ["Analysis Status:", str(evidence_integration_data.final_status.value) if hasattr(evidence_integration_data.final_status, 'value') else str(evidence_integration_data.final_status)],
+            ]
+            
+            if hasattr(evidence_integration_data, 'consolidated_evidence'):
+                ce = evidence_integration_data.consolidated_evidence
+                summary_data.extend([
+                    ["CIVIC Genes:", str(ce.total_genes_civic)],
+                    ["PharmGKB Genes:", str(ce.total_genes_pharmgkb)], 
+                    ["Gene Sets:", str(ce.total_gene_sets_enrichment)],
+                ])
+            
+            summary_table = Table(summary_data, colWidths=[2*inch, 4*inch])
+            summary_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), HexColor('#f8f9fa')),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 1, HexColor('#dee2e6')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            
+            story.append(summary_table)
+        
+        # Footer
+        story.append(Spacer(1, 30))
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=9,
+            alignment=TA_CENTER,
+            textColor=HexColor('#6c757d')
+        )
+        story.append(Paragraph("Generated by Molecular Interaction Signatures Portal - AI Assistant", footer_style))
+        story.append(Paragraph("This report is generated for research purposes only.", footer_style))
+        
+        # Build PDF
+        doc.build(story)
+        
+        # Get PDF content
+        pdf_content = buffer.getvalue()
+        buffer.close()
+        
+        return pdf_content
+        
+    except ImportError:
+        # If reportlab is not available, return None
+        return None
+    except Exception as e:
+        print(f"Error generating PDF: {e}")
+        return None
 
 # A helper function to force a page reload using JS
 def rerun():
@@ -2199,9 +2595,9 @@ if st.session_state.page == "AI Assistant":
     # Radio button to choose data source
     data_source = st.radio(
         "Choose your data source:",
-        ["Use current session data", "Upload JSON file"],
+        ["Use current session data", "Upload JSON file", "Provide gene list and extract evidence"],
         key="data_source_choice",
-        help="Choose whether to use data from your current analysis session or upload a JSON file with data"
+        help="Choose whether to use data from your current analysis session, upload a JSON file with data, or provide a gene list for evidence extraction"
     )
     
     uploaded_json_data = None
@@ -2257,6 +2653,97 @@ if st.session_state.page == "AI Assistant":
             except Exception as e:
                 st.error(f"❌ Error processing file: {e}")
                 uploaded_json_data = None
+    elif data_source == "Provide gene list and extract evidence":
+        st.markdown("#### Gene List Input")
+        
+        # Main gene list input
+        gene_input = st.text_area(
+            "Enter genes (comma-separated):",
+            placeholder="BRCA1, TP53, EGFR, PIK3CA, KRAS",
+            help="Enter gene symbols separated by commas",
+            key="gene_list_input"
+        )
+        
+        # Optional community grouping
+        st.markdown("#### Community Grouping (Optional)")
+        enable_communities = st.checkbox(
+            "Group genes into communities for enrichment analysis",
+            key="enable_communities_checkbox"
+        )
+        
+        community_input = ""
+        if enable_communities:
+            community_input = st.text_area(
+                "Define communities (optional):",
+                placeholder="""Community 1: BRCA1, TP53, ATM
+Community 2: EGFR, PIK3CA, AKT1
+Community 3: KRAS, NRAS, BRAF""",
+                help="Format: 'Community X: gene1, gene2, gene3' (one community per line)",
+                key="community_input"
+            )
+        
+        # P-value threshold
+        p_value_threshold = st.slider(
+            "Gene Enrichment p-value threshold:",
+            min_value=0.0,
+            max_value=0.2,
+            value=0.05,
+            step=0.001,
+            help="P-value threshold for gene enrichment analysis",
+            key="gene_list_p_value"
+        )
+        
+        # Extract Evidence button
+        if st.button("Extract Evidence", key="extract_evidence_button"):
+            if not gene_input.strip():
+                st.error("❌ Please enter at least one gene symbol")
+            else:
+                try:
+                    # Parse genes
+                    genes = [gene.strip() for gene in gene_input.split(',') if gene.strip()]
+                    
+                    # Parse communities if provided
+                    community_dict = {}
+                    if enable_communities and community_input.strip():
+                        community_dict = parse_communities(community_input)
+                        if community_dict:
+                            st.info(f"✅ Parsed {len(community_dict)} communities: {list(community_dict.keys())}")
+                    
+                    # Progress tracking
+                    progress_container = st.empty()
+                    def update_progress(message):
+                        progress_container.info(f"🔄 {message}")
+                    
+                    # Extract evidence
+                    extract_evidence_from_gene_list(
+                        genes, 
+                        community_dict if community_dict else None,
+                        p_value_threshold,
+                        update_progress
+                    )
+                    
+                    progress_container.success("✅ Evidence extraction completed! You can now run AI analysis below.")
+                    
+                    # Show what evidence was extracted
+                    extracted_evidence = []
+                    if st.session_state.get('gene_enrichment'):
+                        extracted_evidence.append("Gene Enrichment")
+                    if st.session_state.get('community_enrichment'):
+                        extracted_evidence.append("Community Enrichment")
+                    if st.session_state.get('civic_evidence'):
+                        extracted_evidence.append("CIVIC Evidence")
+                    if st.session_state.get('pharmGKB_analysis'):
+                        extracted_evidence.append("PharmGKB Analysis")
+                    
+                    if extracted_evidence:
+                        st.info(f"📊 Extracted evidence types: {', '.join(extracted_evidence)}")
+                    
+                except Exception as e:
+                    progress_container.error(f"❌ Error during evidence extraction: {str(e)}")
+                    import traceback
+                    with st.expander("Technical Details (for debugging)", expanded=False):
+                        st.code(traceback.format_exc())
+
     else:
         # Show what data is available in current session
         session_data_status = []
@@ -2283,6 +2770,18 @@ if st.session_state.page == "AI Assistant":
         pharmGKB_analysis = uploaded_json_data.get('pharmGKB Analysis')
         
         st.info("Using uploaded JSON data with Context and Question from input fields above.")
+    elif data_source == "Provide gene list and extract evidence":
+        # Use session state data (which should be populated by extract_evidence_from_gene_list)
+        gene_enrichment = st.session_state.get('gene_enrichment')
+        community_enrichment = st.session_state.get('community_enrichment')
+        civic_evidence = st.session_state.get('civic_evidence')
+        pharmGKB_analysis = st.session_state.get('pharmGKB_analysis')
+        
+        # Check if evidence extraction has been performed
+        if gene_enrichment or community_enrichment or civic_evidence or pharmGKB_analysis:
+            st.info("Using evidence extracted from provided gene list.")
+        else:
+            st.warning("⚠️ No evidence extracted yet. Please use the 'Extract Evidence' button above to extract evidence from your gene list.")
     else:
         # Use session state data
         gene_enrichment = st.session_state.get('gene_enrichment')
@@ -2379,8 +2878,10 @@ if st.session_state.page == "AI Assistant":
         elif not has_civic_evidence and not has_pharmgkb_evidence and not has_gene_enrichment and not has_community_enrichment:
             if data_source == "Upload JSON file":
                 st.error("❌ The uploaded JSON file does not contain CIVIC Evidence, pharmGKB Analysis, Gene Enrichment, or Community Enrichment data, or no file was uploaded.")
+            elif data_source == "Provide gene list and extract evidence":
+                st.error("❌ No evidence extracted from gene list. Please use the 'Extract Evidence' button above to extract evidence from your gene list.")
             else:
-                st.error("❌ No CIVIC evidence, pharmGKB analysis, or gene enrichment data available in current session. Please run an analysis first or upload a JSON file with data.")
+                st.error("❌ No CIVIC evidence, pharmGKB analysis, or gene enrichment data available in current session. Please run an analysis first, upload a JSON file with data, or provide a gene list for evidence extraction.")
         else:
             try:
                 # Create containers for progress updates
@@ -2413,6 +2914,8 @@ if st.session_state.page == "AI Assistant":
                 # Initialize progress
                 if data_source == "Upload JSON file":
                     update_progress("**Initializing AI analysis with uploaded data...**")
+                elif data_source == "Provide gene list and extract evidence":
+                    update_progress("**Initializing AI analysis with extracted evidence from gene list...**")
                 else:
                     update_progress("**Initializing AI analysis with session data...**")
                 
@@ -2738,6 +3241,142 @@ if st.session_state.page == "AI Assistant":
         st.markdown("---")
         st.markdown("### AI Analysis Results")
         
+        # Display Novelty Analysis results if available
+        if 'EVIDENCE_INTEGRATION_consolidated' in st.session_state and st.session_state['EVIDENCE_INTEGRATION_consolidated']:
+            evidence_integration_consolidated_data = st.session_state['EVIDENCE_INTEGRATION_consolidated']
+            evidence_integration_execution_time = st.session_state.get('EVIDENCE_INTEGRATION_execution_time', 0.0)
+            
+            # Show Novelty Analysis metadata with enhanced metrics
+            evidence_integration_metadata = evidence_integration_consolidated_data.user_input
+            metrics_info = ""
+            if hasattr(evidence_integration_consolidated_data, 'metrics'):
+                metrics = evidence_integration_consolidated_data.metrics
+                token_breakdown = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
+                metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s | **Tokens:** {token_breakdown}"
+            else:
+                metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s"
+            
+            st.info(f"**Evidence Integration completed:** {evidence_integration_consolidated_data.total_iterations} iteration(s) | **Status:** {evidence_integration_consolidated_data.final_status.value}{metrics_info}")
+            
+        # Show Evidence Integration metadata with enhanced metrics
+        evidence_integration_metadata = evidence_integration_consolidated_data.user_input
+        metrics_info = ""
+        if hasattr(evidence_integration_consolidated_data, 'metrics'):
+            metrics = evidence_integration_consolidated_data.metrics
+            token_breakdown = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
+            metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s | **Tokens:** {token_breakdown}"
+        else:
+            metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s"
+        
+        st.info(f"**Evidence Integration completed:** {evidence_integration_consolidated_data.total_iterations} iteration(s) | **Status:** {evidence_integration_consolidated_data.final_status.value}{metrics_info}")
+        
+        # Expandable detailed Evidence Integration results
+        with st.expander("View Detailed Results - Evidence Integration Evidence Integration Workflow", expanded=False):
+            if evidence_integration_consolidated_data.unified_report:
+                # Display the formatted report with proper bullet point rendering
+                st.markdown("#### Formatted Unified Report")
+                
+                # Get the formatted string and ensure proper markdown rendering
+                formatted_report = evidence_integration_consolidated_data.unified_report.to_formatted_string()
+                
+                # Split by sections and render each with proper formatting
+                sections = formatted_report.split('## ')
+                for section in sections:
+                    if section.strip():
+                        if not section.startswith('##'):
+                            section = '## ' + section
+                        
+                        # Ensure bullet points are properly formatted for Streamlit
+                        lines = section.split('\n')
+                        formatted_lines = []
+                        for line in lines:
+                            line = line.strip()
+                            if line:
+                                # Convert bullet points to proper markdown format
+                                if line.startswith('•'):
+                                    line = line.replace('•', '-', 1)  # Convert • to - for better Streamlit rendering
+                                elif line.startswith('- ') or line.startswith('* '):
+                                    pass  # Already properly formatted
+                                elif not line.startswith('##') and not line.startswith('#'):
+                                    # Add bullet point if it's content but not a header
+                                    if any(char.isalnum() for char in line):  # Only if it contains actual content
+                                        line = f"- {line}"
+                                formatted_lines.append(line)
+                        
+                        formatted_section = '\n'.join(formatted_lines)
+                        st.markdown(formatted_section)
+            else:
+                st.write("No detailed results available.")
+
+            # Show evidence integration summary
+            st.markdown("#### Evidence Integration Summary")
+            
+            # Count completed sections from the original sections list
+            unified_report = evidence_integration_consolidated_data.unified_report
+            original_sections = [
+                ("Potential Novel Biomarkers", unified_report.potential_novel_biomarkers),
+                ("Implications", unified_report.implications),
+                ("Well-Known Interactions", unified_report.well_known_interactions),
+                ("Conclusions", unified_report.conclusions)
+            ]
+            completed_sections = len([s for s in original_sections if s[1] and s[1].strip()])
+            
+            evidence_summary = f"""
+            **Evidence Sources Integrated:**
+            - CIVIC genes: {evidence_integration_consolidated_data.consolidated_evidence.total_genes_civic}
+            - PharmGKB genes: {evidence_integration_consolidated_data.consolidated_evidence.total_genes_pharmgkb}
+            - Gene sets: {evidence_integration_consolidated_data.consolidated_evidence.total_gene_sets_enrichment}
+            
+            **Workflow Details:**
+            - Total iterations: {evidence_integration_consolidated_data.total_iterations}
+            - Final status: {evidence_integration_consolidated_data.final_status.value}
+            - Report sections completed: {completed_sections} of 4
+            """
+            st.markdown(evidence_summary)
+            
+            # PDF Download Button
+            st.markdown("#### Download Report")
+            
+            # Prepare data for PDF generation
+            context = st.session_state.get("ai_context", "")
+            question = st.session_state.get("ai_prompt", "")
+            
+            # Get gene list from session state
+            gene_list = st.session_state.get('gene_list_no_types', [])
+            if not gene_list:
+                # Fallback to try other sources of gene information
+                if st.session_state.get('gene_list'):
+                    gene_list = [gene.replace('_gene', '') for gene in st.session_state['gene_list']]
+            
+            analysis_timestamp = datetime.now()
+            
+            # Generate PDF
+            try:
+                pdf_content = generate_evidence_integration_pdf(
+                    context=context,
+                    question=question, 
+                    gene_list=gene_list,
+                    evidence_integration_data=evidence_integration_consolidated_data,
+                    analysis_timestamp=analysis_timestamp
+                )
+                
+                if pdf_content:
+                    st.download_button(
+                        label="📄 Download PDF Report",
+                        data=pdf_content,
+                        file_name=f"evidence_integration_report_{analysis_timestamp.strftime('%Y%m%d_%H%M%S')}.pdf",
+                        mime="application/pdf",
+                        help="Download a comprehensive PDF report of the Evidence Integration analysis",
+                        use_container_width=True
+                    )
+                else:
+                    st.warning("⚠️ PDF generation requires the 'reportlab' library. Please install it to enable PDF downloads.")
+                    st.code("pip install reportlab")
+                    
+            except Exception as e:
+                st.error(f"❌ Error generating PDF: {str(e)}")
+                st.info("💡 To enable PDF generation, please ensure 'reportlab' is installed: `pip install reportlab`")
+        
         # Display CIVIC results if available
         if 'CIVIC_AI_consolidated' in st.session_state and st.session_state['CIVIC_AI_consolidated']:
             civic_consolidated_data = st.session_state['CIVIC_AI_consolidated']
@@ -2813,23 +3452,8 @@ if st.session_state.page == "AI Assistant":
                 else:
                     st.write("No detailed results available.")
         
-        # Display Novelty Analysis results if available
-        if 'EVIDENCE_INTEGRATION_consolidated' in st.session_state and st.session_state['EVIDENCE_INTEGRATION_consolidated']:
-            evidence_integration_consolidated_data = st.session_state['EVIDENCE_INTEGRATION_consolidated']
-            evidence_integration_execution_time = st.session_state.get('EVIDENCE_INTEGRATION_execution_time', 0.0)
-            
-            # Show Novelty Analysis metadata with enhanced metrics
-            evidence_integration_metadata = evidence_integration_consolidated_data.user_input
-            metrics_info = ""
-            if hasattr(evidence_integration_consolidated_data, 'metrics'):
-                metrics = evidence_integration_consolidated_data.metrics
-                token_breakdown = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
-                metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s | **Tokens:** {token_breakdown}"
-            else:
-                metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s"
-            
-            st.info(f"**Evidence Integration completed:** {evidence_integration_consolidated_data.total_iterations} iteration(s) | **Status:** {evidence_integration_consolidated_data.final_status.value}{metrics_info}")
-            
+        
+
             # Expandable detailed Novelty Analysis results
             # with st.expander("View Detailed Results - Novelty Analysis Evidence Integration Workflow", expanded=False):
             #     if evidence_integration_consolidated_data.unified_report:
@@ -3002,86 +3626,7 @@ if st.session_state.page == "AI Assistant":
             help="Download all prompts sent to LLM agents during the Gene Enrichment analysis"
         )
 
-        # Display Evidence Integration results if available
-        if 'EVIDENCE_INTEGRATION_consolidated' in st.session_state and st.session_state['EVIDENCE_INTEGRATION_consolidated']:
-            evidence_integration_consolidated_data = st.session_state['EVIDENCE_INTEGRATION_consolidated']
-            evidence_integration_execution_time = st.session_state.get('EVIDENCE_INTEGRATION_execution_time', 0.0)
-            
-            # Show Evidence Integration metadata with enhanced metrics
-            evidence_integration_metadata = evidence_integration_consolidated_data.user_input
-            metrics_info = ""
-            if hasattr(evidence_integration_consolidated_data, 'metrics'):
-                metrics = evidence_integration_consolidated_data.metrics
-                token_breakdown = f"{metrics.total_tokens_used.prompt_tokens}→{metrics.total_tokens_used.completion_tokens} ({metrics.total_tokens_used.prompt_tokens} in, {metrics.total_tokens_used.completion_tokens} out)"
-                metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s | **Tokens:** {token_breakdown}"
-            else:
-                metrics_info = f" | **Time:** {evidence_integration_execution_time:.1f}s"
-            
-            st.info(f"**Evidence Integration completed:** {evidence_integration_consolidated_data.total_iterations} iteration(s) | **Status:** {evidence_integration_consolidated_data.final_status.value}{metrics_info}")
-            
-            # Expandable detailed Evidence Integration results
-            with st.expander("View Detailed Results - Evidence Integration Evidence Integration Workflow", expanded=False):
-                if evidence_integration_consolidated_data.unified_report:
-                    # Display the formatted report with proper bullet point rendering
-                    st.markdown("#### Formatted Unified Report")
-                    
-                    # Get the formatted string and ensure proper markdown rendering
-                    formatted_report = evidence_integration_consolidated_data.unified_report.to_formatted_string()
-                    
-                    # Split by sections and render each with proper formatting
-                    sections = formatted_report.split('## ')
-                    for section in sections:
-                        if section.strip():
-                            if not section.startswith('##'):
-                                section = '## ' + section
-                            
-                            # Ensure bullet points are properly formatted for Streamlit
-                            lines = section.split('\n')
-                            formatted_lines = []
-                            for line in lines:
-                                line = line.strip()
-                                if line:
-                                    # Convert bullet points to proper markdown format
-                                    if line.startswith('•'):
-                                        line = line.replace('•', '-', 1)  # Convert • to - for better Streamlit rendering
-                                    elif line.startswith('- ') or line.startswith('* '):
-                                        pass  # Already properly formatted
-                                    elif not line.startswith('##') and not line.startswith('#'):
-                                        # Add bullet point if it's content but not a header
-                                        if any(char.isalnum() for char in line):  # Only if it contains actual content
-                                            line = f"- {line}"
-                                    formatted_lines.append(line)
-                            
-                            formatted_section = '\n'.join(formatted_lines)
-                            st.markdown(formatted_section)
-                else:
-                    st.write("No detailed results available.")
-
-                # Show evidence integration summary
-                st.markdown("#### Evidence Integration Summary")
-                
-                # Count completed sections from the original sections list
-                unified_report = evidence_integration_consolidated_data.unified_report
-                original_sections = [
-                    ("Potential Novel Biomarkers", unified_report.potential_novel_biomarkers),
-                    ("Implications", unified_report.implications),
-                    ("Well-Known Interactions", unified_report.well_known_interactions),
-                    ("Conclusions", unified_report.conclusions)
-                ]
-                completed_sections = len([s for s in original_sections if s[1] and s[1].strip()])
-                
-                evidence_summary = f"""
-                **Evidence Sources Integrated:**
-                - CIVIC genes: {evidence_integration_consolidated_data.consolidated_evidence.total_genes_civic}
-                - PharmGKB genes: {evidence_integration_consolidated_data.consolidated_evidence.total_genes_pharmgkb}
-                - Gene sets: {evidence_integration_consolidated_data.consolidated_evidence.total_gene_sets_enrichment}
-                
-                **Workflow Details:**
-                - Total iterations: {evidence_integration_consolidated_data.total_iterations}
-                - Final status: {evidence_integration_consolidated_data.final_status.value}
-                - Report sections completed: {completed_sections} of 4
-                """
-                st.markdown(evidence_summary)
+        
     
     # Evidence Integration Workflow Downloads
     if 'EVIDENCE_INTEGRATION_results' in st.session_state and st.session_state['EVIDENCE_INTEGRATION_results']:
